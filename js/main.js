@@ -1,0 +1,121 @@
+import {
+  MAP_W,
+  MAP_H,
+  DIRS
+} from "./config.js";
+import {
+  cells,
+  explored,
+  resetExplored,
+  buildBoundaryWallMap,
+  chooseStartDirection,
+  inBounds,
+  wallOnCell
+} from "./dungeon.js";
+import {
+  state,
+  configurePlayer,
+  resetPlayer,
+  updateAnimation,
+  manualMove,
+  manualTurn
+} from "./player.js";
+import { configureRenderer, startRenderLoop } from "./renderer.js";
+import { drawMinimap } from "./minimap.js";
+import { configureInput } from "./input.js";
+import {
+  configureAutoReturn,
+  startAutoReturn,
+  continueAutoReturn,
+  cancelAutoReturn,
+  updateAutoReturnButton
+} from "./autoReturn.js";
+import { configureEvents, messageFor, say } from "./events.js";
+import { configureDevice } from "./device.js";
+
+(() => {
+  const canvas = document.getElementById("screen");
+  const ctx = canvas.getContext("2d", { alpha: false });
+  const W = canvas.width;
+
+
+  buildBoundaryWallMap();
+  let startDir = chooseStartDirection();
+
+  resetPlayer(startDir);
+
+
+  const posEl = document.getElementById("pos");
+  const dirEl = document.getElementById("dir");
+  const msgEl = document.getElementById("message");
+  const forwardBtn = document.getElementById("forward");
+  const backBtn = document.getElementById("back");
+  const leftBtn = document.getElementById("left");
+  const rightBtn = document.getElementById("right");
+  const autoReturnBtn = document.getElementById("autoReturn");
+  const randomGenerateBtn = document.getElementById("randomGenerate");
+  configureDevice();
+  configureEvents({ messageEl: msgEl });
+  configureRenderer({
+    canvas,
+    ctx,
+    state,
+    wallOnCell,
+    inBounds,
+    updateAnimation,
+    updateHud,
+    drawMinimap,
+    getMinimapOptions: () => ({
+      W,
+      MAP_W,
+      MAP_H,
+      cells,
+      explored,
+      state
+    })
+  });
+  configureAutoReturn({ autoReturnBtn, say });
+  configurePlayer({ say, cancelAutoReturn, continueAutoReturn, messageFor });
+
+  function generateRandomDungeon() {
+    cancelAutoReturn(false);
+    buildBoundaryWallMap();
+    startDir = chooseStartDirection();
+    resetExplored();
+    resetPlayer(startDir);
+    updateAutoReturnButton();
+    say("新しいランダムダンジョンを生成した。");
+    updateHud();
+  }
+
+  function updateHud() {
+    posEl.textContent = `X:${state.gridX} Y:${state.gridY}`;
+    dirEl.textContent = DIRS[state.dir].label;
+  }
+
+  configureInput({
+    forwardBtn,
+    backBtn,
+    leftBtn,
+    rightBtn,
+    autoReturnBtn,
+    randomGenerateBtn,
+    manualMove,
+    manualTurn,
+    startAutoReturn,
+    generateRandomDungeon
+  });
+
+  updateAutoReturnButton();
+  startRenderLoop();
+})();
+
+
+
+
+
+
+
+
+
+

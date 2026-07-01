@@ -1,0 +1,48 @@
+﻿<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3DダンジョンRPG プロトタイプ</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<main class="shell">
+  <section class="game" aria-label="3Dダンジョン">
+    <div class="viewport">
+      <canvas id="screen" width="960" height="540"></canvas>
+      <div class="status">
+        <div class="readout">
+          <span class="chip" id="pos">X:0 Y:0</span>
+          <span class="chip" id="dir">N</span>
+          <span class="chip" id="depth">B1F</span>
+        </div>
+        <div class="message" id="message">10×10の床空間を、薄い境界壁が区切っている。</div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="brand">RANDOM MAZE TEST B1F</div>
+      <div class="pad" aria-label="移動操作">
+        <button id="forward" type="button" title="前進">↑</button>
+        <button id="left" type="button" title="左旋回">←</button>
+        <button id="back" type="button" title="後退">↓</button>
+        <button id="right" type="button" title="右旋回">→</button>
+        <button id="autoReturn" type="button" title="踏破済みの道だけを通ってスタート地点へ戻る">帰還</button>
+        <button id="randomGenerate" type="button" title="新しいランダムダンジョンを生成する">ランダム生成</button>
+      </div>
+      <div class="meter" aria-label="たいまつ"><span></span></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  if (location.protocol === "file:") {
+    document.write('<script src="js/main.bundle.js"><\/script>');
+  } else {
+    document.write('<script type="module" src="js/main.js"><\/script>');
+  }
+</script>
+</body>
+</html>
+
+
