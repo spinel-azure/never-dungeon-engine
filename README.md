@@ -105,3 +105,9 @@ data/
 
 NDEは静的ファイルのみで構成されているため、GitHub Pagesでの公開を想定しています。
 GitHub Pages上では `index.html` からES Modules版の `js/main.js` を読み込んで動作する想定です。
+
+## License
+
+Copyright (c) 2026 spinel-azure
+
+All rights reserved.
