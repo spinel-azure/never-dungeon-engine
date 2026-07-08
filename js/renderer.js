@@ -16,6 +16,9 @@ const renderer = {
   updateHud: () => {},
   drawMinimap: () => {},
   getMinimapOptions: () => ({}),
+  getMinimapBounds: () => ({ x: 0, y: 0, w: 0, h: 0 }),
+  minimapOverlayVisible: false,
+  lastCanvasTouchAt: 0,
   wallTexture: null
 };
 
@@ -24,6 +27,8 @@ export function configureRenderer(options) {
   renderer.W = renderer.canvas.width;
   renderer.H = renderer.canvas.height;
   renderer.wallTexture = makeWallTexture();
+  renderer.canvas.addEventListener("pointerup", handleCanvasPointerUp);
+  renderer.canvas.addEventListener("touchend", handleCanvasTouchEnd, { passive: false });
 }
 
 export function startRenderLoop() {
@@ -36,6 +41,16 @@ export function drawScene(now) {
   ctx.save();
   ctx.fillStyle = "#070909";
   ctx.fillRect(0, 0, W, H);
+
+  if (state.torchFuel <= 0) {
+    renderer.minimapOverlayVisible = false;
+    drawDarknessMessage();
+    ctx.restore();
+    drawFrame();
+    renderer.updateHud();
+    requestAnimationFrame(drawScene);
+    return;
+  }
 
   const sway = Math.sin(now * 0.005) * 2 + state.shake;
   state.shake *= 0.86;
@@ -50,10 +65,77 @@ export function drawScene(now) {
     ...renderer.getMinimapOptions(),
     roundRect
   });
+  if (renderer.minimapOverlayVisible) drawMinimapOverlay();
   ctx.restore();
   drawFrame();
   renderer.updateHud();
   requestAnimationFrame(drawScene);
+}
+
+function handleCanvasPointerUp(e) {
+  if (Date.now() - renderer.lastCanvasTouchAt < 450) return;
+  handleCanvasActivation(e.clientX, e.clientY);
+}
+
+function handleCanvasTouchEnd(e) {
+  const touch = e.changedTouches[0];
+  if (!touch) return;
+  renderer.lastCanvasTouchAt = Date.now();
+  handleCanvasActivation(touch.clientX, touch.clientY);
+}
+
+function handleCanvasActivation(clientX, clientY) {
+  const { canvas, W, H, state } = renderer;
+  if (state.torchFuel <= 0) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = ((clientX - rect.left) / rect.width) * W;
+  const y = ((clientY - rect.top) / rect.height) * H;
+  if (renderer.minimapOverlayVisible) {
+    renderer.minimapOverlayVisible = false;
+    return;
+  }
+
+  const bounds = renderer.getMinimapBounds(W);
+  if (
+    x >= bounds.x && x <= bounds.x + bounds.w &&
+    y >= bounds.y && y <= bounds.y + bounds.h
+  ) {
+    renderer.minimapOverlayVisible = true;
+  }
+}
+
+function drawMinimapOverlay() {
+  const { ctx, W, H } = renderer;
+  const size = Math.min(W * .58, H * .72, 360);
+  const ox = (W - size) / 2;
+  const oy = (H - size) / 2;
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,.58)";
+  ctx.fillRect(0, 0, W, H);
+  renderer.drawMinimap(ctx, {
+    ...renderer.getMinimapOptions(),
+    H,
+    roundRect,
+    size,
+    ox,
+    oy,
+    alpha: .96
+  });
+  ctx.restore();
+}
+
+function drawDarknessMessage() {
+  const { ctx, W, H } = renderer;
+  ctx.save();
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#f0eadc";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "700 34px GameFont, sans-serif";
+  ctx.fillText("なにも　みえない！", W / 2, H / 2);
+  ctx.restore();
 }
 
 export function drawCeiling() {

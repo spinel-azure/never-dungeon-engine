@@ -21,7 +21,7 @@ import {
   manualTurn
 } from "./player.js";
 import { configureRenderer, startRenderLoop } from "./renderer.js";
-import { drawMinimap } from "./minimap.js";
+import { drawMinimap, getMinimapBounds } from "./minimap.js";
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
 import {
@@ -72,12 +72,14 @@ import { configureDevice } from "./device.js";
     drawMinimap,
     getMinimapOptions: () => ({
       W,
+      H: canvas.height,
       MAP_W,
       MAP_H,
       cells,
       explored,
       state
-    })
+    }),
+    getMinimapBounds
   });
   configureAutoReturn({ autoReturnBtn, say });
   configurePlayer({ say, cancelAutoReturn, continueAutoReturn, messageFor });

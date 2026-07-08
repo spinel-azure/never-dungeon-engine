@@ -20,7 +20,7 @@ const hooks = {
 };
 
 const TORCH_FUEL_MAX = 100;
-const TORCH_FUEL_STEP = 4;
+const TORCH_FUEL_STEP = 1;
 
 export const state = createPlayerState(2);
 

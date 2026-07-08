@@ -225,7 +225,7 @@
   };
 
   const TORCH_FUEL_MAX = 100;
-  const TORCH_FUEL_STEP = 4;
+  const TORCH_FUEL_STEP = 1;
   
   const state = createPlayerState(2);
   
@@ -381,6 +381,9 @@
     updateHud: () => {},
     drawMinimap: () => {},
     getMinimapOptions: () => ({}),
+    getMinimapBounds: () => ({ x: 0, y: 0, w: 0, h: 0 }),
+    minimapOverlayVisible: false,
+    lastCanvasTouchAt: 0,
     wallTexture: null
   };
   
@@ -389,6 +392,8 @@
     renderer.W = renderer.canvas.width;
     renderer.H = renderer.canvas.height;
     renderer.wallTexture = makeWallTexture();
+    renderer.canvas.addEventListener("pointerup", handleCanvasPointerUp);
+    renderer.canvas.addEventListener("touchend", handleCanvasTouchEnd, { passive: false });
   }
   
   function startRenderLoop() {
@@ -401,6 +406,16 @@
     ctx.save();
     ctx.fillStyle = "#070909";
     ctx.fillRect(0, 0, W, H);
+
+    if (state.torchFuel <= 0) {
+      renderer.minimapOverlayVisible = false;
+      drawDarknessMessage();
+      ctx.restore();
+      drawFrame();
+      renderer.updateHud();
+      requestAnimationFrame(drawScene);
+      return;
+    }
   
     const sway = Math.sin(now * 0.005) * 2 + state.shake;
     state.shake *= 0.86;
@@ -415,10 +430,77 @@
       ...renderer.getMinimapOptions(),
       roundRect
     });
+    if (renderer.minimapOverlayVisible) drawMinimapOverlay();
     ctx.restore();
     drawFrame();
     renderer.updateHud();
     requestAnimationFrame(drawScene);
+  }
+
+  function handleCanvasPointerUp(e) {
+    if (Date.now() - renderer.lastCanvasTouchAt < 450) return;
+    handleCanvasActivation(e.clientX, e.clientY);
+  }
+
+  function handleCanvasTouchEnd(e) {
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    renderer.lastCanvasTouchAt = Date.now();
+    handleCanvasActivation(touch.clientX, touch.clientY);
+  }
+
+  function handleCanvasActivation(clientX, clientY) {
+    const { canvas, W, H, state } = renderer;
+    if (state.torchFuel <= 0) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * W;
+    const y = ((clientY - rect.top) / rect.height) * H;
+    if (renderer.minimapOverlayVisible) {
+      renderer.minimapOverlayVisible = false;
+      return;
+    }
+
+    const bounds = renderer.getMinimapBounds(W);
+    if (
+      x >= bounds.x && x <= bounds.x + bounds.w &&
+      y >= bounds.y && y <= bounds.y + bounds.h
+    ) {
+      renderer.minimapOverlayVisible = true;
+    }
+  }
+
+  function drawMinimapOverlay() {
+    const { ctx, W, H } = renderer;
+    const size = Math.min(W * .58, H * .72, 360);
+    const ox = (W - size) / 2;
+    const oy = (H - size) / 2;
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,.58)";
+    ctx.fillRect(0, 0, W, H);
+    renderer.drawMinimap(ctx, {
+      ...renderer.getMinimapOptions(),
+      H,
+      roundRect,
+      size,
+      ox,
+      oy,
+      alpha: .96
+    });
+    ctx.restore();
+  }
+
+  function drawDarknessMessage() {
+    const { ctx, W, H } = renderer;
+    ctx.save();
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#f0eadc";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "700 34px GameFont, sans-serif";
+    ctx.fillText("なにも　みえない！", W / 2, H / 2);
+    ctx.restore();
   }
   
   function drawCeiling() {
@@ -827,8 +909,9 @@
   const DEAD_ZONE = 24;
   const MAX_RADIUS = 40;
   const MOVE_REPEAT_MS = 90;
-  const HORIZONTAL_TURN_RATIO = 1.6;
-  const VERTICAL_MOVE_RATIO = 0.65;
+  const HORIZONTAL_TURN_RATIO = 2.5;
+  const HORIZONTAL_TURN_MIN = 34;
+  const VERTICAL_MOVE_RATIO = 0.45;
 
   function configureVirtualStick({
     stickEl,
@@ -842,6 +925,7 @@
     let centerX = 0;
     let centerY = 0;
     let activeInputKey = null;
+    let activeInputType = null;
     let repeatTimer = null;
 
     function begin(e) {
@@ -890,6 +974,7 @@
 
     function beginAt(clientX, clientY) {
       activeInputKey = null;
+      activeInputType = null;
       const rect = stickEl.getBoundingClientRect();
       centerX = rect.left + rect.width / 2;
       centerY = rect.top + rect.height / 2;
@@ -913,6 +998,7 @@
     function finishInput() {
       activePointerId = null;
       activeInputKey = null;
+      activeInputType = null;
       stopRepeat();
       if (knob) knob.style.transform = "translate(0, 0)";
     }
@@ -927,14 +1013,18 @@
       const direction = getDirection(dx, dy, distance);
       if (!direction) {
         activeInputKey = null;
+        activeInputType = null;
         stopRepeat();
         return;
       }
+
+      if (activeInputType && direction.type !== activeInputType) return;
 
       const inputKey = `${direction.type}:${direction.amount}`;
       if (inputKey === activeInputKey) return;
 
       activeInputKey = inputKey;
+      activeInputType = direction.type;
       if (direction.type === "move") {
         startMoveRepeat(direction.amount);
         return;
@@ -952,7 +1042,7 @@
       if (absY >= absX * VERTICAL_MOVE_RATIO) {
         return { type: "move", amount: dy < 0 ? 1 : -1 };
       }
-      if (absX >= absY * HORIZONTAL_TURN_RATIO) {
+      if (absX >= HORIZONTAL_TURN_MIN && absX >= absY * HORIZONTAL_TURN_RATIO) {
         return { type: "turn", amount: dx < 0 ? -1 : 1 };
       }
       return null;
@@ -982,19 +1072,21 @@
   
   function drawMinimap(ctx, {
     W,
+    H,
     MAP_W,
     MAP_H,
     cells,
     explored,
     state,
-    roundRect
+    roundRect,
+    size = 126,
+    ox = W - size - 16,
+    oy = 16,
+    alpha = .82
   }) {
-    const size = 126;
     const cell = size / MAP_W;
-    const ox = W - size - 16;
-    const oy = 16;
     ctx.save();
-    ctx.globalAlpha = .82;
+    ctx.globalAlpha = alpha;
     ctx.fillStyle = "rgba(4,5,5,.68)";
     roundRect(ox - 8, oy - 8, size + 16, size + 16, 8);
     ctx.fill();
@@ -1053,6 +1145,15 @@
     ctx.lineWidth = 1;
     ctx.strokeRect(ox - 5, oy - 5, size + 10, size + 10);
     ctx.restore();
+  }
+
+  function getMinimapBounds(W, size = 126, margin = 16, pad = 8) {
+    return {
+      x: W - size - margin - pad,
+      y: margin - pad,
+      w: size + pad * 2,
+      h: size + pad * 2
+    };
   }
   
   function drawUnknownMapCell(ctx, x, y, size, gx, gy) {
@@ -1145,12 +1246,14 @@
     drawMinimap,
     getMinimapOptions: () => ({
       W,
+      H: canvas.height,
       MAP_W,
       MAP_H,
       cells,
       explored,
       state
-    })
+    }),
+    getMinimapBounds
   });
   configureAutoReturn({ autoReturnBtn, say });
   configurePlayer({ say, cancelAutoReturn, continueAutoReturn, messageFor });

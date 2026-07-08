@@ -5,14 +5,15 @@
   cells,
   explored,
   state,
-  roundRect
+  roundRect,
+  size = 126,
+  ox = W - size - 16,
+  oy = 16,
+  alpha = .82
 }) {
-  const size = 126;
   const cell = size / MAP_W;
-  const ox = W - size - 16;
-  const oy = 16;
   ctx.save();
-  ctx.globalAlpha = .82;
+  ctx.globalAlpha = alpha;
   ctx.fillStyle = "rgba(4,5,5,.68)";
   roundRect(ox - 8, oy - 8, size + 16, size + 16, 8);
   ctx.fill();
@@ -89,6 +90,15 @@ export function drawUnknownMapCell(ctx, x, y, size, gx, gy) {
     const py = y + 2 + ((hashNoise(gx + 11, gy + i * 5) * (size - 4)) | 0);
     ctx.fillRect(px, py, 1.2, 1.2);
   }
+}
+
+export function getMinimapBounds(W, size = 126, margin = 16, pad = 8) {
+  return {
+    x: W - size - margin - pad,
+    y: margin - pad,
+    w: size + pad * 2,
+    h: size + pad * 2
+  };
 }
 
 export function hashNoise(x, y) {

@@ -1,8 +1,9 @@
 const DEAD_ZONE = 24;
 const MAX_RADIUS = 40;
 const MOVE_REPEAT_MS = 90;
-const HORIZONTAL_TURN_RATIO = 1.6;
-const VERTICAL_MOVE_RATIO = 0.65;
+const HORIZONTAL_TURN_RATIO = 2.5;
+const HORIZONTAL_TURN_MIN = 34;
+const VERTICAL_MOVE_RATIO = 0.45;
 
 export function configureVirtualStick({
   stickEl,
@@ -16,6 +17,7 @@ export function configureVirtualStick({
   let centerX = 0;
   let centerY = 0;
   let activeInputKey = null;
+  let activeInputType = null;
   let repeatTimer = null;
 
   function begin(e) {
@@ -64,6 +66,7 @@ export function configureVirtualStick({
 
   function beginAt(clientX, clientY) {
     activeInputKey = null;
+    activeInputType = null;
     const rect = stickEl.getBoundingClientRect();
     centerX = rect.left + rect.width / 2;
     centerY = rect.top + rect.height / 2;
@@ -87,6 +90,7 @@ export function configureVirtualStick({
   function finishInput() {
     activePointerId = null;
     activeInputKey = null;
+    activeInputType = null;
     stopRepeat();
     if (knob) knob.style.transform = "translate(0, 0)";
   }
@@ -101,14 +105,18 @@ export function configureVirtualStick({
     const direction = getDirection(dx, dy, distance);
     if (!direction) {
       activeInputKey = null;
+      activeInputType = null;
       stopRepeat();
       return;
     }
+
+    if (activeInputType && direction.type !== activeInputType) return;
 
     const inputKey = `${direction.type}:${direction.amount}`;
     if (inputKey === activeInputKey) return;
 
     activeInputKey = inputKey;
+    activeInputType = direction.type;
     if (direction.type === "move") {
       startMoveRepeat(direction.amount);
       return;
@@ -126,7 +134,7 @@ export function configureVirtualStick({
     if (absY >= absX * VERTICAL_MOVE_RATIO) {
       return { type: "move", amount: dy < 0 ? 1 : -1 };
     }
-    if (absX >= absY * HORIZONTAL_TURN_RATIO) {
+    if (absX >= HORIZONTAL_TURN_MIN && absX >= absY * HORIZONTAL_TURN_RATIO) {
       return { type: "turn", amount: dx < 0 ? -1 : 1 };
     }
     return null;
