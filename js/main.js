@@ -23,6 +23,7 @@ import {
 import { configureRenderer, startRenderLoop } from "./renderer.js";
 import { drawMinimap } from "./minimap.js";
 import { configureInput } from "./input.js";
+import { configureVirtualStick } from "./virtualStick.js";
 import {
   configureAutoReturn,
   startAutoReturn,
@@ -54,6 +55,9 @@ import { configureDevice } from "./device.js";
   const rightBtn = document.getElementById("right");
   const autoReturnBtn = document.getElementById("autoReturn");
   const randomGenerateBtn = document.getElementById("randomGenerate");
+  const virtualStickEl = document.getElementById("virtualStick");
+  const buttonA = document.getElementById("buttonA");
+  const buttonB = document.getElementById("buttonB");
   configureDevice();
   configureEvents({ messageEl: msgEl });
   configureRenderer({
@@ -103,7 +107,15 @@ import { configureDevice } from "./device.js";
     manualMove,
     manualTurn,
     startAutoReturn,
-    generateRandomDungeon
+    generateRandomDungeon,
+    buttonA,
+    buttonB,
+    say
+  });
+  configureVirtualStick({
+    stickEl: virtualStickEl,
+    manualMove,
+    manualTurn
   });
 
   updateAutoReturnButton();

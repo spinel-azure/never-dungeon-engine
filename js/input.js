@@ -8,7 +8,10 @@
   manualMove,
   manualTurn,
   startAutoReturn,
-  generateRandomDungeon
+  generateRandomDungeon,
+  buttonA,
+  buttonB,
+  say
 }) {
   window.addEventListener("keydown", (e) => {
     if (e.key === "ArrowUp") { e.preventDefault(); manualMove(1); }
@@ -23,4 +26,6 @@
   rightBtn.addEventListener("click", () => manualTurn(1));
   autoReturnBtn.addEventListener("click", startAutoReturn);
   randomGenerateBtn.addEventListener("click", generateRandomDungeon);
+  buttonA.addEventListener("click", () => say("Aボタンを押した。"));
+  buttonB.addEventListener("click", () => say("Bボタンを押した。"));
 }
