@@ -559,12 +559,16 @@
     }
 
     html,
+    html *,
     body,
+    body *,
     canvas {
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
+      -webkit-user-drag: none;
+      caret-color: transparent;
     }
 
     body.layout-mobile,
@@ -592,6 +596,8 @@
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
+      -webkit-user-drag: none;
+      caret-color: transparent;
     }
 
     body.layout-mobile canvas,
