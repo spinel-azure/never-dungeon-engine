@@ -557,3 +557,48 @@
         font-size: 23px;
       }
     }
+
+    html,
+    body,
+    canvas {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body.layout-mobile,
+    body.layout-mobile .shell,
+    body.layout-mobile .game,
+    body.layout-mobile .controls,
+    body.layout-mobile .pad,
+    body.layout-mobile button,
+    body.layout-mobile .virtual-stick,
+    body.layout-mobile .virtual-stick *,
+    body.layout-mobile .action-buttons,
+    body.layout-mobile .action-button,
+    body.layout-tablet,
+    body.layout-tablet .shell,
+    body.layout-tablet .game,
+    body.layout-tablet .controls,
+    body.layout-tablet .pad,
+    body.layout-tablet button,
+    body.layout-tablet .virtual-stick,
+    body.layout-tablet .virtual-stick *,
+    body.layout-tablet .action-buttons,
+    body.layout-tablet .action-button {
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body.layout-mobile canvas,
+    body.layout-tablet canvas {
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }

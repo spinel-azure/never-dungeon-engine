@@ -738,6 +738,29 @@
     randomGenerateBtn.addEventListener("click", generateRandomDungeon);
     buttonA.addEventListener("click", () => say("Aボタンを押した。"));
     buttonB.addEventListener("click", () => say("Bボタンを押した。"));
+    configureTouchGuards();
+  }
+
+  function configureTouchGuards() {
+    let lastTouchEnd = 0;
+
+    function isTouchLayout() {
+      return document.body.classList.contains("layout-mobile")
+        || document.body.classList.contains("layout-tablet");
+    }
+
+    document.addEventListener("touchend", (e) => {
+      if (!isTouchLayout()) return;
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) e.preventDefault();
+      lastTouchEnd = now;
+    }, { passive: false });
+
+    document.querySelectorAll(".virtual-stick, .action-buttons, .pad, button, canvas").forEach((el) => {
+      el.addEventListener("contextmenu", (e) => {
+        if (isTouchLayout()) e.preventDefault();
+      });
+    });
   }
 
   const DEAD_ZONE = 24;
