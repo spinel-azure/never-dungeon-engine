@@ -49,6 +49,7 @@ import { configureDevice } from "./device.js";
   const posEl = document.getElementById("pos");
   const dirEl = document.getElementById("dir");
   const msgEl = document.getElementById("message");
+  const torchMeterEl = document.getElementById("torchMeter");
   const forwardBtn = document.getElementById("forward");
   const backBtn = document.getElementById("back");
   const leftBtn = document.getElementById("left");
@@ -95,6 +96,7 @@ import { configureDevice } from "./device.js";
   function updateHud() {
     posEl.textContent = `X:${state.gridX} Y:${state.gridY}`;
     dirEl.textContent = DIRS[state.dir].label;
+    torchMeterEl.style.width = `${state.torchFuel}%`;
   }
 
   configureInput({

@@ -223,6 +223,9 @@
     continueAutoReturn: () => {},
     messageFor: () => ""
   };
+
+  const TORCH_FUEL_MAX = 100;
+  const TORCH_FUEL_STEP = 4;
   
   const state = createPlayerState(2);
   
@@ -241,6 +244,7 @@
       anim: null,
       shake: 0,
       torch: 0,
+      torchFuel: TORCH_FUEL_MAX,
       autoReturning: false,
       autoPath: []
     };
@@ -255,6 +259,7 @@
     state.y = START_Y + .5;
     state.angle = DIRS[startDir].angle;
     state.shake = 0;
+    state.torchFuel = TORCH_FUEL_MAX;
     state.autoPath = [];
     markExplored(START_X, START_Y);
   }
@@ -277,6 +282,7 @@
         state.x = state.gridX + .5;
         state.y = state.gridY + .5;
         markExplored(state.gridX, state.gridY);
+        state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
       } else {
         state.dir = a.toDir;
         state.angle = DIRS[state.dir].angle;
@@ -820,6 +826,9 @@
 
   const DEAD_ZONE = 24;
   const MAX_RADIUS = 40;
+  const MOVE_REPEAT_MS = 90;
+  const HORIZONTAL_TURN_RATIO = 1.6;
+  const VERTICAL_MOVE_RATIO = 0.65;
 
   function configureVirtualStick({
     stickEl,
@@ -832,12 +841,13 @@
     let activePointerId = null;
     let centerX = 0;
     let centerY = 0;
-    let inputLocked = false;
+    let activeInputKey = null;
+    let repeatTimer = null;
 
     function begin(e) {
       if (activePointerId !== null) return;
       activePointerId = e.pointerId;
-      inputLocked = false;
+      activeInputKey = null;
       const rect = stickEl.getBoundingClientRect();
       centerX = rect.left + rect.width / 2;
       centerY = rect.top + rect.height / 2;
@@ -858,18 +868,7 @@
 
       if (knob) knob.style.transform = `translate(${knobX}px, ${knobY}px)`;
 
-      if (distance < DEAD_ZONE) {
-        inputLocked = false;
-        return;
-      }
-      if (inputLocked) return;
-
-      inputLocked = true;
-      if (Math.abs(dx) > Math.abs(dy)) {
-        manualTurn(dx < 0 ? -1 : 1);
-      } else {
-        manualMove(dy < 0 ? 1 : -1);
-      }
+      handleDirection(dx, dy, distance);
     }
 
     function end(e) {
@@ -878,8 +877,56 @@
         stickEl.releasePointerCapture(e.pointerId);
       }
       activePointerId = null;
-      inputLocked = false;
+      activeInputKey = null;
+      stopRepeat();
       if (knob) knob.style.transform = "translate(0, 0)";
+    }
+
+    function handleDirection(dx, dy, distance) {
+      const direction = getDirection(dx, dy, distance);
+      if (!direction) {
+        activeInputKey = null;
+        stopRepeat();
+        return;
+      }
+
+      const inputKey = `${direction.type}:${direction.amount}`;
+      if (inputKey === activeInputKey) return;
+
+      activeInputKey = inputKey;
+      if (direction.type === "move") {
+        startMoveRepeat(direction.amount);
+        return;
+      }
+
+      stopRepeat();
+      manualTurn(direction.amount);
+    }
+
+    function getDirection(dx, dy, distance) {
+      if (distance < DEAD_ZONE) return null;
+
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+      if (absY >= absX * VERTICAL_MOVE_RATIO) {
+        return { type: "move", amount: dy < 0 ? 1 : -1 };
+      }
+      if (absX >= absY * HORIZONTAL_TURN_RATIO) {
+        return { type: "turn", amount: dx < 0 ? -1 : 1 };
+      }
+      return null;
+    }
+
+    function startMoveRepeat(amount) {
+      stopRepeat();
+      manualMove(amount);
+      repeatTimer = window.setInterval(() => manualMove(amount), MOVE_REPEAT_MS);
+    }
+
+    function stopRepeat() {
+      if (!repeatTimer) return;
+      window.clearInterval(repeatTimer);
+      repeatTimer = null;
     }
 
     stickEl.addEventListener("pointerdown", begin);
@@ -1030,6 +1077,7 @@
   const posEl = document.getElementById("pos");
   const dirEl = document.getElementById("dir");
   const msgEl = document.getElementById("message");
+  const torchMeterEl = document.getElementById("torchMeter");
   const forwardBtn = document.getElementById("forward");
   const backBtn = document.getElementById("back");
   const leftBtn = document.getElementById("left");
@@ -1076,6 +1124,7 @@
   function updateHud() {
     posEl.textContent = `X:${state.gridX} Y:${state.gridY}`;
     dirEl.textContent = DIRS[state.dir].label;
+    torchMeterEl.style.width = `${state.torchFuel}%`;
   }
 
   configureInput({

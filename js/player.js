@@ -19,6 +19,9 @@ const hooks = {
   messageFor: () => ""
 };
 
+const TORCH_FUEL_MAX = 100;
+const TORCH_FUEL_STEP = 4;
+
 export const state = createPlayerState(2);
 
 export function configurePlayer(callbacks) {
@@ -36,6 +39,7 @@ export function createPlayerState(startDir) {
     anim: null,
     shake: 0,
     torch: 0,
+    torchFuel: TORCH_FUEL_MAX,
     autoReturning: false,
     autoPath: []
   };
@@ -50,6 +54,7 @@ export function resetPlayer(startDir) {
   state.y = START_Y + .5;
   state.angle = DIRS[startDir].angle;
   state.shake = 0;
+  state.torchFuel = TORCH_FUEL_MAX;
   state.autoPath = [];
   markExplored(START_X, START_Y);
 }
@@ -72,6 +77,7 @@ export function updateAnimation(now) {
       state.x = state.gridX + .5;
       state.y = state.gridY + .5;
       markExplored(state.gridX, state.gridY);
+      state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
     } else {
       state.dir = a.toDir;
       state.angle = DIRS[state.dir].angle;
