@@ -847,19 +847,58 @@
     function begin(e) {
       if (activePointerId !== null) return;
       activePointerId = e.pointerId;
-      activeInputKey = null;
-      const rect = stickEl.getBoundingClientRect();
-      centerX = rect.left + rect.width / 2;
-      centerY = rect.top + rect.height / 2;
+      beginAt(e.clientX, e.clientY);
       stickEl.setPointerCapture(e.pointerId);
-      update(e);
     }
 
     function update(e) {
       if (e.pointerId !== activePointerId) return;
       e.preventDefault();
-      const dx = e.clientX - centerX;
-      const dy = e.clientY - centerY;
+      updateAt(e.clientX, e.clientY);
+    }
+
+    function end(e) {
+      if (e.pointerId !== activePointerId) return;
+      if (stickEl.hasPointerCapture(e.pointerId)) {
+        stickEl.releasePointerCapture(e.pointerId);
+      }
+      finishInput();
+    }
+
+    function touchBegin(e) {
+      if (activePointerId !== null) return;
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+      e.preventDefault();
+      activePointerId = `touch:${touch.identifier}`;
+      beginAt(touch.clientX, touch.clientY);
+    }
+
+    function touchUpdate(e) {
+      const touch = findActiveTouch(e.changedTouches);
+      if (!touch) return;
+      e.preventDefault();
+      updateAt(touch.clientX, touch.clientY);
+    }
+
+    function touchEnd(e) {
+      const touch = findActiveTouch(e.changedTouches);
+      if (!touch) return;
+      e.preventDefault();
+      finishInput();
+    }
+
+    function beginAt(clientX, clientY) {
+      activeInputKey = null;
+      const rect = stickEl.getBoundingClientRect();
+      centerX = rect.left + rect.width / 2;
+      centerY = rect.top + rect.height / 2;
+      updateAt(clientX, clientY);
+    }
+
+    function updateAt(clientX, clientY) {
+      const dx = clientX - centerX;
+      const dy = clientY - centerY;
       const distance = Math.hypot(dx, dy);
       const limited = Math.min(distance, MAX_RADIUS);
       const angle = Math.atan2(dy, dx);
@@ -871,15 +910,17 @@
       handleDirection(dx, dy, distance);
     }
 
-    function end(e) {
-      if (e.pointerId !== activePointerId) return;
-      if (stickEl.hasPointerCapture(e.pointerId)) {
-        stickEl.releasePointerCapture(e.pointerId);
-      }
+    function finishInput() {
       activePointerId = null;
       activeInputKey = null;
       stopRepeat();
       if (knob) knob.style.transform = "translate(0, 0)";
+    }
+
+    function findActiveTouch(touches) {
+      if (typeof activePointerId !== "string" || !activePointerId.startsWith("touch:")) return null;
+      const activeTouchId = Number(activePointerId.slice(6));
+      return Array.from(touches).find(touch => touch.identifier === activeTouchId) || null;
     }
 
     function handleDirection(dx, dy, distance) {
@@ -933,6 +974,10 @@
     stickEl.addEventListener("pointermove", update);
     stickEl.addEventListener("pointerup", end);
     stickEl.addEventListener("pointercancel", end);
+    stickEl.addEventListener("touchstart", touchBegin, { passive: false });
+    stickEl.addEventListener("touchmove", touchUpdate, { passive: false });
+    stickEl.addEventListener("touchend", touchEnd, { passive: false });
+    stickEl.addEventListener("touchcancel", touchEnd, { passive: false });
   }
   
   function drawMinimap(ctx, {

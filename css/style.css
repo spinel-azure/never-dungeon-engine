@@ -242,6 +242,12 @@
       height: 100%;
       background: linear-gradient(90deg, #8a2f38, #d7a24a);
     }
+    .status .torch-meter {
+      display: block;
+      flex: 0 0 min(30vw, 180px);
+      width: min(30vw, 180px);
+      pointer-events: none;
+    }
 
     body.layout-pc .message {
       max-width: none;
@@ -365,6 +371,12 @@
     body.layout-mobile .controls > .meter {
       display: none;
     }
+    body.layout-mobile .status .torch-meter {
+      display: block;
+      flex-basis: min(34vw, 132px);
+      width: min(34vw, 132px);
+      min-width: 92px;
+    }
     body.layout-mobile .pad {
       grid-column: 1 / 3;
       grid-row: 1;
@@ -429,6 +441,7 @@
       body:not(.layout-mobile) .game { width: 100%; }
       body:not(.layout-mobile) .controls { grid-template-columns: 1fr; }
       body:not(.layout-mobile) .brand, body:not(.layout-mobile) .meter { display: none; }
+      body:not(.layout-mobile) .status .torch-meter { display: block; }
     }
 
     body.layout-pc .virtual-stick {
