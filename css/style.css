@@ -434,3 +434,126 @@
       body:not(.layout-mobile) .controls { grid-template-columns: 1fr; }
       body:not(.layout-mobile) .brand, body:not(.layout-mobile) .meter { display: none; }
     }
+
+    body.layout-pc .virtual-stick {
+      display: none;
+    }
+    body.layout-pc #forward,
+    body.layout-pc #back,
+    body.layout-pc #left,
+    body.layout-pc #right {
+      display: block;
+    }
+
+    body.layout-mobile .controls,
+    body.layout-tablet .controls {
+      overflow: visible;
+    }
+    body.layout-mobile #forward,
+    body.layout-mobile #back,
+    body.layout-mobile #left,
+    body.layout-mobile #right,
+    body.layout-tablet #forward,
+    body.layout-tablet #back,
+    body.layout-tablet #left,
+    body.layout-tablet #right {
+      display: none;
+    }
+    body.layout-mobile .virtual-stick,
+    body.layout-tablet .virtual-stick {
+      display: block;
+      z-index: 20;
+      pointer-events: auto;
+    }
+    body.layout-mobile .virtual-stick-base,
+    body.layout-tablet .virtual-stick-base {
+      margin: 10px;
+    }
+    body.layout-mobile .action-buttons,
+    body.layout-tablet .action-buttons {
+      z-index: 20;
+      pointer-events: auto;
+    }
+
+    body.layout-mobile .shell {
+      min-height: 100dvh;
+      padding-bottom: calc(190px + env(safe-area-inset-bottom));
+      overflow: visible;
+    }
+    body.layout-mobile .game {
+      overflow: visible;
+    }
+    body.layout-mobile .controls {
+      min-height: 96px;
+      padding-bottom: 0;
+    }
+    body.layout-mobile .virtual-stick {
+      position: fixed;
+      left: max(18px, env(safe-area-inset-left));
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      width: 132px;
+      height: 132px;
+    }
+    body.layout-mobile .action-buttons {
+      position: fixed;
+      right: max(18px, env(safe-area-inset-right));
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      grid-template-columns: 66px 66px;
+      grid-template-rows: 66px 66px;
+      gap: 12px;
+    }
+    body.layout-mobile .action-button {
+      width: 66px;
+      height: 66px;
+      font-size: 26px;
+    }
+    body.layout-mobile .action-button-b {
+      width: 58px;
+      height: 58px;
+      font-size: 23px;
+    }
+    body.layout-mobile #autoReturn,
+    body.layout-mobile #randomGenerate {
+      display: block;
+      pointer-events: auto;
+    }
+
+    @media (max-width: 680px) {
+      body #forward,
+      body #back,
+      body #left,
+      body #right {
+        display: none;
+      }
+      body .virtual-stick {
+        display: block;
+        position: fixed;
+        left: max(18px, env(safe-area-inset-left));
+        bottom: calc(24px + env(safe-area-inset-bottom));
+        z-index: 20;
+        pointer-events: auto;
+      }
+      body .virtual-stick-base {
+        margin: 10px;
+      }
+      body .action-buttons {
+        position: fixed;
+        right: max(18px, env(safe-area-inset-right));
+        bottom: calc(24px + env(safe-area-inset-bottom));
+        grid-template-columns: 66px 66px;
+        grid-template-rows: 66px 66px;
+        gap: 12px;
+        z-index: 20;
+        pointer-events: auto;
+      }
+      body .action-button {
+        width: 66px;
+        height: 66px;
+        font-size: 26px;
+      }
+      body .action-button-b {
+        width: 58px;
+        height: 58px;
+        font-size: 23px;
+      }
+    }
