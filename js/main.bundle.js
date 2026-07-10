@@ -671,10 +671,10 @@
     if (Math.abs(angle) > FOV * .58) return null;
 
     const x = W / 2 + (angle / (FOV / 2)) * (W / 2);
-    const floorRise = Math.min(H * .18, H * .22 / forward);
-    const y = H * .64 + floorRise;
-    const size = Math.max(22, Math.min(86, H * .18 / forward));
-    const alpha = Math.max(.35, Math.min(.95, 1 - forward / (MAX_DIST + 2)));
+    const depth = Math.min(1, forward / MAX_DIST);
+    const y = H * (.78 - depth * .18);
+    const size = Math.max(34, Math.min(118, H * .3 / Math.max(.8, forward)));
+    const alpha = Math.max(.52, Math.min(1, 1 - forward / (MAX_DIST * 1.45)));
     return { x, y, size, alpha, forward };
   }
 
@@ -717,32 +717,37 @@
     const isUp = event.type === "stairsUp";
     const color = isUp ? "#8ed4ff" : "#f3b15a";
     const label = isUp ? "↑" : "↓";
-    const r = event.size * .44;
+    const r = event.size * .52;
 
     ctx.save();
     ctx.globalAlpha = event.alpha;
-    const glow = ctx.createRadialGradient(event.x, event.y, 2, event.x, event.y, r * 1.9);
-    glow.addColorStop(0, isUp ? "rgba(142,212,255,.62)" : "rgba(243,177,90,.62)");
-    glow.addColorStop(.48, isUp ? "rgba(142,212,255,.20)" : "rgba(243,177,90,.20)");
+    const glow = ctx.createRadialGradient(event.x, event.y, 2, event.x, event.y, r * 2.15);
+    glow.addColorStop(0, isUp ? "rgba(142,212,255,.68)" : "rgba(243,177,90,.68)");
+    glow.addColorStop(.5, isUp ? "rgba(142,212,255,.24)" : "rgba(243,177,90,.24)");
     glow.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(event.x, event.y, r * 1.9, 0, Math.PI * 2);
+    ctx.arc(event.x, event.y, r * 2.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(0,0,0,.26)";
+    ctx.beginPath();
+    ctx.ellipse(event.x, event.y + r * .46, r * 1.28, r * .46, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.strokeStyle = color;
     ctx.lineWidth = Math.max(2, event.size * .06);
     ctx.beginPath();
-    ctx.ellipse(event.x, event.y + r * .25, r * .9, r * .42, 0, 0, Math.PI * 2);
+    ctx.ellipse(event.x, event.y + r * .28, r * 1.15, r * .46, 0, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.fillStyle = color;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `700 ${Math.max(18, event.size * .82)}px GameFont, sans-serif`;
+    ctx.font = `700 ${Math.max(24, event.size * .92)}px GameFont, sans-serif`;
     ctx.shadowColor = color;
-    ctx.shadowBlur = event.size * .22;
-    ctx.fillText(label, event.x, event.y - r * .35);
+    ctx.shadowBlur = event.size * .32;
+    ctx.fillText(label, event.x, event.y - r * .15);
     ctx.restore();
   }
   
