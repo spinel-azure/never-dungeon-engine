@@ -255,9 +255,13 @@ export function projectDoorBoundary(cellX, cellY, dirKey) {
 }
 
 export function drawOpenDoorPanel(door) {
-  const { ctx, H, state } = renderer;
+  const { ctx, H, wallTexture, state } = renderer;
   const openingH = door.wallH * .78;
   const openingW = Math.max(34, Math.min(168, door.wallH * .44));
+  const frameW = openingW * 1.85;
+  const frameH = door.wallH;
+  const frameX = door.x - frameW / 2;
+  const frameY = (H - frameH) / 2;
   const y = (H - openingH) / 2;
   const doorwayLeft = door.x - openingW * .5;
   const doorwayRight = door.x + openingW * .5;
@@ -268,6 +272,10 @@ export function drawOpenDoorPanel(door) {
 
   ctx.save();
   ctx.globalAlpha = Math.max(.45, Math.min(.92, 1 - door.forward / (MAX_DIST * 1.35)));
+
+  drawOpenDoorWallPiece(frameX, frameY, doorwayLeft - frameX, frameH, shade);
+  drawOpenDoorWallPiece(doorwayRight, frameY, frameX + frameW - doorwayRight, frameH, shade);
+  drawOpenDoorWallPiece(doorwayLeft, frameY, openingW, Math.max(0, y - frameY), shade);
 
   ctx.fillStyle = "rgba(0,0,0,.32)";
   ctx.fillRect(doorwayLeft, y, openingW, openingH);
@@ -303,6 +311,13 @@ export function drawOpenDoorPanel(door) {
   ctx.lineTo(hingeX, y + openingH);
   ctx.stroke();
   ctx.restore();
+
+  function drawOpenDoorWallPiece(x, y, w, h, shadeAmount) {
+    if (w <= 1 || h <= 1) return;
+    ctx.drawImage(wallTexture, 0, 0, wallTexture.width, wallTexture.height, x, y, w, h);
+    ctx.fillStyle = `rgba(0,0,0,${Math.max(.18, 1 - (shadeAmount * .82 + .12 + state.torch))})`;
+    ctx.fillRect(x, y, w, h);
+  }
 }
 
 export function drawMist() {
