@@ -52,6 +52,9 @@
       if (c.walls.W) line(ctx, x1, y1, x1, y2);
       if (c.walls.E) line(ctx, x2, y1, x2, y2);
       if (c.walls.S) line(ctx, x1, y2, x2, y2);
+      if (c.type === "stairsUp" || c.type === "stairsDown") {
+        drawStairsMark(ctx, x1, y1, cell, c.type);
+      }
     }
   }
 
@@ -71,6 +74,17 @@
   ctx.strokeStyle = "rgba(255,255,255,.28)";
   ctx.lineWidth = 1;
   ctx.strokeRect(ox - 5, oy - 5, size + 10, size + 10);
+  ctx.restore();
+}
+
+export function drawStairsMark(ctx, x, y, size, type) {
+  const label = type === "stairsUp" ? "U" : "D";
+  ctx.save();
+  ctx.fillStyle = type === "stairsUp" ? "#87c7ff" : "#f0b35a";
+  ctx.font = `700 ${Math.max(8, size * .62)}px GameFont, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x + size / 2, y + size / 2);
   ctx.restore();
 }
 

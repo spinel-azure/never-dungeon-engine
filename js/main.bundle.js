@@ -107,14 +107,71 @@
       carvePerfectMaze();
       addLoopOpenings(EXTRA_OPENINGS);
     }
+    placeStairs();
   }
   
   function resetAllWalls() {
     for (let y = 0; y < MAP_H; y++) {
       for (let x = 0; x < MAP_W; x++) {
+        cells[y][x].type = "floor";
         cells[y][x].walls = { N: true, E: true, S: true, W: true };
       }
     }
+  }
+
+  function placeStairs() {
+    resetCellTypes();
+    cells[START_Y][START_X].type = "stairsUp";
+    const stairsDown = findFarthestReachableCell(7);
+    if (stairsDown) cells[stairsDown.y][stairsDown.x].type = "stairsDown";
+  }
+
+  function getCellType(x, y) {
+    if (!inBounds(x, y)) return "wall";
+    return cells[y][x].type;
+  }
+
+  function findFarthestReachableCell(minDistance = 7) {
+    const distances = makeDistanceMap(START_X, START_Y);
+    let farthest = null;
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        const distance = distances[y][x];
+        if (distance < minDistance) continue;
+        if (x === START_X && y === START_Y) continue;
+        if (!farthest || distance > farthest.distance) {
+          farthest = { x, y, distance };
+        }
+      }
+    }
+    return farthest;
+  }
+
+  function resetCellTypes() {
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) cells[y][x].type = "floor";
+    }
+  }
+
+  function makeDistanceMap(startX, startY) {
+    const distances = Array.from({ length: MAP_H }, () => Array.from({ length: MAP_W }, () => -1));
+    const queue = [{ x: startX, y: startY }];
+    distances[startY][startX] = 0;
+
+    for (let i = 0; i < queue.length; i++) {
+      const cur = queue[i];
+      const currentDistance = distances[cur.y][cur.x];
+      for (const dir of DIRS) {
+        const nx = cur.x + dir.dx;
+        const ny = cur.y + dir.dy;
+        if (!inBounds(nx, ny)) continue;
+        if (wallOnCell(cur.x, cur.y, dir.key)) continue;
+        if (distances[ny][nx] >= 0) continue;
+        distances[ny][nx] = currentDistance + 1;
+        queue.push({ x: nx, y: ny });
+      }
+    }
+    return distances;
   }
   
   function carvePerfectMaze() {
@@ -283,6 +340,7 @@
         state.y = state.gridY + .5;
         markExplored(state.gridX, state.gridY);
         state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
+        hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
       } else {
         state.dir = a.toDir;
         state.angle = DIRS[state.dir].angle;
@@ -317,10 +375,10 @@
       toX: nx + .5,
       toY: ny + .5,
       toGX: nx,
-      toGY: ny
+      toGY: ny,
+      cellType: getCellType(nx, ny)
     };
     state.shake = amount > 0 ? 3 : -2;
-    hooks.say(hooks.messageFor(nx, ny));
   }
   
   function turn(amount, automated = false) {
@@ -1128,6 +1186,9 @@
         if (c.walls.W) line(ctx, x1, y1, x1, y2);
         if (c.walls.E) line(ctx, x2, y1, x2, y2);
         if (c.walls.S) line(ctx, x1, y2, x2, y2);
+        if (c.type === "stairsUp" || c.type === "stairsDown") {
+          drawStairsMark(ctx, x1, y1, cell, c.type);
+        }
       }
     }
   
@@ -1176,6 +1237,17 @@
       ctx.fillRect(px, py, 1.2, 1.2);
     }
   }
+
+  function drawStairsMark(ctx, x, y, size, type) {
+    const label = type === "stairsUp" ? "U" : "D";
+    ctx.save();
+    ctx.fillStyle = type === "stairsUp" ? "#87c7ff" : "#f0b35a";
+    ctx.font = `700 ${Math.max(8, size * .62)}px GameFont, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, x + size / 2, y + size / 2);
+    ctx.restore();
+  }
   
   function hashNoise(x, y) {
     const n = Math.sin((x + 1) * 127.1 + (y + 1) * 311.7) * 43758.5453;
@@ -1203,7 +1275,9 @@
     messageEl = element;
   }
   
-  function messageFor(x, y) {
+  function messageFor(x, y, cellType = "floor") {
+    if (cellType === "stairsUp") return "上り階段がある。";
+    if (cellType === "stairsDown") return "下り階段がある。";
     const key = `${x},${y}`;
     return cellMessages[key] || "たいまつの火が壁面をゆらした。";
   }

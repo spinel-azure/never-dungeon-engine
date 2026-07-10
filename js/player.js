@@ -7,6 +7,7 @@
   DIRS
 } from "./config.js";
 import {
+  getCellType,
   markExplored,
   inBounds,
   wallOnCell
@@ -78,6 +79,7 @@ export function updateAnimation(now) {
       state.y = state.gridY + .5;
       markExplored(state.gridX, state.gridY);
       state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
+      hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
     } else {
       state.dir = a.toDir;
       state.angle = DIRS[state.dir].angle;
@@ -112,10 +114,10 @@ export function tryMove(amount, automated = false) {
     toX: nx + .5,
     toY: ny + .5,
     toGX: nx,
-    toGY: ny
+    toGY: ny,
+    cellType: getCellType(nx, ny)
   };
   state.shake = amount > 0 ? 3 : -2;
-  hooks.say(hooks.messageFor(nx, ny));
 }
 
 export function turn(amount, automated = false) {

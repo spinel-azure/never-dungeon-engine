@@ -45,14 +45,71 @@ export function buildBoundaryWallMap() {
     carvePerfectMaze();
     addLoopOpenings(EXTRA_OPENINGS);
   }
+  placeStairs();
 }
 
 export function resetAllWalls() {
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
+      cells[y][x].type = "floor";
       cells[y][x].walls = { N: true, E: true, S: true, W: true };
     }
   }
+}
+
+export function placeStairs() {
+  resetCellTypes();
+  cells[START_Y][START_X].type = "stairsUp";
+  const stairsDown = findFarthestReachableCell(7);
+  if (stairsDown) cells[stairsDown.y][stairsDown.x].type = "stairsDown";
+}
+
+export function getCellType(x, y) {
+  if (!inBounds(x, y)) return "wall";
+  return cells[y][x].type;
+}
+
+export function findFarthestReachableCell(minDistance = 7) {
+  const distances = makeDistanceMap(START_X, START_Y);
+  let farthest = null;
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      const distance = distances[y][x];
+      if (distance < minDistance) continue;
+      if (x === START_X && y === START_Y) continue;
+      if (!farthest || distance > farthest.distance) {
+        farthest = { x, y, distance };
+      }
+    }
+  }
+  return farthest;
+}
+
+export function resetCellTypes() {
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) cells[y][x].type = "floor";
+  }
+}
+
+export function makeDistanceMap(startX, startY) {
+  const distances = Array.from({ length: MAP_H }, () => Array.from({ length: MAP_W }, () => -1));
+  const queue = [{ x: startX, y: startY }];
+  distances[startY][startX] = 0;
+
+  for (let i = 0; i < queue.length; i++) {
+    const cur = queue[i];
+    const currentDistance = distances[cur.y][cur.x];
+    for (const dir of DIRS) {
+      const nx = cur.x + dir.dx;
+      const ny = cur.y + dir.dy;
+      if (!inBounds(nx, ny)) continue;
+      if (wallOnCell(cur.x, cur.y, dir.key)) continue;
+      if (distances[ny][nx] >= 0) continue;
+      distances[ny][nx] = currentDistance + 1;
+      queue.push({ x: nx, y: ny });
+    }
+  }
+  return distances;
 }
 
 export function carvePerfectMaze() {

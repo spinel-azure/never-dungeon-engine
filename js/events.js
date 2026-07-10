@@ -12,7 +12,9 @@ export function configureEvents({ messageEl: element }) {
   messageEl = element;
 }
 
-export function messageFor(x, y) {
+export function messageFor(x, y, cellType = "floor") {
+  if (cellType === "stairsUp") return "上り階段がある。";
+  if (cellType === "stairsDown") return "下り階段がある。";
   const key = `${x},${y}`;
   return cellMessages[key] || "たいまつの火が壁面をゆらした。";
 }
