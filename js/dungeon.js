@@ -5,7 +5,8 @@
   START_Y,
   DIRS,
   DIR_BY_KEY,
-  EXTRA_OPENINGS
+  EXTRA_OPENINGS,
+  NORMAL_DOOR_COUNT
 } from "./config.js";
 
 export const cells = makeCells(MAP_W, MAP_H);
@@ -17,7 +18,8 @@ export function makeCells(w, h) {
       x,
       y,
       type: "floor",
-      walls: { N: true, E: true, S: true, W: true }
+      walls: { N: true, E: true, S: true, W: true },
+      doors: { N: null, E: null, S: null, W: null }
     }))
   );
 }
@@ -46,6 +48,7 @@ export function buildBoundaryWallMap() {
     addLoopOpenings(EXTRA_OPENINGS);
   }
   placeStairs();
+  placeNormalDoors(NORMAL_DOOR_COUNT);
 }
 
 export function resetAllWalls() {
@@ -53,6 +56,7 @@ export function resetAllWalls() {
     for (let x = 0; x < MAP_W; x++) {
       cells[y][x].type = "floor";
       cells[y][x].walls = { N: true, E: true, S: true, W: true };
+      cells[y][x].doors = { N: null, E: null, S: null, W: null };
     }
   }
 }
@@ -89,6 +93,41 @@ export function resetCellTypes() {
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) cells[y][x].type = "floor";
   }
+}
+
+export function placeNormalDoors(count = NORMAL_DOOR_COUNT) {
+  resetDoors();
+  const distances = makeDistanceMap(START_X, START_Y);
+  const candidates = [];
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      for (const dir of [DIR_BY_KEY.E, DIR_BY_KEY.S]) {
+        const nx = x + dir.dx;
+        const ny = y + dir.dy;
+        if (!inBounds(nx, ny)) continue;
+        if (cells[y][x].walls[dir.key]) continue;
+        if (isStairCell(x, y) || isStairCell(nx, ny)) continue;
+        if (distances[y][x] < 3 || distances[ny][nx] < 3) continue;
+        candidates.push({ x, y, dir: dir.key });
+      }
+    }
+  }
+
+  shuffled(candidates).slice(0, count).forEach(door => {
+    setDoor(door.x, door.y, door.dir, "closed");
+  });
+}
+
+export function resetDoors() {
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      cells[y][x].doors = { N: null, E: null, S: null, W: null };
+    }
+  }
+}
+
+export function isStairCell(x, y) {
+  return inBounds(x, y) && (cells[y][x].type === "stairsUp" || cells[y][x].type === "stairsDown");
 }
 
 export function makeDistanceMap(startX, startY) {
@@ -203,11 +242,33 @@ export function setWall(x, y, dirKey, value) {
   if (inBounds(nx, ny)) cells[ny][nx].walls[dir.opposite] = value;
 }
 
+export function setDoor(x, y, dirKey, value) {
+  if (!inBounds(x, y)) return;
+  const dir = DIR_BY_KEY[dirKey];
+  cells[y][x].doors[dirKey] = value;
+  const nx = x + dir.dx;
+  const ny = y + dir.dy;
+  if (inBounds(nx, ny)) cells[ny][nx].doors[dir.opposite] = value;
+}
+
+export function getDoorState(x, y, dirKey) {
+  if (!inBounds(x, y)) return null;
+  return cells[y][x].doors[dirKey];
+}
+
+export function closedDoorOnCell(x, y, dirKey) {
+  return getDoorState(x, y, dirKey) === "closed";
+}
+
+export function openDoor(x, y, dirKey) {
+  if (closedDoorOnCell(x, y, dirKey)) setDoor(x, y, dirKey, "open");
+}
+
 export function inBounds(x, y) {
   return x >= 0 && y >= 0 && x < MAP_W && y < MAP_H;
 }
 
 export function wallOnCell(x, y, dirKey) {
   if (!inBounds(x, y)) return true;
-  return cells[y][x].walls[dirKey];
+  return cells[y][x].walls[dirKey] || closedDoorOnCell(x, y, dirKey);
 }

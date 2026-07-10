@@ -58,6 +58,7 @@
   const STEP_MS = 170;
   const TURN_MS = 150;
   const EXTRA_OPENINGS = 14;
+  const NORMAL_DOOR_COUNT = 6;
   const START_X = 1;
   const START_Y = 1;
   
@@ -79,7 +80,8 @@
         x,
         y,
         type: "floor",
-        walls: { N: true, E: true, S: true, W: true }
+        walls: { N: true, E: true, S: true, W: true },
+        doors: { N: null, E: null, S: null, W: null }
       }))
     );
   }
@@ -108,6 +110,7 @@
       addLoopOpenings(EXTRA_OPENINGS);
     }
     placeStairs();
+    placeNormalDoors(NORMAL_DOOR_COUNT);
   }
   
   function resetAllWalls() {
@@ -115,6 +118,7 @@
       for (let x = 0; x < MAP_W; x++) {
         cells[y][x].type = "floor";
         cells[y][x].walls = { N: true, E: true, S: true, W: true };
+        cells[y][x].doors = { N: null, E: null, S: null, W: null };
       }
     }
   }
@@ -151,6 +155,41 @@
     for (let y = 0; y < MAP_H; y++) {
       for (let x = 0; x < MAP_W; x++) cells[y][x].type = "floor";
     }
+  }
+
+  function placeNormalDoors(count = NORMAL_DOOR_COUNT) {
+    resetDoors();
+    const distances = makeDistanceMap(START_X, START_Y);
+    const candidates = [];
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        for (const dir of [DIR_BY_KEY.E, DIR_BY_KEY.S]) {
+          const nx = x + dir.dx;
+          const ny = y + dir.dy;
+          if (!inBounds(nx, ny)) continue;
+          if (cells[y][x].walls[dir.key]) continue;
+          if (isStairCell(x, y) || isStairCell(nx, ny)) continue;
+          if (distances[y][x] < 3 || distances[ny][nx] < 3) continue;
+          candidates.push({ x, y, dir: dir.key });
+        }
+      }
+    }
+
+    shuffled(candidates).slice(0, count).forEach(door => {
+      setDoor(door.x, door.y, door.dir, "closed");
+    });
+  }
+
+  function resetDoors() {
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        cells[y][x].doors = { N: null, E: null, S: null, W: null };
+      }
+    }
+  }
+
+  function isStairCell(x, y) {
+    return inBounds(x, y) && (cells[y][x].type === "stairsUp" || cells[y][x].type === "stairsDown");
   }
 
   function makeDistanceMap(startX, startY) {
@@ -264,6 +303,28 @@
     const ny = y + dir.dy;
     if (inBounds(nx, ny)) cells[ny][nx].walls[dir.opposite] = value;
   }
+
+  function setDoor(x, y, dirKey, value) {
+    if (!inBounds(x, y)) return;
+    const dir = DIR_BY_KEY[dirKey];
+    cells[y][x].doors[dirKey] = value;
+    const nx = x + dir.dx;
+    const ny = y + dir.dy;
+    if (inBounds(nx, ny)) cells[ny][nx].doors[dir.opposite] = value;
+  }
+
+  function getDoorState(x, y, dirKey) {
+    if (!inBounds(x, y)) return null;
+    return cells[y][x].doors[dirKey];
+  }
+
+  function closedDoorOnCell(x, y, dirKey) {
+    return getDoorState(x, y, dirKey) === "closed";
+  }
+
+  function openDoor(x, y, dirKey) {
+    if (closedDoorOnCell(x, y, dirKey)) setDoor(x, y, dirKey, "open");
+  }
   
   function inBounds(x, y) {
     return x >= 0 && y >= 0 && x < MAP_W && y < MAP_H;
@@ -271,7 +332,7 @@
   
   function wallOnCell(x, y, dirKey) {
     if (!inBounds(x, y)) return true;
-    return cells[y][x].walls[dirKey];
+    return cells[y][x].walls[dirKey] || closedDoorOnCell(x, y, dirKey);
   }
   
   const hooks = {
@@ -354,6 +415,12 @@
     if (state.anim) return;
     if (!automated) hooks.cancelAutoReturn(false);
     const currentDir = amount > 0 ? DIRS[state.dir] : DIRS[(state.dir + 2) % 4];
+    if (closedDoorOnCell(state.gridX, state.gridY, currentDir.key)) {
+      openDoor(state.gridX, state.gridY, currentDir.key);
+      state.shake = amount > 0 ? -3 : 3;
+      hooks.say("扉を開けた。");
+      return;
+    }
     if (wallOnCell(state.gridX, state.gridY, currentDir.key)) {
       state.shake = amount > 0 ? -7 : 5;
       hooks.say("セル境界の壁に行く手を阻まれた。");
@@ -434,6 +501,7 @@
     H: 0,
     state: null,
     wallOnCell: () => true,
+    closedDoorOnCell: () => false,
     inBounds: () => false,
     updateAnimation: () => {},
     updateHud: () => {},
@@ -442,7 +510,8 @@
     getMinimapBounds: () => ({ x: 0, y: 0, w: 0, h: 0 }),
     minimapOverlayVisible: false,
     lastCanvasTouchAt: 0,
-    wallTexture: null
+    wallTexture: null,
+    doorTexture: null
   };
   
   function configureRenderer(options) {
@@ -450,6 +519,7 @@
     renderer.W = renderer.canvas.width;
     renderer.H = renderer.canvas.height;
     renderer.wallTexture = makeWallTexture();
+    renderer.doorTexture = makeDoorTexture();
     renderer.canvas.addEventListener("pointerup", handleCanvasPointerUp);
     renderer.canvas.addEventListener("touchend", handleCanvasTouchEnd, { passive: false });
   }
@@ -593,7 +663,7 @@
   }
   
   function drawBoundaryWalls() {
-    const { ctx, W, H, wallTexture, state } = renderer;
+    const { ctx, W, H, wallTexture, doorTexture, state } = renderer;
     const colW = W / RAYS;
     for (let i = 0; i < RAYS; i++) {
       const t = i / (RAYS - 1);
@@ -602,16 +672,20 @@
       const wallH = Math.min(H * 1.85, H / hit.corrected);
       const y1 = (H - wallH) / 2;
       const x = Math.floor(i * colW);
-      const sampleX = Math.floor(hit.u * wallTexture.width) % wallTexture.width;
+      const texture = hit.type === "door" ? doorTexture : wallTexture;
+      const sampleX = Math.floor(hit.u * texture.width) % texture.width;
       const shade = Math.max(0.18, 1 - hit.dist / MAX_DIST);
       const orientationShade = hit.side === 0 ? 0.82 : 0.68;
-      const light = Math.min(1.12, shade * orientationShade + 0.13 + state.torch);
+      const light = Math.min(1.12, shade * orientationShade + (hit.type === "door" ? 0.2 : 0.13) + state.torch);
   
-      ctx.drawImage(wallTexture, sampleX, 0, 1, wallTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
+      ctx.drawImage(texture, sampleX, 0, 1, texture.height, x, y1, Math.ceil(colW) + 1, wallH);
       ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
       ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
   
-      if (isEdgeSample(hit.u)) {
+      if (hit.type === "door" && isDoorEdgeSample(hit.u)) {
+        ctx.fillStyle = "rgba(255,219,143,.12)";
+        ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+      } else if (isEdgeSample(hit.u)) {
         ctx.fillStyle = "rgba(0,0,0,.24)";
         ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
       }
@@ -781,9 +855,10 @@
       if (sideX < sideY) {
         const dirKey = stepX > 0 ? "E" : "W";
         const dist = sideX;
+        const isDoor = renderer.closedDoorOnCell(cellX, cellY, dirKey);
         if (renderer.wallOnCell(cellX, cellY, dirKey)) {
           const hitY = state.y + rayY * dist;
-          return makeHit(dist, hitY - Math.floor(hitY), dirKey, 0, angle);
+          return makeHit(dist, hitY - Math.floor(hitY), dirKey, 0, angle, isDoor ? "door" : "wall");
         }
         cellX += stepX;
         if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 0, angle);
@@ -791,9 +866,10 @@
       } else {
         const dirKey = stepY > 0 ? "S" : "N";
         const dist = sideY;
+        const isDoor = renderer.closedDoorOnCell(cellX, cellY, dirKey);
         if (renderer.wallOnCell(cellX, cellY, dirKey)) {
           const hitX = state.x + rayX * dist;
-          return makeHit(dist, hitX - Math.floor(hitX), dirKey, 1, angle);
+          return makeHit(dist, hitX - Math.floor(hitX), dirKey, 1, angle, isDoor ? "door" : "wall");
         }
         cellY += stepY;
         if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 1, angle);
@@ -803,14 +879,15 @@
     return makeHit(MAX_DIST, 0, "N", 1, angle);
   }
   
-  function makeHit(dist, u, dirKey, side, angle) {
+  function makeHit(dist, u, dirKey, side, angle, type = "wall") {
     const corrected = Math.max(0.001, dist * Math.cos(angle - renderer.state.angle));
     return {
       dist,
       corrected,
       u: ((u % 1) + 1) % 1,
       side,
-      dirKey
+      dirKey,
+      type
     };
   }
   
@@ -850,6 +927,49 @@
     }
     return tex;
   }
+
+  function makeDoorTexture() {
+    const tex = document.createElement("canvas");
+    tex.width = 96;
+    tex.height = 160;
+    const c = tex.getContext("2d");
+    const grad = c.createLinearGradient(0, 0, tex.width, 0);
+    grad.addColorStop(0, "#3b2416");
+    grad.addColorStop(.5, "#7a4a28");
+    grad.addColorStop(1, "#2f1c12");
+    c.fillStyle = grad;
+    c.fillRect(0, 0, tex.width, tex.height);
+
+    c.strokeStyle = "rgba(16,9,5,.72)";
+    c.lineWidth = 3;
+    for (let x = 18; x < tex.width; x += 20) {
+      c.beginPath();
+      c.moveTo(x, 0);
+      c.lineTo(x + Math.sin(x) * 2, tex.height);
+      c.stroke();
+    }
+
+    c.fillStyle = "rgba(0,0,0,.36)";
+    c.fillRect(0, 0, 8, tex.height);
+    c.fillRect(tex.width - 8, 0, 8, tex.height);
+    c.fillRect(0, 0, tex.width, 10);
+    c.fillRect(0, tex.height - 12, tex.width, 12);
+
+    c.strokeStyle = "rgba(226,178,92,.34)";
+    c.lineWidth = 4;
+    c.strokeRect(12, 14, tex.width - 24, tex.height - 28);
+
+    c.fillStyle = "#cda14d";
+    c.beginPath();
+    c.arc(tex.width * .73, tex.height * .52, 5, 0, Math.PI * 2);
+    c.fill();
+
+    c.fillStyle = "rgba(255,225,148,.09)";
+    for (let i = 0; i < 80; i++) {
+      c.fillRect(Math.random() * tex.width, Math.random() * tex.height, Math.random() * 2 + .5, 1);
+    }
+    return tex;
+  }
   
   function roundRect(x, y, w, h, r) {
     const { ctx } = renderer;
@@ -864,6 +984,10 @@
   
   function isEdgeSample(u) {
     return u < 0.035 || u > 0.965;
+  }
+
+  function isDoorEdgeSample(u) {
+    return u < 0.12 || u > 0.88 || (u > .47 && u < .53);
   }
   
   const options = {
@@ -1312,6 +1436,22 @@
         }
       }
     }
+
+    ctx.lineCap = "round";
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        if (!explored[y][x]) continue;
+        const c = cells[y][x];
+        const x1 = ox + x * cell;
+        const y1 = oy + y * cell;
+        const x2 = x1 + cell;
+        const y2 = y1 + cell;
+        drawDoorMark(ctx, x1, y1, x2, y1, c.doors.N, cell);
+        drawDoorMark(ctx, x2, y1, x2, y2, c.doors.E, cell);
+        drawDoorMark(ctx, x1, y2, x2, y2, c.doors.S, cell);
+        drawDoorMark(ctx, x1, y1, x1, y2, c.doors.W, cell);
+      }
+    }
   
     const px = ox + (state.x / MAP_W) * size;
     const py = oy + (state.y / MAP_H) * size;
@@ -1367,6 +1507,30 @@
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(label, x + size / 2, y + size / 2);
+    ctx.restore();
+  }
+
+  function drawDoorMark(ctx, x1, y1, x2, y2, state, cellSize) {
+    if (!state) return;
+    const mx = (x1 + x2) / 2;
+    const my = (y1 + y2) / 2;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.max(4, cellSize * .54);
+    const half = length / 2;
+    const horizontal = Math.abs(dx) > Math.abs(dy);
+    ctx.save();
+    ctx.strokeStyle = state === "closed" ? "#c08b45" : "rgba(192,139,69,.52)";
+    ctx.lineWidth = Math.max(2, cellSize * .22);
+    ctx.beginPath();
+    if (horizontal) {
+      ctx.moveTo(mx - half, my);
+      ctx.lineTo(mx + half, my);
+    } else {
+      ctx.moveTo(mx, my - half);
+      ctx.lineTo(mx, my + half);
+    }
+    ctx.stroke();
     ctx.restore();
   }
   
@@ -1438,6 +1602,7 @@
     ctx,
     state,
     wallOnCell,
+    closedDoorOnCell,
     inBounds,
     updateAnimation,
     updateHud,

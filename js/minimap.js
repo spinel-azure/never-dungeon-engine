@@ -58,6 +58,22 @@
     }
   }
 
+  ctx.lineCap = "round";
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      if (!explored[y][x]) continue;
+      const c = cells[y][x];
+      const x1 = ox + x * cell;
+      const y1 = oy + y * cell;
+      const x2 = x1 + cell;
+      const y2 = y1 + cell;
+      drawDoorMark(ctx, x1, y1, x2, y1, c.doors.N, cell);
+      drawDoorMark(ctx, x2, y1, x2, y2, c.doors.E, cell);
+      drawDoorMark(ctx, x1, y2, x2, y2, c.doors.S, cell);
+      drawDoorMark(ctx, x1, y1, x1, y2, c.doors.W, cell);
+    }
+  }
+
   const px = ox + (state.x / MAP_W) * size;
   const py = oy + (state.y / MAP_H) * size;
   ctx.fillStyle = "#d9a44c";
@@ -85,6 +101,30 @@ export function drawStairsMark(ctx, x, y, size, type) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(label, x + size / 2, y + size / 2);
+  ctx.restore();
+}
+
+export function drawDoorMark(ctx, x1, y1, x2, y2, state, cellSize) {
+  if (!state) return;
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const length = Math.max(4, cellSize * .54);
+  const half = length / 2;
+  const horizontal = Math.abs(dx) > Math.abs(dy);
+  ctx.save();
+  ctx.strokeStyle = state === "closed" ? "#c08b45" : "rgba(192,139,69,.52)";
+  ctx.lineWidth = Math.max(2, cellSize * .22);
+  ctx.beginPath();
+  if (horizontal) {
+    ctx.moveTo(mx - half, my);
+    ctx.lineTo(mx + half, my);
+  } else {
+    ctx.moveTo(mx, my - half);
+    ctx.lineTo(mx, my + half);
+  }
+  ctx.stroke();
   ctx.restore();
 }
 

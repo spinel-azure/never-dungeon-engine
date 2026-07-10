@@ -10,7 +10,9 @@ import {
   getCellType,
   markExplored,
   inBounds,
-  wallOnCell
+  wallOnCell,
+  closedDoorOnCell,
+  openDoor
 } from "./dungeon.js";
 
 const hooks = {
@@ -93,6 +95,12 @@ export function tryMove(amount, automated = false) {
   if (state.anim) return;
   if (!automated) hooks.cancelAutoReturn(false);
   const currentDir = amount > 0 ? DIRS[state.dir] : DIRS[(state.dir + 2) % 4];
+  if (closedDoorOnCell(state.gridX, state.gridY, currentDir.key)) {
+    openDoor(state.gridX, state.gridY, currentDir.key);
+    state.shake = amount > 0 ? -3 : 3;
+    hooks.say("扉を開けた。");
+    return;
+  }
   if (wallOnCell(state.gridX, state.gridY, currentDir.key)) {
     state.shake = amount > 0 ? -7 : 5;
     hooks.say("セル境界の壁に行く手を阻まれた。");

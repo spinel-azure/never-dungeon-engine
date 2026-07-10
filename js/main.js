@@ -10,7 +10,8 @@ import {
   buildBoundaryWallMap,
   chooseStartDirection,
   inBounds,
-  wallOnCell
+  wallOnCell,
+  closedDoorOnCell
 } from "./dungeon.js";
 import {
   state,
@@ -66,6 +67,7 @@ import { configureDevice } from "./device.js";
     ctx,
     state,
     wallOnCell,
+    closedDoorOnCell,
     inBounds,
     updateAnimation,
     updateHud,
