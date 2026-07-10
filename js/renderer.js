@@ -42,16 +42,6 @@ export function drawScene(now) {
   ctx.fillStyle = "#070909";
   ctx.fillRect(0, 0, W, H);
 
-  if (state.torchFuel <= 0) {
-    renderer.minimapOverlayVisible = false;
-    drawDarknessMessage();
-    ctx.restore();
-    drawFrame();
-    renderer.updateHud();
-    requestAnimationFrame(drawScene);
-    return;
-  }
-
   const sway = Math.sin(now * 0.005) * 2 + state.shake;
   state.shake *= 0.86;
   state.torch = Math.sin(now * 0.007) * 0.035 + Math.sin(now * 0.013) * 0.02;
@@ -66,6 +56,7 @@ export function drawScene(now) {
     roundRect
   });
   if (renderer.minimapOverlayVisible) drawMinimapOverlay();
+  if (state.torchFuel <= 0) drawDarknessMessage();
   ctx.restore();
   drawFrame();
   renderer.updateHud();
@@ -86,7 +77,6 @@ function handleCanvasTouchEnd(e) {
 
 function handleCanvasActivation(clientX, clientY) {
   const { canvas, W, H, state } = renderer;
-  if (state.torchFuel <= 0) return;
 
   const rect = canvas.getBoundingClientRect();
   const x = ((clientX - rect.left) / rect.width) * W;
@@ -128,13 +118,13 @@ function drawMinimapOverlay() {
 function drawDarknessMessage() {
   const { ctx, W, H } = renderer;
   ctx.save();
-  ctx.fillStyle = "#000";
+  ctx.fillStyle = "rgba(0,0,0,.8)";
   ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = "#f0eadc";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = "700 34px GameFont, sans-serif";
-  ctx.fillText("なにも　みえない！", W / 2, H / 2);
+  ctx.fillText("あたりはくらやみに　つつまれた…。", W / 2, H / 2);
   ctx.restore();
 }
 

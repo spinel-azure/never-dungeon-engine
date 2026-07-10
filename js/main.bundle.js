@@ -407,16 +407,6 @@
     ctx.fillStyle = "#070909";
     ctx.fillRect(0, 0, W, H);
 
-    if (state.torchFuel <= 0) {
-      renderer.minimapOverlayVisible = false;
-      drawDarknessMessage();
-      ctx.restore();
-      drawFrame();
-      renderer.updateHud();
-      requestAnimationFrame(drawScene);
-      return;
-    }
-  
     const sway = Math.sin(now * 0.005) * 2 + state.shake;
     state.shake *= 0.86;
     state.torch = Math.sin(now * 0.007) * 0.035 + Math.sin(now * 0.013) * 0.02;
@@ -431,6 +421,7 @@
       roundRect
     });
     if (renderer.minimapOverlayVisible) drawMinimapOverlay();
+    if (state.torchFuel <= 0) drawDarknessMessage();
     ctx.restore();
     drawFrame();
     renderer.updateHud();
@@ -451,7 +442,6 @@
 
   function handleCanvasActivation(clientX, clientY) {
     const { canvas, W, H, state } = renderer;
-    if (state.torchFuel <= 0) return;
 
     const rect = canvas.getBoundingClientRect();
     const x = ((clientX - rect.left) / rect.width) * W;
@@ -493,13 +483,13 @@
   function drawDarknessMessage() {
     const { ctx, W, H } = renderer;
     ctx.save();
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = "rgba(0,0,0,.8)";
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = "#f0eadc";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = "700 34px GameFont, sans-serif";
-    ctx.fillText("なにも　みえない！", W / 2, H / 2);
+    ctx.fillText("あたりはくらやみに　つつまれた…。", W / 2, H / 2);
     ctx.restore();
   }
   
@@ -909,9 +899,10 @@
   const DEAD_ZONE = 24;
   const MAX_RADIUS = 40;
   const MOVE_REPEAT_MS = 90;
-  const HORIZONTAL_TURN_RATIO = 2.5;
   const HORIZONTAL_TURN_MIN = 34;
-  const VERTICAL_MOVE_RATIO = 0.45;
+  const VERTICAL_MOVE_MIN = 24;
+  const VERTICAL_CROSS_LIMIT = 18;
+  const HORIZONTAL_CROSS_LIMIT = 12;
 
   function configureVirtualStick({
     stickEl,
@@ -1039,10 +1030,10 @@
 
       const absX = Math.abs(dx);
       const absY = Math.abs(dy);
-      if (absY >= absX * VERTICAL_MOVE_RATIO) {
+      if (absY >= VERTICAL_MOVE_MIN && absX <= VERTICAL_CROSS_LIMIT) {
         return { type: "move", amount: dy < 0 ? 1 : -1 };
       }
-      if (absX >= HORIZONTAL_TURN_MIN && absX >= absY * HORIZONTAL_TURN_RATIO) {
+      if (absX >= HORIZONTAL_TURN_MIN && absY <= HORIZONTAL_CROSS_LIMIT) {
         return { type: "turn", amount: dx < 0 ? -1 : 1 };
       }
       return null;

@@ -1,9 +1,10 @@
 const DEAD_ZONE = 24;
 const MAX_RADIUS = 40;
 const MOVE_REPEAT_MS = 90;
-const HORIZONTAL_TURN_RATIO = 2.5;
 const HORIZONTAL_TURN_MIN = 34;
-const VERTICAL_MOVE_RATIO = 0.45;
+const VERTICAL_MOVE_MIN = 24;
+const VERTICAL_CROSS_LIMIT = 18;
+const HORIZONTAL_CROSS_LIMIT = 12;
 
 export function configureVirtualStick({
   stickEl,
@@ -131,10 +132,10 @@ export function configureVirtualStick({
 
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
-    if (absY >= absX * VERTICAL_MOVE_RATIO) {
+    if (absY >= VERTICAL_MOVE_MIN && absX <= VERTICAL_CROSS_LIMIT) {
       return { type: "move", amount: dy < 0 ? 1 : -1 };
     }
-    if (absX >= HORIZONTAL_TURN_MIN && absX >= absY * HORIZONTAL_TURN_RATIO) {
+    if (absX >= HORIZONTAL_TURN_MIN && absY <= HORIZONTAL_CROSS_LIMIT) {
       return { type: "turn", amount: dx < 0 ? -1 : 1 };
     }
     return null;
