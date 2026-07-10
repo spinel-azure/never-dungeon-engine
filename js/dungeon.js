@@ -114,6 +114,7 @@ export function placeNormalDoors(count = NORMAL_DOOR_COUNT) {
   }
 
   shuffled(candidates).slice(0, count).forEach(door => {
+    setWall(door.x, door.y, door.dir, true);
     setDoor(door.x, door.y, door.dir, "closed");
   });
 }
@@ -260,6 +261,10 @@ export function closedDoorOnCell(x, y, dirKey) {
   return getDoorState(x, y, dirKey) === "closed";
 }
 
+export function lockedDoorOnCell(x, y, dirKey) {
+  return getDoorState(x, y, dirKey) === "locked";
+}
+
 export function openDoorOnCell(x, y, dirKey) {
   return getDoorState(x, y, dirKey) === "open";
 }
@@ -274,5 +279,8 @@ export function inBounds(x, y) {
 
 export function wallOnCell(x, y, dirKey) {
   if (!inBounds(x, y)) return true;
-  return cells[y][x].walls[dirKey] || closedDoorOnCell(x, y, dirKey);
+  const doorState = getDoorState(x, y, dirKey);
+  if (doorState === "open") return false;
+  if (doorState === "closed" || doorState === "locked") return true;
+  return cells[y][x].walls[dirKey];
 }

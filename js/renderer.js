@@ -13,6 +13,7 @@ const renderer = {
   wallOnCell: () => true,
   closedDoorOnCell: () => false,
   openDoorOnCell: () => false,
+  getDoorState: () => null,
   inBounds: () => false,
   updateAnimation: () => {},
   updateHud: () => {},
@@ -184,19 +185,26 @@ export function drawBoundaryWalls() {
     const wallH = Math.min(H * 1.85, H / hit.corrected);
     const y1 = (H - wallH) / 2;
     const x = Math.floor(i * colW);
-    const texture = hit.type === "door" ? doorTexture : wallTexture;
-    const sampleX = Math.floor(hit.u * texture.width) % texture.width;
+    const wallSampleX = Math.floor(hit.u * wallTexture.width) % wallTexture.width;
     const shade = Math.max(0.18, 1 - hit.dist / MAX_DIST);
     const orientationShade = hit.side === 0 ? 0.82 : 0.68;
-    const light = Math.min(1.12, shade * orientationShade + (hit.type === "door" ? 0.2 : 0.13) + state.torch);
+    const light = Math.min(1.12, shade * orientationShade + 0.13 + state.torch);
 
-    ctx.drawImage(texture, sampleX, 0, 1, texture.height, x, y1, Math.ceil(colW) + 1, wallH);
+    ctx.drawImage(wallTexture, wallSampleX, 0, 1, wallTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
     ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
     ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
 
-    if (hit.type === "door" && isDoorEdgeSample(hit.u)) {
-      ctx.fillStyle = "rgba(255,219,143,.12)";
+    if (hit.type === "door" && isDoorPanelSample(hit.u)) {
+      const doorU = normalizeDoorSample(hit.u);
+      const doorSampleX = Math.floor(doorU * doorTexture.width) % doorTexture.width;
+      const doorLight = Math.min(1.12, shade * orientationShade + 0.2 + state.torch);
+      ctx.drawImage(doorTexture, doorSampleX, 0, 1, doorTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
+      ctx.fillStyle = `rgba(0,0,0,${1 - doorLight})`;
       ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+      if (isDoorPanelEdgeSample(hit.u)) {
+        ctx.fillStyle = "rgba(255,219,143,.16)";
+        ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+      }
     } else if (isEdgeSample(hit.u)) {
       ctx.fillStyle = "rgba(0,0,0,.24)";
       ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
@@ -247,22 +255,44 @@ export function projectDoorBoundary(cellX, cellY, dirKey) {
 }
 
 export function drawOpenDoorPanel(door) {
-  const { ctx, H, doorTexture, state } = renderer;
-  const panelH = door.wallH * .82;
-  const panelW = Math.max(8, Math.min(64, door.wallH * .2));
+  const { ctx, H, state } = renderer;
+  const panelH = door.wallH * .78;
+  const panelW = Math.max(10, Math.min(72, door.wallH * .18));
   const y = (H - panelH) / 2;
-  const hingeOffset = panelW * .72;
-  const x = door.x + hingeOffset;
+  const hingeX = door.x + panelW * .42;
+  const skew = Math.max(8, Math.min(42, panelW * .72));
   const shade = Math.max(0.2, 1 - door.forward / MAX_DIST);
   const light = Math.min(1.08, shade * .8 + .18 + state.torch);
 
   ctx.save();
   ctx.globalAlpha = Math.max(.45, Math.min(.92, 1 - door.forward / (MAX_DIST * 1.35)));
-  ctx.drawImage(doorTexture, 0, 0, doorTexture.width, doorTexture.height, x, y, panelW, panelH);
+  ctx.fillStyle = "#5f371f";
+  ctx.beginPath();
+  ctx.moveTo(hingeX, y);
+  ctx.lineTo(hingeX + skew, y + panelH * .08);
+  ctx.lineTo(hingeX + skew, y + panelH * .92);
+  ctx.lineTo(hingeX, y + panelH);
+  ctx.closePath();
+  ctx.fill();
   ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
-  ctx.fillRect(x, y, panelW, panelH);
-  ctx.fillStyle = "rgba(255,219,143,.12)";
-  ctx.fillRect(x, y, Math.max(2, panelW * .18), panelH);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(226,178,92,.36)";
+  ctx.lineWidth = Math.max(2, panelW * .08);
+  ctx.beginPath();
+  ctx.moveTo(hingeX + panelW * .18, y + panelH * .08);
+  ctx.lineTo(hingeX + skew - panelW * .12, y + panelH * .15);
+  ctx.lineTo(hingeX + skew - panelW * .12, y + panelH * .85);
+  ctx.lineTo(hingeX + panelW * .18, y + panelH * .92);
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(0,0,0,.42)";
+  ctx.lineWidth = Math.max(3, panelW * .16);
+  ctx.beginPath();
+  ctx.moveTo(hingeX, y);
+  ctx.lineTo(hingeX, y + panelH);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -435,10 +465,10 @@ export function castRay(angle) {
     if (sideX < sideY) {
       const dirKey = stepX > 0 ? "E" : "W";
       const dist = sideX;
-      const isDoor = renderer.closedDoorOnCell(cellX, cellY, dirKey);
+      const doorState = renderer.getDoorState(cellX, cellY, dirKey);
       if (renderer.wallOnCell(cellX, cellY, dirKey)) {
         const hitY = state.y + rayY * dist;
-        return makeHit(dist, hitY - Math.floor(hitY), dirKey, 0, angle, isDoor ? "door" : "wall");
+        return makeHit(dist, hitY - Math.floor(hitY), dirKey, 0, angle, doorState ? "door" : "wall", doorState);
       }
       cellX += stepX;
       if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 0, angle);
@@ -446,10 +476,10 @@ export function castRay(angle) {
     } else {
       const dirKey = stepY > 0 ? "S" : "N";
       const dist = sideY;
-      const isDoor = renderer.closedDoorOnCell(cellX, cellY, dirKey);
+      const doorState = renderer.getDoorState(cellX, cellY, dirKey);
       if (renderer.wallOnCell(cellX, cellY, dirKey)) {
         const hitX = state.x + rayX * dist;
-        return makeHit(dist, hitX - Math.floor(hitX), dirKey, 1, angle, isDoor ? "door" : "wall");
+        return makeHit(dist, hitX - Math.floor(hitX), dirKey, 1, angle, doorState ? "door" : "wall", doorState);
       }
       cellY += stepY;
       if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 1, angle);
@@ -459,7 +489,7 @@ export function castRay(angle) {
   return makeHit(MAX_DIST, 0, "N", 1, angle);
 }
 
-export function makeHit(dist, u, dirKey, side, angle, type = "wall") {
+export function makeHit(dist, u, dirKey, side, angle, type = "wall", doorState = null) {
   const corrected = Math.max(0.001, dist * Math.cos(angle - renderer.state.angle));
   return {
     dist,
@@ -467,7 +497,8 @@ export function makeHit(dist, u, dirKey, side, angle, type = "wall") {
     u: ((u % 1) + 1) % 1,
     side,
     dirKey,
-    type
+    type,
+    doorState
   };
 }
 
@@ -568,4 +599,16 @@ export function isEdgeSample(u) {
 
 export function isDoorEdgeSample(u) {
   return u < 0.12 || u > 0.88 || (u > .47 && u < .53);
+}
+
+export function isDoorPanelSample(u) {
+  return u >= 0.28 && u <= 0.72;
+}
+
+export function isDoorPanelEdgeSample(u) {
+  return (u > 0.28 && u < 0.31) || (u > 0.69 && u < 0.72) || (u > .49 && u < .51);
+}
+
+export function normalizeDoorSample(u) {
+  return Math.max(0, Math.min(1, (u - 0.28) / 0.44));
 }

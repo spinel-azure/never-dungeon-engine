@@ -110,12 +110,14 @@ export function drawDoorMark(ctx, x1, y1, x2, y2, state, cellSize) {
   const my = (y1 + y2) / 2;
   const dx = x2 - x1;
   const dy = y2 - y1;
-  const length = Math.max(4, cellSize * .54);
+  const length = Math.max(4, cellSize * .48);
   const half = length / 2;
   const horizontal = Math.abs(dx) > Math.abs(dy);
+  const color = state === "locked" ? "#c78dff" : state === "open" ? "#dfc18a" : "#f0b35a";
   ctx.save();
-  ctx.strokeStyle = state === "closed" ? "#c08b45" : "rgba(192,139,69,.52)";
-  ctx.lineWidth = Math.max(2, cellSize * .22);
+
+  ctx.strokeStyle = "#151d19";
+  ctx.lineWidth = Math.max(3, cellSize * .34);
   ctx.beginPath();
   if (horizontal) {
     ctx.moveTo(mx - half, my);
@@ -125,6 +127,36 @@ export function drawDoorMark(ctx, x1, y1, x2, y2, state, cellSize) {
     ctx.lineTo(mx, my + half);
   }
   ctx.stroke();
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1.6, cellSize * .16);
+  ctx.beginPath();
+  if (horizontal) {
+    ctx.moveTo(mx - half * .7, my);
+    ctx.lineTo(mx + half * .7, my);
+    ctx.moveTo(mx, my - half * .55);
+    ctx.lineTo(mx, my + half * .55);
+  } else {
+    ctx.moveTo(mx, my - half * .7);
+    ctx.lineTo(mx, my + half * .7);
+    ctx.moveTo(mx - half * .55, my);
+    ctx.lineTo(mx + half * .55, my);
+  }
+  ctx.stroke();
+
+  if (state === "open") {
+    ctx.strokeStyle = "rgba(255,239,194,.76)";
+    ctx.lineWidth = Math.max(1.2, cellSize * .1);
+    ctx.beginPath();
+    if (horizontal) {
+      ctx.moveTo(mx, my);
+      ctx.lineTo(mx + half * .62, my + half * .62);
+    } else {
+      ctx.moveTo(mx, my);
+      ctx.lineTo(mx + half * .62, my - half * .62);
+    }
+    ctx.stroke();
+  }
   ctx.restore();
 }
 

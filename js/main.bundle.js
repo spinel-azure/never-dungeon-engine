@@ -176,6 +176,7 @@
     }
 
     shuffled(candidates).slice(0, count).forEach(door => {
+      setWall(door.x, door.y, door.dir, true);
       setDoor(door.x, door.y, door.dir, "closed");
     });
   }
@@ -322,6 +323,10 @@
     return getDoorState(x, y, dirKey) === "closed";
   }
 
+  function lockedDoorOnCell(x, y, dirKey) {
+    return getDoorState(x, y, dirKey) === "locked";
+  }
+
   function openDoorOnCell(x, y, dirKey) {
     return getDoorState(x, y, dirKey) === "open";
   }
@@ -336,7 +341,10 @@
   
   function wallOnCell(x, y, dirKey) {
     if (!inBounds(x, y)) return true;
-    return cells[y][x].walls[dirKey] || closedDoorOnCell(x, y, dirKey);
+    const doorState = getDoorState(x, y, dirKey);
+    if (doorState === "open") return false;
+    if (doorState === "closed" || doorState === "locked") return true;
+    return cells[y][x].walls[dirKey];
   }
   
   const hooks = {
@@ -507,6 +515,7 @@
     wallOnCell: () => true,
     closedDoorOnCell: () => false,
     openDoorOnCell: () => false,
+    getDoorState: () => null,
     inBounds: () => false,
     updateAnimation: () => {},
     updateHud: () => {},
@@ -678,19 +687,26 @@
       const wallH = Math.min(H * 1.85, H / hit.corrected);
       const y1 = (H - wallH) / 2;
       const x = Math.floor(i * colW);
-      const texture = hit.type === "door" ? doorTexture : wallTexture;
-      const sampleX = Math.floor(hit.u * texture.width) % texture.width;
+      const wallSampleX = Math.floor(hit.u * wallTexture.width) % wallTexture.width;
       const shade = Math.max(0.18, 1 - hit.dist / MAX_DIST);
       const orientationShade = hit.side === 0 ? 0.82 : 0.68;
-      const light = Math.min(1.12, shade * orientationShade + (hit.type === "door" ? 0.2 : 0.13) + state.torch);
+      const light = Math.min(1.12, shade * orientationShade + 0.13 + state.torch);
   
-      ctx.drawImage(texture, sampleX, 0, 1, texture.height, x, y1, Math.ceil(colW) + 1, wallH);
+      ctx.drawImage(wallTexture, wallSampleX, 0, 1, wallTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
       ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
       ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
   
-      if (hit.type === "door" && isDoorEdgeSample(hit.u)) {
-        ctx.fillStyle = "rgba(255,219,143,.12)";
+      if (hit.type === "door" && isDoorPanelSample(hit.u)) {
+        const doorU = normalizeDoorSample(hit.u);
+        const doorSampleX = Math.floor(doorU * doorTexture.width) % doorTexture.width;
+        const doorLight = Math.min(1.12, shade * orientationShade + 0.2 + state.torch);
+        ctx.drawImage(doorTexture, doorSampleX, 0, 1, doorTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
+        ctx.fillStyle = `rgba(0,0,0,${1 - doorLight})`;
         ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+        if (isDoorPanelEdgeSample(hit.u)) {
+          ctx.fillStyle = "rgba(255,219,143,.16)";
+          ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+        }
       } else if (isEdgeSample(hit.u)) {
         ctx.fillStyle = "rgba(0,0,0,.24)";
         ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
@@ -741,22 +757,44 @@
   }
 
   function drawOpenDoorPanel(door) {
-    const { ctx, H, doorTexture, state } = renderer;
-    const panelH = door.wallH * .82;
-    const panelW = Math.max(8, Math.min(64, door.wallH * .2));
+    const { ctx, H, state } = renderer;
+    const panelH = door.wallH * .78;
+    const panelW = Math.max(10, Math.min(72, door.wallH * .18));
     const y = (H - panelH) / 2;
-    const hingeOffset = panelW * .72;
-    const x = door.x + hingeOffset;
+    const hingeX = door.x + panelW * .42;
+    const skew = Math.max(8, Math.min(42, panelW * .72));
     const shade = Math.max(0.2, 1 - door.forward / MAX_DIST);
     const light = Math.min(1.08, shade * .8 + .18 + state.torch);
 
     ctx.save();
     ctx.globalAlpha = Math.max(.45, Math.min(.92, 1 - door.forward / (MAX_DIST * 1.35)));
-    ctx.drawImage(doorTexture, 0, 0, doorTexture.width, doorTexture.height, x, y, panelW, panelH);
+    ctx.fillStyle = "#5f371f";
+    ctx.beginPath();
+    ctx.moveTo(hingeX, y);
+    ctx.lineTo(hingeX + skew, y + panelH * .08);
+    ctx.lineTo(hingeX + skew, y + panelH * .92);
+    ctx.lineTo(hingeX, y + panelH);
+    ctx.closePath();
+    ctx.fill();
     ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
-    ctx.fillRect(x, y, panelW, panelH);
-    ctx.fillStyle = "rgba(255,219,143,.12)";
-    ctx.fillRect(x, y, Math.max(2, panelW * .18), panelH);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(226,178,92,.36)";
+    ctx.lineWidth = Math.max(2, panelW * .08);
+    ctx.beginPath();
+    ctx.moveTo(hingeX + panelW * .18, y + panelH * .08);
+    ctx.lineTo(hingeX + skew - panelW * .12, y + panelH * .15);
+    ctx.lineTo(hingeX + skew - panelW * .12, y + panelH * .85);
+    ctx.lineTo(hingeX + panelW * .18, y + panelH * .92);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(0,0,0,.42)";
+    ctx.lineWidth = Math.max(3, panelW * .16);
+    ctx.beginPath();
+    ctx.moveTo(hingeX, y);
+    ctx.lineTo(hingeX, y + panelH);
+    ctx.stroke();
     ctx.restore();
   }
   
@@ -929,10 +967,10 @@
       if (sideX < sideY) {
         const dirKey = stepX > 0 ? "E" : "W";
         const dist = sideX;
-        const isDoor = renderer.closedDoorOnCell(cellX, cellY, dirKey);
+        const doorState = renderer.getDoorState(cellX, cellY, dirKey);
         if (renderer.wallOnCell(cellX, cellY, dirKey)) {
           const hitY = state.y + rayY * dist;
-          return makeHit(dist, hitY - Math.floor(hitY), dirKey, 0, angle, isDoor ? "door" : "wall");
+          return makeHit(dist, hitY - Math.floor(hitY), dirKey, 0, angle, doorState ? "door" : "wall", doorState);
         }
         cellX += stepX;
         if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 0, angle);
@@ -940,10 +978,10 @@
       } else {
         const dirKey = stepY > 0 ? "S" : "N";
         const dist = sideY;
-        const isDoor = renderer.closedDoorOnCell(cellX, cellY, dirKey);
+        const doorState = renderer.getDoorState(cellX, cellY, dirKey);
         if (renderer.wallOnCell(cellX, cellY, dirKey)) {
           const hitX = state.x + rayX * dist;
-          return makeHit(dist, hitX - Math.floor(hitX), dirKey, 1, angle, isDoor ? "door" : "wall");
+          return makeHit(dist, hitX - Math.floor(hitX), dirKey, 1, angle, doorState ? "door" : "wall", doorState);
         }
         cellY += stepY;
         if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 1, angle);
@@ -953,7 +991,7 @@
     return makeHit(MAX_DIST, 0, "N", 1, angle);
   }
   
-  function makeHit(dist, u, dirKey, side, angle, type = "wall") {
+  function makeHit(dist, u, dirKey, side, angle, type = "wall", doorState = null) {
     const corrected = Math.max(0.001, dist * Math.cos(angle - renderer.state.angle));
     return {
       dist,
@@ -961,7 +999,8 @@
       u: ((u % 1) + 1) % 1,
       side,
       dirKey,
-      type
+      type,
+      doorState
     };
   }
   
@@ -1062,6 +1101,18 @@
 
   function isDoorEdgeSample(u) {
     return u < 0.12 || u > 0.88 || (u > .47 && u < .53);
+  }
+
+  function isDoorPanelSample(u) {
+    return u >= 0.28 && u <= 0.72;
+  }
+
+  function isDoorPanelEdgeSample(u) {
+    return (u > 0.28 && u < 0.31) || (u > 0.69 && u < 0.72) || (u > .49 && u < .51);
+  }
+
+  function normalizeDoorSample(u) {
+    return Math.max(0, Math.min(1, (u - 0.28) / 0.44));
   }
   
   const options = {
@@ -1590,12 +1641,14 @@
     const my = (y1 + y2) / 2;
     const dx = x2 - x1;
     const dy = y2 - y1;
-    const length = Math.max(4, cellSize * .54);
+    const length = Math.max(4, cellSize * .48);
     const half = length / 2;
     const horizontal = Math.abs(dx) > Math.abs(dy);
+    const color = state === "locked" ? "#c78dff" : state === "open" ? "#dfc18a" : "#f0b35a";
     ctx.save();
-    ctx.strokeStyle = state === "closed" ? "#c08b45" : "rgba(192,139,69,.52)";
-    ctx.lineWidth = Math.max(2, cellSize * .22);
+
+    ctx.strokeStyle = "#151d19";
+    ctx.lineWidth = Math.max(3, cellSize * .34);
     ctx.beginPath();
     if (horizontal) {
       ctx.moveTo(mx - half, my);
@@ -1605,6 +1658,36 @@
       ctx.lineTo(mx, my + half);
     }
     ctx.stroke();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1.6, cellSize * .16);
+    ctx.beginPath();
+    if (horizontal) {
+      ctx.moveTo(mx - half * .7, my);
+      ctx.lineTo(mx + half * .7, my);
+      ctx.moveTo(mx, my - half * .55);
+      ctx.lineTo(mx, my + half * .55);
+    } else {
+      ctx.moveTo(mx, my - half * .7);
+      ctx.lineTo(mx, my + half * .7);
+      ctx.moveTo(mx - half * .55, my);
+      ctx.lineTo(mx + half * .55, my);
+    }
+    ctx.stroke();
+
+    if (state === "open") {
+      ctx.strokeStyle = "rgba(255,239,194,.76)";
+      ctx.lineWidth = Math.max(1.2, cellSize * .1);
+      ctx.beginPath();
+      if (horizontal) {
+        ctx.moveTo(mx, my);
+        ctx.lineTo(mx + half * .62, my + half * .62);
+      } else {
+        ctx.moveTo(mx, my);
+        ctx.lineTo(mx + half * .62, my - half * .62);
+      }
+      ctx.stroke();
+    }
     ctx.restore();
   }
   
@@ -1678,6 +1761,7 @@
     wallOnCell,
     closedDoorOnCell,
     openDoorOnCell,
+    getDoorState,
     inBounds,
     updateAnimation,
     updateHud,

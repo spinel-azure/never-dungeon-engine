@@ -12,7 +12,8 @@ import {
   inBounds,
   wallOnCell,
   closedDoorOnCell,
-  openDoorOnCell
+  openDoorOnCell,
+  getDoorState
 } from "./dungeon.js";
 import {
   state,
@@ -70,6 +71,7 @@ import { configureDevice } from "./device.js";
     wallOnCell,
     closedDoorOnCell,
     openDoorOnCell,
+    getDoorState,
     inBounds,
     updateAnimation,
     updateHud,
