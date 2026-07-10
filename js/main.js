@@ -11,7 +11,8 @@ import {
   chooseStartDirection,
   inBounds,
   wallOnCell,
-  closedDoorOnCell
+  closedDoorOnCell,
+  openDoorOnCell
 } from "./dungeon.js";
 import {
   state,
@@ -68,6 +69,7 @@ import { configureDevice } from "./device.js";
     state,
     wallOnCell,
     closedDoorOnCell,
+    openDoorOnCell,
     inBounds,
     updateAnimation,
     updateHud,

@@ -260,6 +260,10 @@ export function closedDoorOnCell(x, y, dirKey) {
   return getDoorState(x, y, dirKey) === "closed";
 }
 
+export function openDoorOnCell(x, y, dirKey) {
+  return getDoorState(x, y, dirKey) === "open";
+}
+
 export function openDoor(x, y, dirKey) {
   if (closedDoorOnCell(x, y, dirKey)) setDoor(x, y, dirKey, "open");
 }

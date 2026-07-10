@@ -322,6 +322,10 @@
     return getDoorState(x, y, dirKey) === "closed";
   }
 
+  function openDoorOnCell(x, y, dirKey) {
+    return getDoorState(x, y, dirKey) === "open";
+  }
+
   function openDoor(x, y, dirKey) {
     if (closedDoorOnCell(x, y, dirKey)) setDoor(x, y, dirKey, "open");
   }
@@ -502,6 +506,7 @@
     state: null,
     wallOnCell: () => true,
     closedDoorOnCell: () => false,
+    openDoorOnCell: () => false,
     inBounds: () => false,
     updateAnimation: () => {},
     updateHud: () => {},
@@ -543,6 +548,7 @@
     drawCeiling();
     drawFloor();
     drawBoundaryWalls();
+    drawOpenDoors();
     drawCellEvents();
     drawMist();
     renderer.drawMinimap(ctx, {
@@ -691,6 +697,68 @@
       }
     }
   }
+
+  function drawOpenDoors() {
+    const {
+      MAP_W,
+      MAP_H,
+      cells
+    } = renderer.getMinimapOptions();
+    if (!cells) return;
+
+    const doors = [];
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        for (const dirKey of ["E", "S"]) {
+          if (!renderer.openDoorOnCell(x, y, dirKey)) continue;
+          const projected = projectDoorBoundary(x, y, dirKey);
+          if (!projected) continue;
+          if (!hasLineOfSightToPoint(projected.worldX, projected.worldY)) continue;
+          doors.push(projected);
+        }
+      }
+    }
+
+    doors
+      .sort((a, b) => b.forward - a.forward)
+      .forEach(door => drawOpenDoorPanel(door));
+  }
+
+  function projectDoorBoundary(cellX, cellY, dirKey) {
+    const worldX = dirKey === "E" ? cellX + 1 : cellX + .5;
+    const worldY = dirKey === "S" ? cellY + 1 : cellY + .5;
+    const projected = projectWorldPoint(worldX, worldY);
+    if (!projected) return null;
+
+    const wallH = Math.min(renderer.H * 1.85, renderer.H / projected.forward);
+    return {
+      ...projected,
+      worldX,
+      worldY,
+      dirKey,
+      wallH
+    };
+  }
+
+  function drawOpenDoorPanel(door) {
+    const { ctx, H, doorTexture, state } = renderer;
+    const panelH = door.wallH * .82;
+    const panelW = Math.max(8, Math.min(64, door.wallH * .2));
+    const y = (H - panelH) / 2;
+    const hingeOffset = panelW * .72;
+    const x = door.x + hingeOffset;
+    const shade = Math.max(0.2, 1 - door.forward / MAX_DIST);
+    const light = Math.min(1.08, shade * .8 + .18 + state.torch);
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(.45, Math.min(.92, 1 - door.forward / (MAX_DIST * 1.35)));
+    ctx.drawImage(doorTexture, 0, 0, doorTexture.width, doorTexture.height, x, y, panelW, panelH);
+    ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
+    ctx.fillRect(x, y, panelW, panelH);
+    ctx.fillStyle = "rgba(255,219,143,.12)";
+    ctx.fillRect(x, y, Math.max(2, panelW * .18), panelH);
+    ctx.restore();
+  }
   
   function drawMist() {
     const { ctx, W, H } = renderer;
@@ -732,11 +800,13 @@
   }
 
   function projectCellCenter(cellX, cellY) {
+    return projectWorldPoint(cellX + .5, cellY + .5);
+  }
+
+  function projectWorldPoint(worldX, worldY) {
     const { W, H, state } = renderer;
-    const targetX = cellX + .5;
-    const targetY = cellY + .5;
-    const dx = targetX - state.x;
-    const dy = targetY - state.y;
+    const dx = worldX - state.x;
+    const dy = worldY - state.y;
     const forward = dx * Math.cos(state.angle) + dy * Math.sin(state.angle);
     if (forward <= .25 || forward > MAX_DIST) return null;
 
@@ -753,11 +823,13 @@
   }
 
   function hasLineOfSightToCell(targetCellX, targetCellY) {
+    return hasLineOfSightToPoint(targetCellX + .5, targetCellY + .5, targetCellX, targetCellY);
+  }
+
+  function hasLineOfSightToPoint(targetX, targetY, targetCellX = Math.floor(targetX), targetCellY = Math.floor(targetY)) {
     const { state } = renderer;
     let prevX = Math.floor(state.x);
     let prevY = Math.floor(state.y);
-    const targetX = targetCellX + .5;
-    const targetY = targetCellY + .5;
     const dx = targetX - state.x;
     const dy = targetY - state.y;
     const steps = Math.max(8, Math.ceil(Math.hypot(dx, dy) * 12));
@@ -1603,6 +1675,7 @@
     state,
     wallOnCell,
     closedDoorOnCell,
+    openDoorOnCell,
     inBounds,
     updateAnimation,
     updateHud,
