@@ -758,42 +758,51 @@
 
   function drawOpenDoorPanel(door) {
     const { ctx, H, state } = renderer;
-    const panelH = door.wallH * .78;
-    const panelW = Math.max(10, Math.min(72, door.wallH * .18));
-    const y = (H - panelH) / 2;
-    const hingeX = door.x + panelW * .42;
-    const skew = Math.max(8, Math.min(42, panelW * .72));
+    const openingH = door.wallH * .78;
+    const openingW = Math.max(34, Math.min(168, door.wallH * .44));
+    const y = (H - openingH) / 2;
+    const doorwayLeft = door.x - openingW * .5;
+    const doorwayRight = door.x + openingW * .5;
+    const hingeX = door.x - openingW * .2;
+    const depth = Math.max(14, Math.min(58, openingW * .36));
     const shade = Math.max(0.2, 1 - door.forward / MAX_DIST);
     const light = Math.min(1.08, shade * .8 + .18 + state.torch);
 
     ctx.save();
     ctx.globalAlpha = Math.max(.45, Math.min(.92, 1 - door.forward / (MAX_DIST * 1.35)));
+
+    ctx.fillStyle = "rgba(0,0,0,.32)";
+    ctx.fillRect(doorwayLeft, y, openingW, openingH);
+    ctx.fillStyle = "rgba(0,0,0,.34)";
+    ctx.fillRect(doorwayLeft, y, Math.max(4, openingW * .08), openingH);
+    ctx.fillRect(doorwayRight - Math.max(4, openingW * .08), y, Math.max(4, openingW * .08), openingH);
+
     ctx.fillStyle = "#5f371f";
     ctx.beginPath();
     ctx.moveTo(hingeX, y);
-    ctx.lineTo(hingeX + skew, y + panelH * .08);
-    ctx.lineTo(hingeX + skew, y + panelH * .92);
-    ctx.lineTo(hingeX, y + panelH);
+    ctx.lineTo(hingeX + depth, y + openingH * .1);
+    ctx.lineTo(hingeX + depth, y + openingH * .9);
+    ctx.lineTo(hingeX, y + openingH);
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
     ctx.fill();
 
     ctx.strokeStyle = "rgba(226,178,92,.36)";
-    ctx.lineWidth = Math.max(2, panelW * .08);
+    ctx.lineWidth = Math.max(2, openingW * .035);
     ctx.beginPath();
-    ctx.moveTo(hingeX + panelW * .18, y + panelH * .08);
-    ctx.lineTo(hingeX + skew - panelW * .12, y + panelH * .15);
-    ctx.lineTo(hingeX + skew - panelW * .12, y + panelH * .85);
-    ctx.lineTo(hingeX + panelW * .18, y + panelH * .92);
+    ctx.moveTo(hingeX + openingW * .05, y + openingH * .12);
+    ctx.lineTo(hingeX + depth - openingW * .04, y + openingH * .18);
+    ctx.lineTo(hingeX + depth - openingW * .04, y + openingH * .82);
+    ctx.lineTo(hingeX + openingW * .05, y + openingH * .88);
     ctx.closePath();
     ctx.stroke();
 
     ctx.strokeStyle = "rgba(0,0,0,.42)";
-    ctx.lineWidth = Math.max(3, panelW * .16);
+    ctx.lineWidth = Math.max(3, openingW * .08);
     ctx.beginPath();
     ctx.moveTo(hingeX, y);
-    ctx.lineTo(hingeX, y + panelH);
+    ctx.lineTo(hingeX, y + openingH);
     ctx.stroke();
     ctx.restore();
   }
@@ -1641,7 +1650,7 @@
     const my = (y1 + y2) / 2;
     const dx = x2 - x1;
     const dy = y2 - y1;
-    const length = Math.max(4, cellSize * .48);
+    const length = Math.max(4, cellSize * .46);
     const half = length / 2;
     const horizontal = Math.abs(dx) > Math.abs(dy);
     const color = state === "locked" ? "#c78dff" : state === "open" ? "#dfc18a" : "#f0b35a";
@@ -1660,18 +1669,14 @@
     ctx.stroke();
 
     ctx.strokeStyle = color;
-    ctx.lineWidth = Math.max(1.6, cellSize * .16);
+    ctx.lineWidth = Math.max(1.8, cellSize * .18);
     ctx.beginPath();
     if (horizontal) {
-      ctx.moveTo(mx - half * .7, my);
-      ctx.lineTo(mx + half * .7, my);
-      ctx.moveTo(mx, my - half * .55);
-      ctx.lineTo(mx, my + half * .55);
+      ctx.moveTo(mx - half * .62, my);
+      ctx.lineTo(mx + half * .62, my);
     } else {
-      ctx.moveTo(mx, my - half * .7);
-      ctx.lineTo(mx, my + half * .7);
-      ctx.moveTo(mx - half * .55, my);
-      ctx.lineTo(mx + half * .55, my);
+      ctx.moveTo(mx, my - half * .62);
+      ctx.lineTo(mx, my + half * .62);
     }
     ctx.stroke();
 
@@ -1679,12 +1684,12 @@
       ctx.strokeStyle = "rgba(255,239,194,.76)";
       ctx.lineWidth = Math.max(1.2, cellSize * .1);
       ctx.beginPath();
-      if (horizontal) {
-        ctx.moveTo(mx, my);
-        ctx.lineTo(mx + half * .62, my + half * .62);
-      } else {
-        ctx.moveTo(mx, my);
-        ctx.lineTo(mx + half * .62, my - half * .62);
+    if (horizontal) {
+      ctx.moveTo(mx - half * .12, my);
+      ctx.lineTo(mx + half * .48, my + half * .52);
+    } else {
+      ctx.moveTo(mx, my + half * .12);
+      ctx.lineTo(mx + half * .52, my - half * .48);
       }
       ctx.stroke();
     }

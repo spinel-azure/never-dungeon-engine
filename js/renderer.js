@@ -256,42 +256,51 @@ export function projectDoorBoundary(cellX, cellY, dirKey) {
 
 export function drawOpenDoorPanel(door) {
   const { ctx, H, state } = renderer;
-  const panelH = door.wallH * .78;
-  const panelW = Math.max(10, Math.min(72, door.wallH * .18));
-  const y = (H - panelH) / 2;
-  const hingeX = door.x + panelW * .42;
-  const skew = Math.max(8, Math.min(42, panelW * .72));
+  const openingH = door.wallH * .78;
+  const openingW = Math.max(34, Math.min(168, door.wallH * .44));
+  const y = (H - openingH) / 2;
+  const doorwayLeft = door.x - openingW * .5;
+  const doorwayRight = door.x + openingW * .5;
+  const hingeX = door.x - openingW * .2;
+  const depth = Math.max(14, Math.min(58, openingW * .36));
   const shade = Math.max(0.2, 1 - door.forward / MAX_DIST);
   const light = Math.min(1.08, shade * .8 + .18 + state.torch);
 
   ctx.save();
   ctx.globalAlpha = Math.max(.45, Math.min(.92, 1 - door.forward / (MAX_DIST * 1.35)));
+
+  ctx.fillStyle = "rgba(0,0,0,.32)";
+  ctx.fillRect(doorwayLeft, y, openingW, openingH);
+  ctx.fillStyle = "rgba(0,0,0,.34)";
+  ctx.fillRect(doorwayLeft, y, Math.max(4, openingW * .08), openingH);
+  ctx.fillRect(doorwayRight - Math.max(4, openingW * .08), y, Math.max(4, openingW * .08), openingH);
+
   ctx.fillStyle = "#5f371f";
   ctx.beginPath();
   ctx.moveTo(hingeX, y);
-  ctx.lineTo(hingeX + skew, y + panelH * .08);
-  ctx.lineTo(hingeX + skew, y + panelH * .92);
-  ctx.lineTo(hingeX, y + panelH);
+  ctx.lineTo(hingeX + depth, y + openingH * .1);
+  ctx.lineTo(hingeX + depth, y + openingH * .9);
+  ctx.lineTo(hingeX, y + openingH);
   ctx.closePath();
   ctx.fill();
   ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
   ctx.fill();
 
   ctx.strokeStyle = "rgba(226,178,92,.36)";
-  ctx.lineWidth = Math.max(2, panelW * .08);
+  ctx.lineWidth = Math.max(2, openingW * .035);
   ctx.beginPath();
-  ctx.moveTo(hingeX + panelW * .18, y + panelH * .08);
-  ctx.lineTo(hingeX + skew - panelW * .12, y + panelH * .15);
-  ctx.lineTo(hingeX + skew - panelW * .12, y + panelH * .85);
-  ctx.lineTo(hingeX + panelW * .18, y + panelH * .92);
+  ctx.moveTo(hingeX + openingW * .05, y + openingH * .12);
+  ctx.lineTo(hingeX + depth - openingW * .04, y + openingH * .18);
+  ctx.lineTo(hingeX + depth - openingW * .04, y + openingH * .82);
+  ctx.lineTo(hingeX + openingW * .05, y + openingH * .88);
   ctx.closePath();
   ctx.stroke();
 
   ctx.strokeStyle = "rgba(0,0,0,.42)";
-  ctx.lineWidth = Math.max(3, panelW * .16);
+  ctx.lineWidth = Math.max(3, openingW * .08);
   ctx.beginPath();
   ctx.moveTo(hingeX, y);
-  ctx.lineTo(hingeX, y + panelH);
+  ctx.lineTo(hingeX, y + openingH);
   ctx.stroke();
   ctx.restore();
 }
