@@ -50,6 +50,7 @@ export function drawScene(now) {
   drawCeiling();
   drawFloor();
   drawBoundaryWalls();
+  drawCellEvents();
   drawMist();
   renderer.drawMinimap(ctx, {
     ...renderer.getMinimapOptions(),
@@ -205,6 +206,121 @@ export function drawMist() {
 
   ctx.fillStyle = "rgba(3,4,4,.20)";
   ctx.fillRect(0, 0, W, H);
+}
+
+export function drawCellEvents() {
+  const { ctx, W, H, state } = renderer;
+  const {
+    MAP_W,
+    MAP_H,
+    cells
+  } = renderer.getMinimapOptions();
+  if (!cells) return;
+
+  const events = [];
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      const cell = cells[y][x];
+      if (cell.type !== "stairsUp" && cell.type !== "stairsDown") continue;
+      const projected = projectCellCenter(x, y);
+      if (!projected) continue;
+      if (!hasLineOfSightToCell(x, y)) continue;
+      events.push({ ...projected, type: cell.type });
+    }
+  }
+
+  events
+    .sort((a, b) => b.forward - a.forward)
+    .forEach(event => drawStairsEventMarker(ctx, W, H, event));
+}
+
+function projectCellCenter(cellX, cellY) {
+  const { W, H, state } = renderer;
+  const targetX = cellX + .5;
+  const targetY = cellY + .5;
+  const dx = targetX - state.x;
+  const dy = targetY - state.y;
+  const forward = dx * Math.cos(state.angle) + dy * Math.sin(state.angle);
+  if (forward <= .25 || forward > MAX_DIST) return null;
+
+  const side = dx * -Math.sin(state.angle) + dy * Math.cos(state.angle);
+  const angle = Math.atan2(side, forward);
+  if (Math.abs(angle) > FOV * .58) return null;
+
+  const x = W / 2 + (angle / (FOV / 2)) * (W / 2);
+  const floorRise = Math.min(H * .18, H * .22 / forward);
+  const y = H * .64 + floorRise;
+  const size = Math.max(22, Math.min(86, H * .18 / forward));
+  const alpha = Math.max(.35, Math.min(.95, 1 - forward / (MAX_DIST + 2)));
+  return { x, y, size, alpha, forward };
+}
+
+function hasLineOfSightToCell(targetCellX, targetCellY) {
+  const { state } = renderer;
+  let prevX = Math.floor(state.x);
+  let prevY = Math.floor(state.y);
+  const targetX = targetCellX + .5;
+  const targetY = targetCellY + .5;
+  const dx = targetX - state.x;
+  const dy = targetY - state.y;
+  const steps = Math.max(8, Math.ceil(Math.hypot(dx, dy) * 12));
+
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const sampleX = state.x + dx * t;
+    const sampleY = state.y + dy * t;
+    const cellX = Math.floor(sampleX);
+    const cellY = Math.floor(sampleY);
+    if (cellX === prevX && cellY === prevY) continue;
+
+    const dirKey = directionKeyBetween(prevX, prevY, cellX, cellY);
+    if (!dirKey || renderer.wallOnCell(prevX, prevY, dirKey)) return false;
+    prevX = cellX;
+    prevY = cellY;
+    if (prevX === targetCellX && prevY === targetCellY) return true;
+  }
+  return prevX === targetCellX && prevY === targetCellY;
+}
+
+function directionKeyBetween(fromX, fromY, toX, toY) {
+  if (toX > fromX) return "E";
+  if (toX < fromX) return "W";
+  if (toY > fromY) return "S";
+  if (toY < fromY) return "N";
+  return null;
+}
+
+function drawStairsEventMarker(ctx, W, H, event) {
+  const isUp = event.type === "stairsUp";
+  const color = isUp ? "#8ed4ff" : "#f3b15a";
+  const label = isUp ? "↑" : "↓";
+  const r = event.size * .44;
+
+  ctx.save();
+  ctx.globalAlpha = event.alpha;
+  const glow = ctx.createRadialGradient(event.x, event.y, 2, event.x, event.y, r * 1.9);
+  glow.addColorStop(0, isUp ? "rgba(142,212,255,.62)" : "rgba(243,177,90,.62)");
+  glow.addColorStop(.48, isUp ? "rgba(142,212,255,.20)" : "rgba(243,177,90,.20)");
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(event.x, event.y, r * 1.9, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(2, event.size * .06);
+  ctx.beginPath();
+  ctx.ellipse(event.x, event.y + r * .25, r * .9, r * .42, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `700 ${Math.max(18, event.size * .82)}px GameFont, sans-serif`;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = event.size * .22;
+  ctx.fillText(label, event.x, event.y - r * .35);
+  ctx.restore();
 }
 
 export function drawFrame() {
