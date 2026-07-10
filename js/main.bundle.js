@@ -976,14 +976,10 @@
       const dx = clientX - centerX;
       const dy = clientY - centerY;
       const distance = Math.hypot(dx, dy);
-      const limited = Math.min(distance, MAX_RADIUS);
-      const angle = Math.atan2(dy, dx);
-      const knobX = distance ? Math.cos(angle) * limited : 0;
-      const knobY = distance ? Math.sin(angle) * limited : 0;
+      const direction = getDirection(dx, dy, distance);
 
-      if (knob) knob.style.transform = `translate(${knobX}px, ${knobY}px)`;
-
-      handleDirection(dx, dy, distance);
+      moveKnob(direction, dx, dy);
+      handleDirection(direction);
     }
 
     function finishInput() {
@@ -1000,8 +996,24 @@
       return Array.from(touches).find(touch => touch.identifier === activeTouchId) || null;
     }
 
-    function handleDirection(dx, dy, distance) {
-      const direction = getDirection(dx, dy, distance);
+    function moveKnob(direction, dx, dy) {
+      if (!knob) return;
+      if (!direction) {
+        knob.style.transform = "translate(0, 0)";
+        return;
+      }
+
+      if (direction.type === "move") {
+        const y = Math.max(-MAX_RADIUS, Math.min(MAX_RADIUS, dy));
+        knob.style.transform = `translate(0, ${y}px)`;
+        return;
+      }
+
+      const x = Math.max(-MAX_RADIUS, Math.min(MAX_RADIUS, dx));
+      knob.style.transform = `translate(${x}px, 0)`;
+    }
+
+    function handleDirection(direction) {
       if (!direction) {
         activeInputKey = null;
         activeInputType = null;
