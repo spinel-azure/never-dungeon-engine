@@ -1467,14 +1467,11 @@
       }
       return;
     }
-    if (key === "next") {
-      if (menu.optionPage === 0) setOptionPage(1);
-      else {
-        menu.view = "main";
-        updateMenuView();
-      }
-    }
+  if (key === "next") {
+    if (menu.optionPage === 0) setOptionPage(1);
+    else closeCampMenu();
   }
+}
 
   function executeOption(key) {
     if (key === "language") return;

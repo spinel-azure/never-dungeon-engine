@@ -222,6 +222,7 @@
       width: 58px;
       height: 58px;
       border-radius: 50%;
+      font-family: "PixelFont", monospace;
       font-size: 22px;
       color: #2f2d28;
       background: linear-gradient(#e4ded1, #aaa18f);

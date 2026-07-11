@@ -176,10 +176,7 @@ function executeOptionNav(key) {
   }
   if (key === "next") {
     if (menu.optionPage === 0) setOptionPage(1);
-    else {
-      menu.view = "main";
-      updateMenuView();
-    }
+    else closeCampMenu();
   }
 }
 
