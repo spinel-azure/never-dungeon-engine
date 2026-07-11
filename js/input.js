@@ -18,6 +18,8 @@
     if (e.key === "ArrowDown") { e.preventDefault(); manualMove(-1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); manualTurn(-1); }
     if (e.key === "ArrowRight") { e.preventDefault(); manualTurn(1); }
+    if (e.code === "KeyX") { e.preventDefault(); actionA(say); }
+    if (e.code === "KeyZ") { e.preventDefault(); actionB(say); }
   }, { passive: false });
 
   bindControl(forwardBtn, () => manualMove(1));
@@ -26,9 +28,17 @@
   bindControl(rightBtn, () => manualTurn(1));
   bindControl(autoReturnBtn, startAutoReturn);
   bindControl(randomGenerateBtn, generateRandomDungeon);
-  bindControl(buttonA, () => say("Aボタンを押した。"));
-  bindControl(buttonB, () => say("Bボタンを押した。"));
+  bindControl(buttonA, () => actionA(say));
+  bindControl(buttonB, () => actionB(say));
   configureTouchGuards();
+}
+
+function actionA(say) {
+  say("決定した。");
+}
+
+function actionB(say) {
+  say("キャンプメニューを開いた。");
 }
 
 function bindControl(el, action) {

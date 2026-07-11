@@ -1189,6 +1189,8 @@
       if (e.key === "ArrowDown") { e.preventDefault(); manualMove(-1); }
       if (e.key === "ArrowLeft") { e.preventDefault(); manualTurn(-1); }
       if (e.key === "ArrowRight") { e.preventDefault(); manualTurn(1); }
+      if (e.code === "KeyX") { e.preventDefault(); actionA(say); }
+      if (e.code === "KeyZ") { e.preventDefault(); actionB(say); }
     }, { passive: false });
   
     bindControl(forwardBtn, () => manualMove(1));
@@ -1197,9 +1199,17 @@
     bindControl(rightBtn, () => manualTurn(1));
     bindControl(autoReturnBtn, startAutoReturn);
     bindControl(randomGenerateBtn, generateRandomDungeon);
-    bindControl(buttonA, () => say("A\u30dc\u30bf\u30f3\u3092\u62bc\u3057\u305f\u3002"));
-    bindControl(buttonB, () => say("B\u30dc\u30bf\u30f3\u3092\u62bc\u3057\u305f\u3002"));
+    bindControl(buttonA, () => actionA(say));
+    bindControl(buttonB, () => actionB(say));
     configureTouchGuards();
+  }
+
+  function actionA(say) {
+    say("\u6c7a\u5b9a\u3057\u305f\u3002");
+  }
+
+  function actionB(say) {
+    say("\u30ad\u30e3\u30f3\u30d7\u30e1\u30cb\u30e5\u30fc\u3092\u958b\u3044\u305f\u3002");
   }
 
   function bindControl(el, action) {
@@ -1763,7 +1773,6 @@
   updateAutoReturnButton();
   startRenderLoop();
 })();
-
 
 
 
