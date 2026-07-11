@@ -292,7 +292,7 @@
     body.menu-open .brand {
       display: none;
     }
-    body.layout-pc.menu-open .pad {
+    body.layout-pc.menu-open .controls {
       display: none;
     }
     body.menu-open .game {
@@ -750,6 +750,73 @@
         height: 58px;
         font-size: 23px;
       }
+    }
+
+    body.menu-open.layout-mobile .shell,
+    body.menu-open.layout-tablet .shell {
+      min-height: 100dvh;
+      padding-bottom: calc(190px + env(safe-area-inset-bottom));
+      place-items: start center;
+    }
+    body.menu-open.layout-mobile .game,
+    body.menu-open.layout-tablet .game {
+      width: min(94vw, 520px);
+      gap: 0;
+      overflow: visible;
+    }
+    body.menu-open.layout-mobile .menu-screen,
+    body.menu-open.layout-tablet .menu-screen {
+      min-height: calc(100dvh - 214px - env(safe-area-inset-bottom));
+    }
+    body.menu-open.layout-mobile .menu-panel,
+    body.menu-open.layout-tablet .menu-panel {
+      min-height: calc(100dvh - 214px - env(safe-area-inset-bottom));
+    }
+    body.menu-open.layout-mobile .controls,
+    body.menu-open.layout-tablet .controls {
+      display: block;
+      min-height: 0;
+      padding: 0;
+      overflow: visible;
+    }
+    body.menu-open.layout-mobile .pad,
+    body.menu-open.layout-tablet .pad {
+      display: none;
+    }
+    body.menu-open.layout-mobile .virtual-stick,
+    body.menu-open.layout-tablet .virtual-stick {
+      display: block;
+      position: fixed;
+      left: max(18px, env(safe-area-inset-left));
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      width: 132px;
+      height: 132px;
+      z-index: 40;
+      pointer-events: auto;
+    }
+    body.menu-open.layout-mobile .action-buttons,
+    body.menu-open.layout-tablet .action-buttons {
+      display: grid;
+      position: fixed;
+      right: max(18px, env(safe-area-inset-right));
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      grid-template-columns: 66px 66px;
+      grid-template-rows: 66px 66px;
+      gap: 12px;
+      z-index: 40;
+      pointer-events: auto;
+    }
+    body.menu-open.layout-mobile .action-button,
+    body.menu-open.layout-tablet .action-button {
+      width: 66px;
+      height: 66px;
+      font-size: 26px;
+    }
+    body.menu-open.layout-mobile .action-button-b,
+    body.menu-open.layout-tablet .action-button-b {
+      width: 58px;
+      height: 58px;
+      font-size: 23px;
     }
 
     html,
