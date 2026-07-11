@@ -941,3 +941,12 @@
     #randomGenerate {
       display: none !important;
     }
+
+    .action-button,
+    .action-button-b,
+    body.layout-mobile .action-button,
+    body.layout-mobile .action-button-b,
+    body.menu-open.input-touch .action-button,
+    body.menu-open.input-touch .action-button-b {
+      font-size: 34px;
+    }
