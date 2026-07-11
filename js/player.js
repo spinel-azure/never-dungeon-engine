@@ -63,6 +63,10 @@ export function resetPlayer(startDir) {
   markExplored(START_X, START_Y);
 }
 
+export function refillTorch() {
+  state.torchFuel = TORCH_FUEL_MAX;
+}
+
 export function updateAnimation(now) {
   if (!state.anim) return;
   const a = state.anim;

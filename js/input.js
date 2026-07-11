@@ -11,15 +11,19 @@
   generateRandomDungeon,
   buttonA,
   buttonB,
-  say
+  handleMenuInput
 }) {
   window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp" && handleMenuInput("up")) { e.preventDefault(); return; }
+    if (e.key === "ArrowDown" && handleMenuInput("down")) { e.preventDefault(); return; }
+    if (e.key === "ArrowLeft" && handleMenuInput("left")) { e.preventDefault(); return; }
+    if (e.key === "ArrowRight" && handleMenuInput("right")) { e.preventDefault(); return; }
+    if (e.code === "KeyX" && handleMenuInput("confirm")) { e.preventDefault(); return; }
+    if (e.code === "KeyZ" && handleMenuInput("cancel")) { e.preventDefault(); return; }
     if (e.key === "ArrowUp") { e.preventDefault(); manualMove(1); }
     if (e.key === "ArrowDown") { e.preventDefault(); manualMove(-1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); manualTurn(-1); }
     if (e.key === "ArrowRight") { e.preventDefault(); manualTurn(1); }
-    if (e.code === "KeyX") { e.preventDefault(); actionA(say); }
-    if (e.code === "KeyZ") { e.preventDefault(); actionB(say); }
   }, { passive: false });
 
   bindControl(forwardBtn, () => manualMove(1));
@@ -28,17 +32,9 @@
   bindControl(rightBtn, () => manualTurn(1));
   bindControl(autoReturnBtn, startAutoReturn);
   bindControl(randomGenerateBtn, generateRandomDungeon);
-  bindControl(buttonA, () => actionA(say));
-  bindControl(buttonB, () => actionB(say));
+  bindControl(buttonA, () => handleMenuInput("confirm"));
+  bindControl(buttonB, () => handleMenuInput("cancel"));
   configureTouchGuards();
-}
-
-function actionA(say) {
-  say("決定した。");
-}
-
-function actionB(say) {
-  say("キャンプメニューを開いた。");
 }
 
 function bindControl(el, action) {
@@ -80,7 +76,9 @@ function configureTouchGuards() {
   }
 
   function isGuardedTarget(target) {
-    return target instanceof Element && !!target.closest(guardedSelector);
+    return target instanceof Element
+      && !target.closest(".menu-screen")
+      && !!target.closest(guardedSelector);
   }
 
   function preventGuardedTouch(e) {

@@ -18,6 +18,7 @@ import {
   state,
   configurePlayer,
   resetPlayer,
+  refillTorch,
   updateAnimation,
   manualMove,
   manualTurn
@@ -27,6 +28,7 @@ import { drawMinimap, getMinimapBounds } from "./minimap.js";
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
 import { configureCompass, drawCompass } from "./compass.js";
+import { configureMenu, handleMenuInput } from "./menu.js";
 import {
   configureAutoReturn,
   startAutoReturn,
@@ -62,6 +64,7 @@ import { configureDevice } from "./device.js";
   const virtualStickEl = document.getElementById("virtualStick");
   const buttonA = document.getElementById("buttonA");
   const buttonB = document.getElementById("buttonB");
+  const menuScreen = document.getElementById("menuScreen");
   configureDevice();
   configureEvents({ messageEl: msgEl });
   configureCompass({ canvas: compassCanvas, state });
@@ -98,7 +101,6 @@ import { configureDevice } from "./device.js";
     resetExplored();
     resetPlayer(startDir);
     updateAutoReturnButton();
-    say("新しいランダムダンジョンを生成した。");
     updateHud();
   }
 
@@ -121,7 +123,13 @@ import { configureDevice } from "./device.js";
     generateRandomDungeon,
     buttonA,
     buttonB,
-    say
+    handleMenuInput
+  });
+  configureMenu({
+    root: menuScreen,
+    generateRandomDungeon,
+    startAutoReturn,
+    refillTorch
   });
   configureVirtualStick({
     stickEl: virtualStickEl,

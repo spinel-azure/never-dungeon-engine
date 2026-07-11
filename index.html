@@ -14,9 +14,9 @@
       <canvas id="screen" width="960" height="540"></canvas>
       <div class="status">
         <div class="readout">
-          <span class="chip" id="pos">X:0 Y:0</span>
+          <span class="chip coordinate-chip" id="pos">X:0 Y:0</span>
           <canvas id="compass" class="compass" width="72" height="72" aria-label="コンパス"></canvas>
-          <span class="chip" id="depth">B1F</span>
+          <span class="chip depth-chip" id="depth">B1F</span>
         </div>
         <div class="meter torch-meter" aria-label="たいまつ"><span id="torchMeter"></span></div>
       </div>
@@ -42,6 +42,35 @@
         <button id="buttonA" type="button" class="action-button action-button-a" aria-label="A 決定">A</button>
       </div>
     </div>
+    <section class="menu-screen" id="menuScreen" aria-label="キャンプメニュー" hidden>
+      <div class="menu-panel" data-menu-view="main">
+        <h1 class="menu-title">◆メニュー◆</h1>
+        <button type="button" class="menu-item is-disabled" data-menu-main="items">・アイテム（未実装）</button>
+        <button type="button" class="menu-item is-disabled" data-menu-main="status">・つよさ（未実装）</button>
+        <button type="button" class="menu-item is-disabled" data-menu-main="record">・きろく（未実装）</button>
+        <button type="button" class="menu-item" data-menu-main="options">・オプション</button>
+        <button type="button" class="menu-footer" data-menu-back>BACK</button>
+      </div>
+      <div class="menu-panel menu-panel-options" data-menu-view="options" hidden>
+        <h1 class="menu-title">◆オプション◆</h1>
+        <div class="option-section">
+          <div class="option-label">・BGM（未実装）</div>
+          <div class="toggle-row is-muted"><span>ON ⚫</span><span>OFF ⚫</span></div>
+          <label class="volume-row">Volume <input id="bgmVolume" type="range" min="0" max="100" value="80" /> <span>80%</span></label>
+        </div>
+        <div class="option-section">
+          <div class="option-label">・SE（未実装）</div>
+          <div class="toggle-row is-muted"><span>ON ⚫</span><span>OFF ⚫</span></div>
+          <label class="volume-row">Volume <input id="seVolume" type="range" min="0" max="100" value="0" /> <span>0%</span></label>
+        </div>
+        <button type="button" class="option-item" data-option="random">・ランダム生成 <span>ON ⚫</span></button>
+        <button type="button" class="option-item" data-option="compass">・コンパス表示 <span data-option-state="compass">ON 🔘　OFF ⚫</span></button>
+        <button type="button" class="option-item" data-option="readout">・座標/階層表示 <span data-option-state="readout">ON ⚫　OFF 🔘</span></button>
+        <button type="button" class="option-item" data-option="autoReturn">・オート帰還 <span>ON ⚫</span></button>
+        <button type="button" class="option-item" data-option="torchFull">・たいまつゲージ満タン <span>ON ⚫</span></button>
+        <button type="button" class="menu-footer" data-menu-back>BACK</button>
+      </div>
+    </section>
   </section>
 </main>
 
