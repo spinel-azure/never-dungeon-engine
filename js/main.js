@@ -1,7 +1,6 @@
 import {
   MAP_W,
-  MAP_H,
-  DIRS
+  MAP_H
 } from "./config.js";
 import {
   cells,
@@ -27,6 +26,7 @@ import { configureRenderer, startRenderLoop } from "./renderer.js";
 import { drawMinimap, getMinimapBounds } from "./minimap.js";
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
+import { configureCompass, drawCompass } from "./compass.js";
 import {
   configureAutoReturn,
   startAutoReturn,
@@ -50,9 +50,9 @@ import { configureDevice } from "./device.js";
 
 
   const posEl = document.getElementById("pos");
-  const dirEl = document.getElementById("dir");
   const msgEl = document.getElementById("message");
   const torchMeterEl = document.getElementById("torchMeter");
+  const compassCanvas = document.getElementById("compass");
   const forwardBtn = document.getElementById("forward");
   const backBtn = document.getElementById("back");
   const leftBtn = document.getElementById("left");
@@ -64,6 +64,7 @@ import { configureDevice } from "./device.js";
   const buttonB = document.getElementById("buttonB");
   configureDevice();
   configureEvents({ messageEl: msgEl });
+  configureCompass({ canvas: compassCanvas, state });
   configureRenderer({
     canvas,
     ctx,
@@ -103,7 +104,7 @@ import { configureDevice } from "./device.js";
 
   function updateHud() {
     posEl.textContent = `X:${state.gridX} Y:${state.gridY}`;
-    dirEl.textContent = DIRS[state.dir].label;
+    drawCompass();
     torchMeterEl.style.width = `${state.torchFuel}%`;
   }
 
