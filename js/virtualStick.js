@@ -9,7 +9,8 @@ const HORIZONTAL_CROSS_LIMIT = 12;
 export function configureVirtualStick({
   stickEl,
   manualMove,
-  manualTurn
+  manualTurn,
+  handleMenuInput = () => false
 }) {
   if (!stickEl) return;
 
@@ -130,6 +131,12 @@ export function configureVirtualStick({
 
     activeInputKey = inputKey;
     activeInputType = direction.type;
+    const menuAction = menuActionForDirection(direction);
+    if (menuAction && handleMenuInput(menuAction)) {
+      startMenuRepeat(menuAction);
+      return;
+    }
+
     if (direction.type === "move") {
       startMoveRepeat(direction.amount);
       return;
@@ -151,6 +158,17 @@ export function configureVirtualStick({
       return { type: "turn", amount: dx < 0 ? -1 : 1 };
     }
     return null;
+  }
+
+  function menuActionForDirection(direction) {
+    if (direction.type === "move") return direction.amount > 0 ? "up" : "down";
+    if (direction.type === "turn") return direction.amount < 0 ? "left" : "right";
+    return null;
+  }
+
+  function startMenuRepeat(action) {
+    stopRepeat();
+    repeatTimer = window.setInterval(() => handleMenuInput(action), MOVE_REPEAT_MS);
   }
 
   function startMoveRepeat(amount) {

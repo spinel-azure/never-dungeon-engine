@@ -134,7 +134,8 @@ import { configureDevice } from "./device.js";
   configureVirtualStick({
     stickEl: virtualStickEl,
     manualMove,
-    manualTurn
+    manualTurn,
+    handleMenuInput
   });
 
   updateAutoReturnButton();

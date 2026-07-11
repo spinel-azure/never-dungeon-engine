@@ -286,8 +286,13 @@
       overflow: hidden;
     }
     body.menu-open .viewport,
-    body.menu-open .message,
-    body.menu-open .controls {
+    body.menu-open .message {
+      display: none;
+    }
+    body.menu-open .brand {
+      display: none;
+    }
+    body.layout-pc.menu-open .pad {
       display: none;
     }
     body.menu-open .game {
@@ -343,7 +348,8 @@
       color: rgba(247, 251, 255, .74);
     }
     .menu-item.is-selected,
-    .option-item.is-selected {
+    .option-item.is-selected,
+    .menu-footer.is-selected {
       border-color: rgba(176, 244, 255, .92);
       background: rgba(48, 185, 255, .08);
       box-shadow:
@@ -411,6 +417,11 @@
       line-height: 1;
       text-align: center;
       box-shadow: none;
+    }
+    .menu-footer.is-selected {
+      outline: 2px solid rgba(176, 244, 255, .92);
+      outline-offset: 6px;
+      box-shadow: 0 0 14px rgba(120, 230, 255, .9);
     }
 
     body.layout-pc .message {

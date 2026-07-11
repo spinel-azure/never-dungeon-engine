@@ -1297,8 +1297,12 @@
     optionsPanel: null,
     mainItems: [],
     optionItems: [],
+    mainBackButton: null,
+    optionBackButton: null,
     mainIndex: 3,
     optionIndex: 0,
+    mainCursor: 0,
+    optionCursor: 0,
     view: "dungeon",
     compassVisible: true,
     readoutVisible: false,
@@ -1313,6 +1317,8 @@
     menu.optionsPanel = menu.root?.querySelector('[data-menu-view="options"]') || null;
     menu.mainItems = Array.from(menu.root?.querySelectorAll("[data-menu-main]") || []);
     menu.optionItems = Array.from(menu.root?.querySelectorAll("[data-option]") || []);
+    menu.mainBackButton = menu.mainPanel?.querySelector("[data-menu-back]") || null;
+    menu.optionBackButton = menu.optionsPanel?.querySelector("[data-menu-back]") || null;
     bindMenuButtons();
     bindBackButtons();
     bindVolumeSliders();
@@ -1327,6 +1333,7 @@
   function openCampMenu() {
     menu.view = "main";
     menu.mainIndex = 3;
+    menu.mainCursor = 0;
     updateMenuView();
   }
 
@@ -1355,17 +1362,23 @@
       return;
     }
     if (action === "up") {
+      menu.mainCursor = (menu.mainCursor + 1) % 2;
       updateSelection();
       return;
     }
     if (action === "down") {
+      menu.mainCursor = (menu.mainCursor + 1) % 2;
       updateSelection();
       return;
     }
-    if (action === "confirm" && selectedMainKey() === "options") {
+    if (action === "confirm" && menu.mainCursor === 0) {
       menu.view = "options";
-      menu.optionIndex = 0;
+      menu.optionCursor = 0;
       updateMenuView();
+      return;
+    }
+    if (action === "confirm" && menu.mainCursor === 1) {
+      closeCampMenu();
     }
   }
 
@@ -1376,16 +1389,21 @@
       return;
     }
     if (action === "up") {
-      menu.optionIndex = (menu.optionIndex + menu.optionItems.length - 1) % menu.optionItems.length;
+      menu.optionCursor = (menu.optionCursor + optionChoiceCount() - 1) % optionChoiceCount();
       updateSelection();
       return;
     }
     if (action === "down") {
-      menu.optionIndex = (menu.optionIndex + 1) % menu.optionItems.length;
+      menu.optionCursor = (menu.optionCursor + 1) % optionChoiceCount();
       updateSelection();
       return;
     }
     if (action === "confirm" || action === "left" || action === "right") {
+      if (menu.optionCursor === menu.optionItems.length) {
+        menu.view = "main";
+        updateMenuView();
+        return;
+      }
       executeOption(selectedOptionKey());
     }
   }
@@ -1395,7 +1413,11 @@
   }
 
   function selectedOptionKey() {
-    return menu.optionItems[menu.optionIndex]?.dataset.option || "";
+    return menu.optionItems[menu.optionCursor]?.dataset.option || "";
+  }
+
+  function optionChoiceCount() {
+    return menu.optionItems.length + 1;
   }
 
   function executeOption(key) {
@@ -1432,13 +1454,14 @@
       item.addEventListener("click", () => {
         if (item.dataset.menuMain !== "options") return;
         menu.mainIndex = index;
+        menu.mainCursor = 0;
         updateSelection();
         handleMainInput("confirm");
       });
     });
     menu.optionItems.forEach((item, index) => {
       item.addEventListener("click", () => {
-        menu.optionIndex = index;
+        menu.optionCursor = index;
         updateSelection();
         executeOption(item.dataset.option);
       });
@@ -1449,9 +1472,11 @@
     menu.root?.querySelectorAll("[data-menu-back]").forEach((button) => {
       button.addEventListener("click", () => {
         if (menu.view === "options") {
+          menu.optionCursor = menu.optionItems.length;
           menu.view = "main";
           updateMenuView();
         } else {
+          menu.mainCursor = 1;
           closeCampMenu();
         }
       });
@@ -1479,11 +1504,13 @@
 
   function updateSelection() {
     menu.mainItems.forEach((item, index) => {
-      item.classList.toggle("is-selected", menu.view === "main" && index === menu.mainIndex);
+      item.classList.toggle("is-selected", menu.view === "main" && menu.mainCursor === 0 && index === menu.mainIndex);
     });
     menu.optionItems.forEach((item, index) => {
-      item.classList.toggle("is-selected", menu.view === "options" && index === menu.optionIndex);
+      item.classList.toggle("is-selected", menu.view === "options" && index === menu.optionCursor);
     });
+    menu.mainBackButton?.classList.toggle("is-selected", menu.view === "main" && menu.mainCursor === 1);
+    menu.optionBackButton?.classList.toggle("is-selected", menu.view === "options" && menu.optionCursor === menu.optionItems.length);
     updateOptionStates();
   }
 
@@ -1510,7 +1537,8 @@
   function configureVirtualStick({
     stickEl,
     manualMove,
-    manualTurn
+    manualTurn,
+    handleMenuInput = () => false
   }) {
     if (!stickEl) return;
 
@@ -1631,6 +1659,12 @@
 
       activeInputKey = inputKey;
       activeInputType = direction.type;
+      const menuAction = menuActionForDirection(direction);
+      if (menuAction && handleMenuInput(menuAction)) {
+        startMenuRepeat(menuAction);
+        return;
+      }
+
       if (direction.type === "move") {
         startMoveRepeat(direction.amount);
         return;
@@ -1652,6 +1686,17 @@
         return { type: "turn", amount: dx < 0 ? -1 : 1 };
       }
       return null;
+    }
+
+    function menuActionForDirection(direction) {
+      if (direction.type === "move") return direction.amount > 0 ? "up" : "down";
+      if (direction.type === "turn") return direction.amount < 0 ? "left" : "right";
+      return null;
+    }
+
+    function startMenuRepeat(action) {
+      stopRepeat();
+      repeatTimer = window.setInterval(() => handleMenuInput(action), MOVE_REPEAT_MS);
     }
 
     function startMoveRepeat(amount) {
@@ -2109,7 +2154,8 @@
   configureVirtualStick({
     stickEl: virtualStickEl,
     manualMove,
-    manualTurn
+    manualTurn,
+    handleMenuInput
   });
 
   updateAutoReturnButton();
