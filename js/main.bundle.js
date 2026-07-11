@@ -445,8 +445,8 @@
       return;
     }
     if (wallOnCell(state.gridX, state.gridY, currentDir.key)) {
-      state.shake = amount > 0 ? -7 : 5;
-      hooks.say("\u30bb\u30eb\u5883\u754c\u306e\u58c1\u306b\u884c\u304f\u624b\u3092\u963b\u307e\u308c\u305f\u3002");
+      state.shake = amount > 0 ? -12 : 9;
+      hooks.say("\u305d\u3061\u3089\u306b\u306f\u9032\u3081\u306a\u3044\u3002");
       return;
     }
     const nx = state.gridX + currentDir.dx;
@@ -1656,14 +1656,6 @@
   
   let messageEl = null;
   
-  const cellMessages = {
-    "4,1": "\u8584\u3044\u58c1\u306e\u5411\u3053\u3046\u304b\u3089\u51b7\u305f\u3044\u98a8\u304c\u6f0f\u308c\u3066\u3044\u308b\u3002",
-    "6,4": "\u5e8a\u77f3\u306b\u53e4\u3044\u7d0b\u7ae0\u304c\u523b\u307e\u308c\u3066\u3044\u308b\u3002",
-    "8,6": "\u5883\u754c\u58c1\u306e\u5411\u3053\u3046\u3067\u9396\u306e\u9cf4\u308b\u97f3\u304c\u3057\u305f\u3002",
-    "2,8": "\u6e7f\u3063\u305f\u82d4\u304c\u8db3\u97f3\u3092\u5438\u3044\u8fbc\u3080\u3002",
-    "8,8": "\u58c1\u7dda\u306e\u5207\u308c\u76ee\u306b\u53e4\u3044\u50b7\u8de1\u304c\u3042\u308b\u3002"
-  };
-  
   function configureEvents({ messageEl: element }) {
     messageEl = element;
   }
@@ -1671,8 +1663,7 @@
   function messageFor(x, y, cellType = "floor") {
     if (cellType === "stairsUp") return "\u4e0a\u308a\u968e\u6bb5\u304c\u3042\u308b\u3002";
     if (cellType === "stairsDown") return "\u4e0b\u308a\u968e\u6bb5\u304c\u3042\u308b\u3002";
-    const key = `${x},${y}`;
-    return cellMessages[key] || "\u305f\u3044\u307e\u3064\u306e\u706b\u304c\u58c1\u9762\u3092\u3086\u3089\u3057\u305f\u3002";
+    return "";
   }
   
   function say(text) {
@@ -1772,8 +1763,6 @@
   updateAutoReturnButton();
   startRenderLoop();
 })();
-
-
 
 
 

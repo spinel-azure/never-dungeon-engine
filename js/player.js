@@ -113,8 +113,8 @@ export function tryMove(amount, automated = false) {
     return;
   }
   if (wallOnCell(state.gridX, state.gridY, currentDir.key)) {
-    state.shake = amount > 0 ? -7 : 5;
-    hooks.say("セル境界の壁に行く手を阻まれた。");
+    state.shake = amount > 0 ? -12 : 9;
+    hooks.say("そちらには進めない。");
     return;
   }
   const nx = state.gridX + currentDir.dx;
