@@ -1,18 +1,22 @@
 const ACTION_FEEDBACK_MS = 260;
 const ON_MARK = "\u{1F518}";
 const OFF_MARK = "\u26ab";
+const OPTION_PAGE_COUNT = 2;
 
 const menu = {
   root: null,
   mainPanel: null,
   optionsPanel: null,
   mainItems: [],
+  optionPages: [],
   optionItems: [],
   mainBackButton: null,
-  optionBackButton: null,
+  optionNavButtons: [],
+  pageIndicator: null,
   mainIndex: 3,
   mainCursor: 0,
   optionCursor: 0,
+  optionPage: 0,
   view: "dungeon",
   compassVisible: true,
   readoutVisible: false,
@@ -31,13 +35,16 @@ export function configureMenu(options) {
   menu.mainPanel = menu.root?.querySelector('[data-menu-view="main"]') || null;
   menu.optionsPanel = menu.root?.querySelector('[data-menu-view="options"]') || null;
   menu.mainItems = Array.from(menu.mainPanel?.querySelectorAll("[data-menu-main]") || []);
-  menu.optionItems = Array.from(menu.optionsPanel?.querySelectorAll("[data-option]") || []);
+  menu.optionPages = Array.from(menu.optionsPanel?.querySelectorAll("[data-option-page]") || []);
   menu.mainBackButton = menu.mainPanel?.querySelector("[data-menu-back]") || null;
-  menu.optionBackButton = menu.optionsPanel?.querySelector("[data-menu-back]") || null;
+  menu.optionNavButtons = Array.from(menu.optionsPanel?.querySelectorAll("[data-option-nav]") || []);
+  menu.pageIndicator = menu.optionsPanel?.querySelector("[data-page-indicator]") || null;
   bindMenuButtons();
+  bindOptionButtons();
   bindBackButtons();
   bindVolumeSliders();
   applyDisplayOptions();
+  updateOptionItems();
   updateMenuView();
 }
 
@@ -84,8 +91,7 @@ function handleMainInput(action) {
   if (action === "confirm") {
     if (menu.mainCursor === 0) {
       menu.view = "options";
-      menu.optionCursor = 0;
-      updateMenuView();
+      setOptionPage(0);
       return;
     }
     closeCampMenu();
@@ -113,9 +119,8 @@ function handleOptionsInput(action) {
     return;
   }
   if (action === "confirm") {
-    if (isOptionBackSelected()) {
-      menu.view = "main";
-      updateMenuView();
+    if (isOptionNavSelected()) {
+      executeOptionNav(selectedOptionNavKey());
       return;
     }
     executeOption(selectedOptionKey());
@@ -127,19 +132,59 @@ function findMainOptionIndex() {
   return index >= 0 ? index : 0;
 }
 
+function setOptionPage(page) {
+  menu.optionPage = Math.max(0, Math.min(OPTION_PAGE_COUNT - 1, page));
+  menu.optionCursor = 0;
+  updateOptionItems();
+  updateMenuView();
+}
+
+function updateOptionItems() {
+  menu.optionPages.forEach((page, index) => {
+    page.hidden = index !== menu.optionPage;
+  });
+  const currentPage = menu.optionPages[menu.optionPage];
+  menu.optionItems = Array.from(currentPage?.querySelectorAll("[data-option]") || []);
+}
+
 function selectedOptionKey() {
   return menu.optionItems[menu.optionCursor]?.dataset.option || "";
 }
 
 function optionChoiceCount() {
-  return menu.optionItems.length + 1;
+  return menu.optionItems.length + menu.optionNavButtons.length;
 }
 
-function isOptionBackSelected() {
-  return menu.optionCursor === menu.optionItems.length;
+function isOptionNavSelected() {
+  return menu.optionCursor >= menu.optionItems.length;
+}
+
+function selectedOptionNavKey() {
+  const navIndex = menu.optionCursor - menu.optionItems.length;
+  return menu.optionNavButtons[navIndex]?.dataset.optionNav || "";
+}
+
+function executeOptionNav(key) {
+  if (key === "back") {
+    if (menu.optionPage === 0) {
+      menu.view = "main";
+      updateMenuView();
+    } else {
+      setOptionPage(0);
+    }
+    return;
+  }
+  if (key === "next") {
+    if (menu.optionPage === 0) setOptionPage(1);
+    else {
+      menu.view = "main";
+      updateMenuView();
+    }
+  }
 }
 
 function executeOption(key) {
+  if (key === "language") return;
   if (key === "random") {
     triggerAction("random", () => {
       menu.generateRandomDungeon();
@@ -176,6 +221,7 @@ function executeOption(key) {
 }
 
 function adjustSelectedOption(amount) {
+  if (isOptionNavSelected()) return;
   const key = selectedOptionKey();
   if (key === "bgmVolume" || key === "seVolume") {
     adjustVolume(key, amount);
@@ -215,28 +261,35 @@ function bindMenuButtons() {
       handleMainInput("confirm");
     });
   });
-  menu.optionItems.forEach((item, index) => {
-    item.addEventListener("click", (event) => {
-      if (item.matches(".volume-row") && event.target?.matches("input")) return;
-      menu.optionCursor = index;
+}
+
+function bindOptionButtons() {
+  menu.optionPages.forEach((page) => {
+    Array.from(page.querySelectorAll("[data-option]")).forEach((item) => {
+      item.addEventListener("click", (event) => {
+        if (item.matches(".volume-row") && event.target?.matches("input")) return;
+        const index = menu.optionItems.indexOf(item);
+        if (index < 0) return;
+        menu.optionCursor = index;
+        updateSelection();
+        executeOption(item.dataset.option);
+      });
+    });
+  });
+  menu.optionNavButtons.forEach((button, index) => {
+    button.addEventListener("click", () => {
+      menu.optionCursor = menu.optionItems.length + index;
       updateSelection();
-      executeOption(item.dataset.option);
+      executeOptionNav(button.dataset.optionNav);
     });
   });
 }
 
 function bindBackButtons() {
-  menu.root?.querySelectorAll("[data-menu-back]").forEach((button) => {
-    button.addEventListener("click", () => {
-      if (menu.view === "options") {
-        menu.optionCursor = menu.optionItems.length;
-        menu.view = "main";
-        updateMenuView();
-      } else {
-        menu.mainCursor = 1;
-        closeCampMenu();
-      }
-    });
+  if (!menu.mainBackButton) return;
+  menu.mainBackButton.addEventListener("click", () => {
+    menu.mainCursor = 1;
+    closeCampMenu();
   });
 }
 
@@ -256,7 +309,14 @@ function updateMenuView() {
   menu.root.hidden = !open;
   menu.mainPanel.hidden = menu.view !== "main";
   menu.optionsPanel.hidden = menu.view !== "options";
+  updatePager();
   updateSelection();
+}
+
+function updatePager() {
+  if (menu.pageIndicator) menu.pageIndicator.textContent = `${menu.optionPage + 1}/${OPTION_PAGE_COUNT}`;
+  const nextButton = menu.optionNavButtons.find(button => button.dataset.optionNav === "next");
+  if (nextButton) nextButton.textContent = menu.optionPage === 0 ? "NEXT" : "MAIN";
 }
 
 function updateSelection() {
@@ -266,8 +326,10 @@ function updateSelection() {
   menu.optionItems.forEach((item, index) => {
     item.classList.toggle("is-selected", menu.view === "options" && index === menu.optionCursor);
   });
+  menu.optionNavButtons.forEach((button, index) => {
+    button.classList.toggle("is-selected", menu.view === "options" && menu.optionCursor === menu.optionItems.length + index);
+  });
   menu.mainBackButton?.classList.toggle("is-selected", menu.view === "main" && menu.mainCursor === 1);
-  menu.optionBackButton?.classList.toggle("is-selected", menu.view === "options" && isOptionBackSelected());
   updateOptionStates();
 }
 

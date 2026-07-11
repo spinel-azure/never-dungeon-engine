@@ -324,7 +324,7 @@
     .menu-title {
       margin: 0 0 30px;
       text-align: center;
-      font-size: clamp(28px, 7vw, 42px);
+      font-size: clamp(24px, 6vw, 36px);
       font-weight: 400;
       line-height: 1;
       letter-spacing: 0;
@@ -350,8 +350,7 @@
     }
     .menu-item.is-selected,
     .option-item.is-selected,
-    .option-control.is-selected,
-    .menu-footer.is-selected {
+    .option-control.is-selected {
       border-color: rgba(176, 244, 255, .92);
       background: rgba(48, 185, 255, .08);
       box-shadow:
@@ -362,6 +361,9 @@
     .option-section {
       margin: 10px 0 16px;
       padding-left: 12px;
+    }
+    .option-page[hidden] {
+      display: none;
     }
     .option-label,
     .toggle-row,
@@ -404,10 +406,30 @@
       font-family: "PixelFont", "GameFont", sans-serif;
       font-size: .82em;
     }
-    .menu-footer {
+    .option-language {
+      display: grid;
+      gap: 5px;
+    }
+    .option-language span {
+      white-space: normal;
+    }
+    .option-pager {
       position: absolute;
       left: 22px;
+      right: 22px;
       bottom: 18px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 12px;
+    }
+    .page-indicator {
+      color: #f7fbff;
+      font-family: "PixelFont", monospace;
+      font-size: 22px;
+      text-align: center;
+    }
+    .menu-footer {
       min-width: 72px;
       padding: 7px 8px 5px;
       border: 0;
@@ -419,6 +441,14 @@
       line-height: 1;
       text-align: center;
       box-shadow: none;
+    }
+    .menu-panel > .menu-footer {
+      position: absolute;
+      left: 22px;
+      bottom: 18px;
+    }
+    .option-pager .menu-footer {
+      position: static;
     }
     .menu-footer.is-selected {
       outline: 2px solid rgba(176, 244, 255, .92);
@@ -815,11 +845,11 @@
       font-size: 23px;
     }
     body.menu-open.layout-mobile .menu-panel-options {
-      padding: 24px 18px 66px;
+      padding: 20px 18px 72px;
     }
     body.menu-open.layout-mobile .menu-panel-options .menu-title {
-      margin-bottom: 18px;
-      font-size: 34px;
+      margin-bottom: 14px;
+      font-size: 19px;
     }
     body.menu-open.layout-mobile .option-section {
       margin: 6px 0 10px;
@@ -829,7 +859,7 @@
     body.menu-open.layout-mobile .toggle-row,
     body.menu-open.layout-mobile .volume-row,
     body.menu-open.layout-mobile .option-item {
-      font-size: 20px;
+      font-size: 19px;
     }
     body.menu-open.layout-mobile .option-item,
     body.menu-open.layout-mobile .option-control {
@@ -840,6 +870,19 @@
     body.menu-open.layout-mobile .volume-row {
       grid-template-columns: auto minmax(86px, 1fr) auto;
       gap: 8px;
+    }
+    body.menu-open.layout-mobile .option-pager {
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      gap: 8px;
+    }
+    body.menu-open.layout-mobile .page-indicator {
+      font-size: 18px;
+    }
+    body.menu-open.layout-mobile .menu-footer {
+      min-width: 68px;
+      font-size: 21px;
     }
 
     html,
