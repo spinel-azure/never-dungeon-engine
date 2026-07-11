@@ -356,6 +356,7 @@
 
   const TORCH_FUEL_MAX = 100;
   const TORCH_FUEL_STEP = 1;
+  const DOOR_OPEN_MS = 520;
   
   const state = createPlayerState(2);
   
@@ -402,7 +403,7 @@
     if (a.type === "move") {
       state.x = a.fromX + (a.toX - a.fromX) * e;
       state.y = a.fromY + (a.toY - a.fromY) * e;
-    } else {
+    } else if (a.type === "turn") {
       state.angle = normalize(a.fromA + angleDelta(a.fromA, a.toA) * e);
     }
     if (p >= 1) {
@@ -414,9 +415,12 @@
         markExplored(state.gridX, state.gridY);
         state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
         hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
-      } else {
+      } else if (a.type === "turn") {
         state.dir = a.toDir;
         state.angle = DIRS[state.dir].angle;
+      } else if (a.type === "door") {
+        openDoor(a.x, a.y, a.dirKey);
+        hooks.say("\u6249\u304c\u3000\u3072\u3089\u3044\u305f\u3002");
       }
       state.anim = null;
       if (state.autoReturning) hooks.continueAutoReturn();
@@ -428,21 +432,28 @@
     if (!automated) hooks.cancelAutoReturn(false);
     const currentDir = amount > 0 ? DIRS[state.dir] : DIRS[(state.dir + 2) % 4];
     if (closedDoorOnCell(state.gridX, state.gridY, currentDir.key)) {
-      openDoor(state.gridX, state.gridY, currentDir.key);
+      state.anim = {
+        type: "door",
+        start: performance.now(),
+        duration: DOOR_OPEN_MS,
+        x: state.gridX,
+        y: state.gridY,
+        dirKey: currentDir.key
+      };
       state.shake = amount > 0 ? -3 : 3;
-      hooks.say("扉を開けた。");
+      hooks.say("\u30ae\u30a3\u2026\u2026");
       return;
     }
     if (wallOnCell(state.gridX, state.gridY, currentDir.key)) {
       state.shake = amount > 0 ? -7 : 5;
-      hooks.say("セル境界の壁に行く手を阻まれた。");
+      hooks.say("\u30bb\u30eb\u5883\u754c\u306e\u58c1\u306b\u884c\u304f\u624b\u3092\u963b\u307e\u308c\u305f\u3002");
       return;
     }
     const nx = state.gridX + currentDir.dx;
     const ny = state.gridY + currentDir.dy;
     if (!inBounds(nx, ny)) {
       state.shake = amount > 0 ? -7 : 5;
-      hooks.say("外周の向こうは闇に閉ざされている。");
+      hooks.say("\u5916\u5468\u306e\u5411\u3053\u3046\u306f\u95c7\u306b\u9589\u3056\u3055\u308c\u3066\u3044\u308b\u3002");
       return;
     }
     state.anim = {
@@ -478,7 +489,7 @@
   function manualMove(amount) {
     if (state.autoReturning) {
       hooks.cancelAutoReturn(false);
-      hooks.say("帰還を中断した。");
+      hooks.say("\u5e30\u9084\u3092\u4e2d\u65ad\u3057\u305f\u3002");
     }
     if (!state.anim) tryMove(amount);
   }
@@ -486,7 +497,7 @@
   function manualTurn(amount) {
     if (state.autoReturning) {
       hooks.cancelAutoReturn(false);
-      hooks.say("帰還を中断した。");
+      hooks.say("\u5e30\u9084\u3092\u4e2d\u65ad\u3057\u305f\u3002");
     }
     if (!state.anim) turn(amount);
   }
@@ -557,7 +568,6 @@
     drawCeiling();
     drawFloor();
     drawBoundaryWalls();
-    drawOpenDoors();
     drawCellEvents();
     drawMist();
     renderer.drawMinimap(ctx, {
@@ -633,7 +643,7 @@
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = "700 34px GameFont, sans-serif";
-    ctx.fillText("あたりはくらやみに　つつまれた…。", W / 2, H / 2);
+    ctx.fillText("\u3042\u305f\u308a\u306f\u304f\u3089\u3084\u307f\u306b\u3000\u3064\u3064\u307e\u308c\u305f\u2026\u3002", W / 2, H / 2);
     ctx.restore();
   }
   
@@ -698,14 +708,20 @@
   
       if (hit.type === "door" && isDoorPanelSample(hit.u)) {
         const doorU = normalizeDoorSample(hit.u);
-        const doorSampleX = Math.floor(doorU * doorTexture.width) % doorTexture.width;
-        const doorLight = Math.min(1.12, shade * orientationShade + 0.2 + state.torch);
-        ctx.drawImage(doorTexture, doorSampleX, 0, 1, doorTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
-        ctx.fillStyle = `rgba(0,0,0,${1 - doorLight})`;
-        ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
-        if (isDoorPanelEdgeSample(hit.u)) {
-          ctx.fillStyle = "rgba(255,219,143,.16)";
+        const opening = getDoorOpeningProgress(hit);
+        if (isDoorOpeningGap(doorU, opening)) {
+          ctx.fillStyle = "rgba(0,0,0,.72)";
           ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+        } else {
+          const doorSampleX = Math.floor(doorU * doorTexture.width) % doorTexture.width;
+          const doorLight = Math.min(1.12, shade * orientationShade + 0.2 + state.torch);
+          ctx.drawImage(doorTexture, doorSampleX, 0, 1, doorTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
+          ctx.fillStyle = `rgba(0,0,0,${1 - doorLight})`;
+          ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+          if (isDoorPanelEdgeSample(hit.u) || isDoorOpeningEdge(doorU, opening)) {
+            ctx.fillStyle = "rgba(255,219,143,.16)";
+            ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+          }
         }
       } else if (isEdgeSample(hit.u)) {
         ctx.fillStyle = "rgba(0,0,0,.24)";
@@ -714,114 +730,6 @@
     }
   }
 
-  function drawOpenDoors() {
-    const {
-      MAP_W,
-      MAP_H,
-      cells
-    } = renderer.getMinimapOptions();
-    if (!cells) return;
-
-    const doors = [];
-    for (let y = 0; y < MAP_H; y++) {
-      for (let x = 0; x < MAP_W; x++) {
-        for (const dirKey of ["E", "S"]) {
-          if (!renderer.openDoorOnCell(x, y, dirKey)) continue;
-          const projected = projectDoorBoundary(x, y, dirKey);
-          if (!projected) continue;
-          if (!hasLineOfSightToPoint(projected.worldX, projected.worldY)) continue;
-          doors.push(projected);
-        }
-      }
-    }
-
-    doors
-      .sort((a, b) => b.forward - a.forward)
-      .forEach(door => drawOpenDoorPanel(door));
-  }
-
-  function projectDoorBoundary(cellX, cellY, dirKey) {
-    const worldX = dirKey === "E" ? cellX + 1 : cellX + .5;
-    const worldY = dirKey === "S" ? cellY + 1 : cellY + .5;
-    const projected = projectWorldPoint(worldX, worldY);
-    if (!projected) return null;
-
-    const wallH = Math.min(renderer.H * 1.85, renderer.H / projected.forward);
-    return {
-      ...projected,
-      worldX,
-      worldY,
-      dirKey,
-      wallH
-    };
-  }
-
-  function drawOpenDoorPanel(door) {
-    const { ctx, H, wallTexture, state } = renderer;
-    const openingH = door.wallH * .78;
-    const openingW = Math.max(34, Math.min(168, door.wallH * .44));
-    const frameW = openingW * 1.85;
-    const frameH = door.wallH;
-    const frameX = door.x - frameW / 2;
-    const frameY = (H - frameH) / 2;
-    const y = (H - openingH) / 2;
-    const doorwayLeft = door.x - openingW * .5;
-    const doorwayRight = door.x + openingW * .5;
-    const hingeX = door.x - openingW * .2;
-    const depth = Math.max(14, Math.min(58, openingW * .36));
-    const shade = Math.max(0.2, 1 - door.forward / MAX_DIST);
-    const light = Math.min(1.08, shade * .8 + .18 + state.torch);
-
-    ctx.save();
-    ctx.globalAlpha = Math.max(.45, Math.min(.92, 1 - door.forward / (MAX_DIST * 1.35)));
-
-    drawOpenDoorWallPiece(frameX, frameY, doorwayLeft - frameX, frameH, shade);
-    drawOpenDoorWallPiece(doorwayRight, frameY, frameX + frameW - doorwayRight, frameH, shade);
-    drawOpenDoorWallPiece(doorwayLeft, frameY, openingW, Math.max(0, y - frameY), shade);
-
-    ctx.fillStyle = "rgba(0,0,0,.32)";
-    ctx.fillRect(doorwayLeft, y, openingW, openingH);
-    ctx.fillStyle = "rgba(0,0,0,.34)";
-    ctx.fillRect(doorwayLeft, y, Math.max(4, openingW * .08), openingH);
-    ctx.fillRect(doorwayRight - Math.max(4, openingW * .08), y, Math.max(4, openingW * .08), openingH);
-
-    ctx.fillStyle = "#5f371f";
-    ctx.beginPath();
-    ctx.moveTo(hingeX, y);
-    ctx.lineTo(hingeX + depth, y + openingH * .1);
-    ctx.lineTo(hingeX + depth, y + openingH * .9);
-    ctx.lineTo(hingeX, y + openingH);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
-    ctx.fill();
-
-    ctx.strokeStyle = "rgba(226,178,92,.36)";
-    ctx.lineWidth = Math.max(2, openingW * .035);
-    ctx.beginPath();
-    ctx.moveTo(hingeX + openingW * .05, y + openingH * .12);
-    ctx.lineTo(hingeX + depth - openingW * .04, y + openingH * .18);
-    ctx.lineTo(hingeX + depth - openingW * .04, y + openingH * .82);
-    ctx.lineTo(hingeX + openingW * .05, y + openingH * .88);
-    ctx.closePath();
-    ctx.stroke();
-
-    ctx.strokeStyle = "rgba(0,0,0,.42)";
-    ctx.lineWidth = Math.max(3, openingW * .08);
-    ctx.beginPath();
-    ctx.moveTo(hingeX, y);
-    ctx.lineTo(hingeX, y + openingH);
-    ctx.stroke();
-    ctx.restore();
-
-    function drawOpenDoorWallPiece(x, y, w, h, shadeAmount) {
-      if (w <= 1 || h <= 1) return;
-      ctx.drawImage(wallTexture, 0, 0, wallTexture.width, wallTexture.height, x, y, w, h);
-      ctx.fillStyle = `rgba(0,0,0,${Math.max(.18, 1 - (shadeAmount * .82 + .12 + state.torch))})`;
-      ctx.fillRect(x, y, w, h);
-    }
-  }
-  
   function drawMist() {
     const { ctx, W, H } = renderer;
     const glow = ctx.createRadialGradient(W / 2, H * .52, 20, W / 2, H * .52, W * .58);
@@ -924,7 +832,7 @@
   function drawStairsEventMarker(ctx, W, H, event) {
     const isUp = event.type === "stairsUp";
     const color = isUp ? "#8ed4ff" : "#f3b15a";
-    const label = isUp ? "↑" : "↓";
+    const label = isUp ? "\u2191" : "\u2193";
     const r = event.size * .52;
     const ringY = event.y;
     const glowY = event.y - r * .2;
@@ -994,7 +902,7 @@
         const doorState = renderer.getDoorState(cellX, cellY, dirKey);
         if (renderer.wallOnCell(cellX, cellY, dirKey)) {
           const hitY = state.y + rayY * dist;
-          return makeHit(dist, hitY - Math.floor(hitY), dirKey, 0, angle, doorState ? "door" : "wall", doorState);
+          return makeHit(dist, hitY - Math.floor(hitY), dirKey, 0, angle, doorState ? "door" : "wall", doorState, cellX, cellY);
         }
         cellX += stepX;
         if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 0, angle);
@@ -1005,7 +913,7 @@
         const doorState = renderer.getDoorState(cellX, cellY, dirKey);
         if (renderer.wallOnCell(cellX, cellY, dirKey)) {
           const hitX = state.x + rayX * dist;
-          return makeHit(dist, hitX - Math.floor(hitX), dirKey, 1, angle, doorState ? "door" : "wall", doorState);
+          return makeHit(dist, hitX - Math.floor(hitX), dirKey, 1, angle, doorState ? "door" : "wall", doorState, cellX, cellY);
         }
         cellY += stepY;
         if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 1, angle);
@@ -1015,7 +923,7 @@
     return makeHit(MAX_DIST, 0, "N", 1, angle);
   }
   
-  function makeHit(dist, u, dirKey, side, angle, type = "wall", doorState = null) {
+  function makeHit(dist, u, dirKey, side, angle, type = "wall", doorState = null, cellX = null, cellY = null) {
     const corrected = Math.max(0.001, dist * Math.cos(angle - renderer.state.angle));
     return {
       dist,
@@ -1024,7 +932,9 @@
       side,
       dirKey,
       type,
-      doorState
+      doorState,
+      cellX,
+      cellY
     };
   }
   
@@ -1138,6 +1048,27 @@
   function normalizeDoorSample(u) {
     return Math.max(0, Math.min(1, (u - 0.28) / 0.44));
   }
+
+  function getDoorOpeningProgress(hit) {
+    const a = renderer.state?.anim;
+    if (!a || a.type !== "door") return 0;
+    if (a.x !== hit.cellX || a.y !== hit.cellY || a.dirKey !== hit.dirKey) return 0;
+    const p = Math.max(0, Math.min(1, (performance.now() - a.start) / a.duration));
+    return p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+  }
+
+  function isDoorOpeningGap(doorU, opening) {
+    if (opening <= 0) return false;
+    const halfGap = opening * .46;
+    return Math.abs(doorU - .5) < halfGap;
+  }
+
+  function isDoorOpeningEdge(doorU, opening) {
+    if (opening <= 0) return false;
+    const halfGap = opening * .46;
+    const distance = Math.abs(Math.abs(doorU - .5) - halfGap);
+    return distance < .035;
+  }
   
   const options = {
     autoReturnBtn: null,
@@ -1151,18 +1082,18 @@
   function startAutoReturn() {
     if (state.anim) return;
     if (state.gridX === START_X && state.gridY === START_Y) {
-      options.say("すでにスタート地点にいる。");
+      options.say("\u3059\u3067\u306b\u30b9\u30bf\u30fc\u30c8\u5730\u70b9\u306b\u3044\u308b\u3002");
       return;
     }
     const path = findExploredPathToStart();
     if (!path.length) {
-      options.say("踏破済みの道だけではスタート地点へ戻れない。");
+      options.say("\u8e0f\u7834\u6e08\u307f\u306e\u9053\u3060\u3051\u3067\u306f\u30b9\u30bf\u30fc\u30c8\u5730\u70b9\u3078\u623b\u308c\u306a\u3044\u3002");
       return;
     }
     state.autoReturning = true;
     state.autoPath = path;
     updateAutoReturnButton();
-    options.say("踏破済みの道をたどって帰還する。");
+    options.say("\u8e0f\u7834\u6e08\u307f\u306e\u9053\u3092\u305f\u3069\u3063\u3066\u5e30\u9084\u3059\u308b\u3002");
     continueAutoReturn();
   }
   
@@ -1175,7 +1106,7 @@
     const nextDirKey = state.autoPath[0];
     if (!nextDirKey) {
       cancelAutoReturn(false);
-      options.say("帰還経路を見失った。");
+      options.say("\u5e30\u9084\u7d4c\u8def\u3092\u898b\u5931\u3063\u305f\u3002");
       return;
     }
     const targetDir = DIRS.findIndex(d => d.key === nextDirKey);
@@ -1196,13 +1127,13 @@
     state.autoReturning = false;
     state.autoPath = [];
     updateAutoReturnButton();
-    if (arrived) options.say("スタート地点へ戻った。");
+    if (arrived) options.say("\u30b9\u30bf\u30fc\u30c8\u5730\u70b9\u3078\u623b\u3063\u305f\u3002");
   }
   
   function updateAutoReturnButton() {
     if (!options.autoReturnBtn) return;
     options.autoReturnBtn.disabled = state.autoReturning;
-    options.autoReturnBtn.textContent = state.autoReturning ? "帰還中..." : "帰還";
+    options.autoReturnBtn.textContent = state.autoReturning ? "\u5e30\u9084\u4e2d..." : "\u5e30\u9084";
   }
   
   function findExploredPathToStart() {
@@ -1266,8 +1197,8 @@
     bindControl(rightBtn, () => manualTurn(1));
     bindControl(autoReturnBtn, startAutoReturn);
     bindControl(randomGenerateBtn, generateRandomDungeon);
-    bindControl(buttonA, () => say("Aボタンを押した。"));
-    bindControl(buttonB, () => say("Bボタンを押した。"));
+    bindControl(buttonA, () => say("A\u30dc\u30bf\u30f3\u3092\u62bc\u3057\u305f\u3002"));
+    bindControl(buttonB, () => say("B\u30dc\u30bf\u30f3\u3092\u62bc\u3057\u305f\u3002"));
     configureTouchGuards();
   }
 
@@ -1726,11 +1657,11 @@
   let messageEl = null;
   
   const cellMessages = {
-    "4,1": "薄い壁の向こうから冷たい風が漏れている。",
-    "6,4": "床石に古い紋章が刻まれている。",
-    "8,6": "境界壁の向こうで鎖の鳴る音がした。",
-    "2,8": "湿った苔が足音を吸い込む。",
-    "8,8": "壁線の切れ目に古い傷跡がある。"
+    "4,1": "\u8584\u3044\u58c1\u306e\u5411\u3053\u3046\u304b\u3089\u51b7\u305f\u3044\u98a8\u304c\u6f0f\u308c\u3066\u3044\u308b\u3002",
+    "6,4": "\u5e8a\u77f3\u306b\u53e4\u3044\u7d0b\u7ae0\u304c\u523b\u307e\u308c\u3066\u3044\u308b\u3002",
+    "8,6": "\u5883\u754c\u58c1\u306e\u5411\u3053\u3046\u3067\u9396\u306e\u9cf4\u308b\u97f3\u304c\u3057\u305f\u3002",
+    "2,8": "\u6e7f\u3063\u305f\u82d4\u304c\u8db3\u97f3\u3092\u5438\u3044\u8fbc\u3080\u3002",
+    "8,8": "\u58c1\u7dda\u306e\u5207\u308c\u76ee\u306b\u53e4\u3044\u50b7\u8de1\u304c\u3042\u308b\u3002"
   };
   
   function configureEvents({ messageEl: element }) {
@@ -1738,10 +1669,10 @@
   }
   
   function messageFor(x, y, cellType = "floor") {
-    if (cellType === "stairsUp") return "上り階段がある。";
-    if (cellType === "stairsDown") return "下り階段がある。";
+    if (cellType === "stairsUp") return "\u4e0a\u308a\u968e\u6bb5\u304c\u3042\u308b\u3002";
+    if (cellType === "stairsDown") return "\u4e0b\u308a\u968e\u6bb5\u304c\u3042\u308b\u3002";
     const key = `${x},${y}`;
-    return cellMessages[key] || "たいまつの火が壁面をゆらした。";
+    return cellMessages[key] || "\u305f\u3044\u307e\u3064\u306e\u706b\u304c\u58c1\u9762\u3092\u3086\u3089\u3057\u305f\u3002";
   }
   
   function say(text) {
@@ -1807,7 +1738,7 @@
     resetExplored();
     resetPlayer(startDir);
     updateAutoReturnButton();
-    say("新しいランダムダンジョンを生成した。");
+    say("\u65b0\u3057\u3044\u30e9\u30f3\u30c0\u30e0\u30c0\u30f3\u30b8\u30e7\u30f3\u3092\u751f\u6210\u3057\u305f\u3002");
     updateHud();
   }
 
@@ -1841,8 +1772,6 @@
   updateAutoReturnButton();
   startRenderLoop();
 })();
-
-
 
 
 

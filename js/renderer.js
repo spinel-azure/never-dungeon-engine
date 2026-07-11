@@ -55,7 +55,6 @@ export function drawScene(now) {
   drawCeiling();
   drawFloor();
   drawBoundaryWalls();
-  drawOpenDoors();
   drawCellEvents();
   drawMist();
   renderer.drawMinimap(ctx, {
@@ -196,127 +195,25 @@ export function drawBoundaryWalls() {
 
     if (hit.type === "door" && isDoorPanelSample(hit.u)) {
       const doorU = normalizeDoorSample(hit.u);
-      const doorSampleX = Math.floor(doorU * doorTexture.width) % doorTexture.width;
-      const doorLight = Math.min(1.12, shade * orientationShade + 0.2 + state.torch);
-      ctx.drawImage(doorTexture, doorSampleX, 0, 1, doorTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
-      ctx.fillStyle = `rgba(0,0,0,${1 - doorLight})`;
-      ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
-      if (isDoorPanelEdgeSample(hit.u)) {
-        ctx.fillStyle = "rgba(255,219,143,.16)";
+      const opening = getDoorOpeningProgress(hit);
+      if (isDoorOpeningGap(doorU, opening)) {
+        ctx.fillStyle = "rgba(0,0,0,.72)";
         ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+      } else {
+        const doorSampleX = Math.floor(doorU * doorTexture.width) % doorTexture.width;
+        const doorLight = Math.min(1.12, shade * orientationShade + 0.2 + state.torch);
+        ctx.drawImage(doorTexture, doorSampleX, 0, 1, doorTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
+        ctx.fillStyle = `rgba(0,0,0,${1 - doorLight})`;
+        ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+        if (isDoorPanelEdgeSample(hit.u) || isDoorOpeningEdge(doorU, opening)) {
+          ctx.fillStyle = "rgba(255,219,143,.16)";
+          ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+        }
       }
     } else if (isEdgeSample(hit.u)) {
       ctx.fillStyle = "rgba(0,0,0,.24)";
       ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
     }
-  }
-}
-
-export function drawOpenDoors() {
-  const {
-    MAP_W,
-    MAP_H,
-    cells
-  } = renderer.getMinimapOptions();
-  if (!cells) return;
-
-  const doors = [];
-  for (let y = 0; y < MAP_H; y++) {
-    for (let x = 0; x < MAP_W; x++) {
-      for (const dirKey of ["E", "S"]) {
-        if (!renderer.openDoorOnCell(x, y, dirKey)) continue;
-        const projected = projectDoorBoundary(x, y, dirKey);
-        if (!projected) continue;
-        if (!hasLineOfSightToPoint(projected.worldX, projected.worldY)) continue;
-        doors.push(projected);
-      }
-    }
-  }
-
-  doors
-    .sort((a, b) => b.forward - a.forward)
-    .forEach(door => drawOpenDoorPanel(door));
-}
-
-export function projectDoorBoundary(cellX, cellY, dirKey) {
-  const worldX = dirKey === "E" ? cellX + 1 : cellX + .5;
-  const worldY = dirKey === "S" ? cellY + 1 : cellY + .5;
-  const projected = projectWorldPoint(worldX, worldY);
-  if (!projected) return null;
-
-  const wallH = Math.min(renderer.H * 1.85, renderer.H / projected.forward);
-  return {
-    ...projected,
-    worldX,
-    worldY,
-    dirKey,
-    wallH
-  };
-}
-
-export function drawOpenDoorPanel(door) {
-  const { ctx, H, wallTexture, state } = renderer;
-  const openingH = door.wallH * .78;
-  const openingW = Math.max(34, Math.min(168, door.wallH * .44));
-  const frameW = openingW * 1.85;
-  const frameH = door.wallH;
-  const frameX = door.x - frameW / 2;
-  const frameY = (H - frameH) / 2;
-  const y = (H - openingH) / 2;
-  const doorwayLeft = door.x - openingW * .5;
-  const doorwayRight = door.x + openingW * .5;
-  const hingeX = door.x - openingW * .2;
-  const depth = Math.max(14, Math.min(58, openingW * .36));
-  const shade = Math.max(0.2, 1 - door.forward / MAX_DIST);
-  const light = Math.min(1.08, shade * .8 + .18 + state.torch);
-
-  ctx.save();
-  ctx.globalAlpha = Math.max(.45, Math.min(.92, 1 - door.forward / (MAX_DIST * 1.35)));
-
-  drawOpenDoorWallPiece(frameX, frameY, doorwayLeft - frameX, frameH, shade);
-  drawOpenDoorWallPiece(doorwayRight, frameY, frameX + frameW - doorwayRight, frameH, shade);
-  drawOpenDoorWallPiece(doorwayLeft, frameY, openingW, Math.max(0, y - frameY), shade);
-
-  ctx.fillStyle = "rgba(0,0,0,.32)";
-  ctx.fillRect(doorwayLeft, y, openingW, openingH);
-  ctx.fillStyle = "rgba(0,0,0,.34)";
-  ctx.fillRect(doorwayLeft, y, Math.max(4, openingW * .08), openingH);
-  ctx.fillRect(doorwayRight - Math.max(4, openingW * .08), y, Math.max(4, openingW * .08), openingH);
-
-  ctx.fillStyle = "#5f371f";
-  ctx.beginPath();
-  ctx.moveTo(hingeX, y);
-  ctx.lineTo(hingeX + depth, y + openingH * .1);
-  ctx.lineTo(hingeX + depth, y + openingH * .9);
-  ctx.lineTo(hingeX, y + openingH);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
-  ctx.fill();
-
-  ctx.strokeStyle = "rgba(226,178,92,.36)";
-  ctx.lineWidth = Math.max(2, openingW * .035);
-  ctx.beginPath();
-  ctx.moveTo(hingeX + openingW * .05, y + openingH * .12);
-  ctx.lineTo(hingeX + depth - openingW * .04, y + openingH * .18);
-  ctx.lineTo(hingeX + depth - openingW * .04, y + openingH * .82);
-  ctx.lineTo(hingeX + openingW * .05, y + openingH * .88);
-  ctx.closePath();
-  ctx.stroke();
-
-  ctx.strokeStyle = "rgba(0,0,0,.42)";
-  ctx.lineWidth = Math.max(3, openingW * .08);
-  ctx.beginPath();
-  ctx.moveTo(hingeX, y);
-  ctx.lineTo(hingeX, y + openingH);
-  ctx.stroke();
-  ctx.restore();
-
-  function drawOpenDoorWallPiece(x, y, w, h, shadeAmount) {
-    if (w <= 1 || h <= 1) return;
-    ctx.drawImage(wallTexture, 0, 0, wallTexture.width, wallTexture.height, x, y, w, h);
-    ctx.fillStyle = `rgba(0,0,0,${Math.max(.18, 1 - (shadeAmount * .82 + .12 + state.torch))})`;
-    ctx.fillRect(x, y, w, h);
   }
 }
 
@@ -492,7 +389,7 @@ export function castRay(angle) {
       const doorState = renderer.getDoorState(cellX, cellY, dirKey);
       if (renderer.wallOnCell(cellX, cellY, dirKey)) {
         const hitY = state.y + rayY * dist;
-        return makeHit(dist, hitY - Math.floor(hitY), dirKey, 0, angle, doorState ? "door" : "wall", doorState);
+        return makeHit(dist, hitY - Math.floor(hitY), dirKey, 0, angle, doorState ? "door" : "wall", doorState, cellX, cellY);
       }
       cellX += stepX;
       if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 0, angle);
@@ -503,7 +400,7 @@ export function castRay(angle) {
       const doorState = renderer.getDoorState(cellX, cellY, dirKey);
       if (renderer.wallOnCell(cellX, cellY, dirKey)) {
         const hitX = state.x + rayX * dist;
-        return makeHit(dist, hitX - Math.floor(hitX), dirKey, 1, angle, doorState ? "door" : "wall", doorState);
+        return makeHit(dist, hitX - Math.floor(hitX), dirKey, 1, angle, doorState ? "door" : "wall", doorState, cellX, cellY);
       }
       cellY += stepY;
       if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 1, angle);
@@ -513,7 +410,7 @@ export function castRay(angle) {
   return makeHit(MAX_DIST, 0, "N", 1, angle);
 }
 
-export function makeHit(dist, u, dirKey, side, angle, type = "wall", doorState = null) {
+export function makeHit(dist, u, dirKey, side, angle, type = "wall", doorState = null, cellX = null, cellY = null) {
   const corrected = Math.max(0.001, dist * Math.cos(angle - renderer.state.angle));
   return {
     dist,
@@ -522,7 +419,9 @@ export function makeHit(dist, u, dirKey, side, angle, type = "wall", doorState =
     side,
     dirKey,
     type,
-    doorState
+    doorState,
+    cellX,
+    cellY
   };
 }
 
@@ -635,4 +534,25 @@ export function isDoorPanelEdgeSample(u) {
 
 export function normalizeDoorSample(u) {
   return Math.max(0, Math.min(1, (u - 0.28) / 0.44));
+}
+
+export function getDoorOpeningProgress(hit) {
+  const a = renderer.state?.anim;
+  if (!a || a.type !== "door") return 0;
+  if (a.x !== hit.cellX || a.y !== hit.cellY || a.dirKey !== hit.dirKey) return 0;
+  const p = Math.max(0, Math.min(1, (performance.now() - a.start) / a.duration));
+  return p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+}
+
+export function isDoorOpeningGap(doorU, opening) {
+  if (opening <= 0) return false;
+  const halfGap = opening * .46;
+  return Math.abs(doorU - .5) < halfGap;
+}
+
+export function isDoorOpeningEdge(doorU, opening) {
+  if (opening <= 0) return false;
+  const halfGap = opening * .46;
+  const distance = Math.abs(Math.abs(doorU - .5) - halfGap);
+  return distance < .035;
 }

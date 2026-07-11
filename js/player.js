@@ -24,6 +24,7 @@ const hooks = {
 
 const TORCH_FUEL_MAX = 100;
 const TORCH_FUEL_STEP = 1;
+const DOOR_OPEN_MS = 520;
 
 export const state = createPlayerState(2);
 
@@ -70,7 +71,7 @@ export function updateAnimation(now) {
   if (a.type === "move") {
     state.x = a.fromX + (a.toX - a.fromX) * e;
     state.y = a.fromY + (a.toY - a.fromY) * e;
-  } else {
+  } else if (a.type === "turn") {
     state.angle = normalize(a.fromA + angleDelta(a.fromA, a.toA) * e);
   }
   if (p >= 1) {
@@ -82,9 +83,12 @@ export function updateAnimation(now) {
       markExplored(state.gridX, state.gridY);
       state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
       hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
-    } else {
+    } else if (a.type === "turn") {
       state.dir = a.toDir;
       state.angle = DIRS[state.dir].angle;
+    } else if (a.type === "door") {
+      openDoor(a.x, a.y, a.dirKey);
+      hooks.say("扉が　ひらいた。");
     }
     state.anim = null;
     if (state.autoReturning) hooks.continueAutoReturn();
@@ -96,9 +100,16 @@ export function tryMove(amount, automated = false) {
   if (!automated) hooks.cancelAutoReturn(false);
   const currentDir = amount > 0 ? DIRS[state.dir] : DIRS[(state.dir + 2) % 4];
   if (closedDoorOnCell(state.gridX, state.gridY, currentDir.key)) {
-    openDoor(state.gridX, state.gridY, currentDir.key);
+    state.anim = {
+      type: "door",
+      start: performance.now(),
+      duration: DOOR_OPEN_MS,
+      x: state.gridX,
+      y: state.gridY,
+      dirKey: currentDir.key
+    };
     state.shake = amount > 0 ? -3 : 3;
-    hooks.say("扉を開けた。");
+    hooks.say("ギィ……");
     return;
   }
   if (wallOnCell(state.gridX, state.gridY, currentDir.key)) {
