@@ -249,7 +249,7 @@ export function drawCellEvents() {
       if (!hasLineOfSightToCell(x, y)) continue;
       events.push({
         ...projected,
-        footprint: projectCellFootprint(x, y),
+        footprint: projectCellFootprint(x, y, projected.forward),
         type: cell.type
       });
     }
@@ -264,7 +264,7 @@ function projectCellCenter(cellX, cellY) {
   return projectWorldPoint(cellX + .5, cellY + .5);
 }
 
-function projectCellFootprint(cellX, cellY) {
+function projectCellFootprint(cellX, cellY, forward) {
   const visibilityInset = .18;
   const projectionInset = .03;
   const visibilitySamples = [
@@ -273,7 +273,12 @@ function projectCellFootprint(cellX, cellY) {
     { x: cellX + 1 - visibilityInset, y: cellY + 1 - visibilityInset },
     { x: cellX + visibilityInset, y: cellY + 1 - visibilityInset }
   ];
-  if (visibilitySamples.some(sample => !hasLineOfSightToPoint(sample.x, sample.y, cellX, cellY))) return null;
+  if (
+    forward > 1.35 &&
+    visibilitySamples.some(sample => !hasLineOfSightToPoint(sample.x, sample.y, cellX, cellY))
+  ) {
+    return null;
+  }
 
   const projectionSamples = [
     { x: cellX + projectionInset, y: cellY + projectionInset },
