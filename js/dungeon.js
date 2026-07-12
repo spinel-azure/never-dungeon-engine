@@ -98,6 +98,11 @@ export function getCellType(x, y) {
   return cells[y][x].type;
 }
 
+export function getNpcAt(x, y) {
+  if (!inBounds(x, y)) return null;
+  return cells[y][x].npc;
+}
+
 export function findFarthestReachableCell(minDistance = 7) {
   const distances = makeDistanceMap(START_X, START_Y);
   let farthest = null;

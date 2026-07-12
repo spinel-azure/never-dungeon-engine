@@ -21,7 +21,8 @@ import {
   refillTorch,
   updateAnimation,
   manualMove,
-  manualTurn
+  manualTurn,
+  handleNpcEncounterInput
 } from "./player.js";
 import { configureRenderer, startRenderLoop } from "./renderer.js";
 import { drawMinimap, getMinimapBounds } from "./minimap.js";
@@ -123,6 +124,7 @@ import { configureDevice } from "./device.js";
     generateRandomDungeon,
     buttonA,
     buttonB,
+    handleNpcInput: handleNpcEncounterInput,
     handleMenuInput
   });
   configureMenu({

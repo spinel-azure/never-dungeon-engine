@@ -66,6 +66,7 @@ export function drawScene(now) {
   });
   if (renderer.minimapOverlayVisible) drawMinimapOverlay();
   if (state.torchFuel <= 0) drawDarknessMessage();
+  if (state.npcEncounter) drawNpcEncounterOverlay();
   ctx.restore();
   drawFrame();
   renderer.updateHud();
@@ -134,6 +135,33 @@ function drawDarknessMessage() {
   ctx.textBaseline = "middle";
   ctx.font = "700 34px GameFont, sans-serif";
   ctx.fillText("あたりはくらやみに　つつまれた…。", W / 2, H / 2);
+  ctx.restore();
+}
+
+function drawNpcEncounterOverlay() {
+  const { ctx, W, H, state } = renderer;
+  const npc = state.npcEncounter?.npc;
+  if (!npc) return;
+  const image = renderer.npcImages.get(npc.id);
+
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,.8)";
+  ctx.fillRect(0, 0, W, H);
+
+  if (image && image.complete && image.naturalWidth > 0) {
+    const aspect = image.naturalWidth / image.naturalHeight;
+    const maxH = H * .86;
+    const maxW = W * .68;
+    let drawH = maxH;
+    let drawW = drawH * aspect;
+    if (drawW > maxW) {
+      drawW = maxW;
+      drawH = drawW / aspect;
+    }
+    ctx.shadowColor = "rgba(255,224,150,.42)";
+    ctx.shadowBlur = Math.max(12, H * .035);
+    ctx.drawImage(image, (W - drawW) / 2, H * .52 - drawH / 2, drawW, drawH);
+  }
   ctx.restore();
 }
 

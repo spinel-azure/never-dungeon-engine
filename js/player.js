@@ -13,6 +13,7 @@ import {
   wallOnCell,
   closedDoorOnCell,
   openDoor
+  , getNpcAt
 } from "./dungeon.js";
 
 const hooks = {
@@ -45,7 +46,8 @@ export function createPlayerState(startDir) {
     torch: 0,
     torchFuel: TORCH_FUEL_MAX,
     autoReturning: false,
-    autoPath: []
+    autoPath: [],
+    npcEncounter: null
   };
 }
 
@@ -60,6 +62,7 @@ export function resetPlayer(startDir) {
   state.shake = 0;
   state.torchFuel = TORCH_FUEL_MAX;
   state.autoPath = [];
+  state.npcEncounter = null;
   markExplored(START_X, START_Y);
 }
 
@@ -84,15 +87,27 @@ export function updateAnimation(now) {
       state.gridY = a.toGY;
       state.x = state.gridX + .5;
       state.y = state.gridY + .5;
-      markExplored(state.gridX, state.gridY);
-      state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
-      hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
+      if (a.npcRetreat) {
+        markExplored(state.gridX, state.gridY);
+      } else {
+        markExplored(state.gridX, state.gridY);
+        state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
+        const npc = getNpcAt(state.gridX, state.gridY);
+        if (npc) {
+          startNpcEncounter(npc, a.fromGX, a.fromGY);
+        } else {
+          hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
+          updateNpcAwareness();
+        }
+      }
     } else if (a.type === "turn") {
       state.dir = a.toDir;
       state.angle = DIRS[state.dir].angle;
+      updateNpcAwareness();
     } else if (a.type === "door") {
       openDoor(a.x, a.y, a.dirKey);
       hooks.say("扉が　ひらいた。");
+      updateNpcAwareness();
     }
     state.anim = null;
     if (state.autoReturning) hooks.continueAutoReturn();
@@ -134,6 +149,8 @@ export function tryMove(amount, automated = false) {
     duration: STEP_MS,
     fromX: state.x,
     fromY: state.y,
+    fromGX: state.gridX,
+    fromGY: state.gridY,
     toX: nx + .5,
     toY: ny + .5,
     toGX: nx,
@@ -159,6 +176,7 @@ export function turn(amount, automated = false) {
 }
 
 export function manualMove(amount) {
+  if (state.npcEncounter) return;
   if (state.autoReturning) {
     hooks.cancelAutoReturn(false);
     hooks.say("帰還を中断した。");
@@ -167,11 +185,55 @@ export function manualMove(amount) {
 }
 
 export function manualTurn(amount) {
+  if (state.npcEncounter) return;
   if (state.autoReturning) {
     hooks.cancelAutoReturn(false);
     hooks.say("帰還を中断した。");
   }
   if (!state.anim) turn(amount);
+}
+
+export function handleNpcEncounterInput(action) {
+  if (!state.npcEncounter) return false;
+  if (action === "cancel") {
+    leaveNpcEncounter();
+    return true;
+  }
+  if (action === "confirm") return true;
+  return true;
+}
+
+function startNpcEncounter(npc, fromGX, fromGY) {
+  state.npcEncounter = { npc, fromGX, fromGY };
+  hooks.cancelAutoReturn(false);
+  hooks.say("みかんにゃんこ「にゃ～？」\n＊Aボタンで会話　Bボタンで抜けます");
+}
+
+function leaveNpcEncounter() {
+  const encounter = state.npcEncounter;
+  state.npcEncounter = null;
+  hooks.say("");
+  if (!encounter || state.anim) return;
+  state.anim = {
+    type: "move",
+    start: performance.now(),
+    duration: STEP_MS,
+    fromX: state.x,
+    fromY: state.y,
+    toX: encounter.fromGX + .5,
+    toY: encounter.fromGY + .5,
+    toGX: encounter.fromGX,
+    toGY: encounter.fromGY,
+    cellType: getCellType(encounter.fromGX, encounter.fromGY),
+    npcRetreat: true
+  };
+}
+
+function updateNpcAwareness() {
+  if (state.npcEncounter || state.anim) return;
+  const dir = DIRS[state.dir];
+  const npc = getNpcAt(state.gridX + dir.dx, state.gridY + dir.dy);
+  if (npc) hooks.say("前方に何かいるようだ");
 }
 
 export function turnToward(from, to) {

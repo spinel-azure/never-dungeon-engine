@@ -160,6 +160,11 @@
     return cells[y][x].type;
   }
 
+  function getNpcAt(x, y) {
+    if (!inBounds(x, y)) return null;
+    return cells[y][x].npc;
+  }
+
   function findFarthestReachableCell(minDistance = 7) {
     const distances = makeDistanceMap(START_X, START_Y);
     let farthest = null;
@@ -409,7 +414,8 @@
       torch: 0,
       torchFuel: TORCH_FUEL_MAX,
       autoReturning: false,
-      autoPath: []
+      autoPath: [],
+      npcEncounter: null
     };
   }
   
@@ -424,6 +430,7 @@
     state.shake = 0;
     state.torchFuel = TORCH_FUEL_MAX;
     state.autoPath = [];
+    state.npcEncounter = null;
     markExplored(START_X, START_Y);
   }
 
@@ -448,15 +455,27 @@
         state.gridY = a.toGY;
         state.x = state.gridX + .5;
         state.y = state.gridY + .5;
-        markExplored(state.gridX, state.gridY);
-        state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
-        hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
+        if (a.npcRetreat) {
+          markExplored(state.gridX, state.gridY);
+        } else {
+          markExplored(state.gridX, state.gridY);
+          state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
+          const npc = getNpcAt(state.gridX, state.gridY);
+          if (npc) {
+            startNpcEncounter(npc, a.fromGX, a.fromGY);
+          } else {
+            hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
+            updateNpcAwareness();
+          }
+        }
       } else if (a.type === "turn") {
         state.dir = a.toDir;
         state.angle = DIRS[state.dir].angle;
+        updateNpcAwareness();
       } else if (a.type === "door") {
         openDoor(a.x, a.y, a.dirKey);
         hooks.say("\u6249\u304c\u3000\u3072\u3089\u3044\u305f\u3002");
+        updateNpcAwareness();
       }
       state.anim = null;
       if (state.autoReturning) hooks.continueAutoReturn();
@@ -498,6 +517,8 @@
       duration: STEP_MS,
       fromX: state.x,
       fromY: state.y,
+      fromGX: state.gridX,
+      fromGY: state.gridY,
       toX: nx + .5,
       toY: ny + .5,
       toGX: nx,
@@ -523,6 +544,7 @@
   }
   
   function manualMove(amount) {
+    if (state.npcEncounter) return;
     if (state.autoReturning) {
       hooks.cancelAutoReturn(false);
       hooks.say("\u5e30\u9084\u3092\u4e2d\u65ad\u3057\u305f\u3002");
@@ -531,11 +553,55 @@
   }
   
   function manualTurn(amount) {
+    if (state.npcEncounter) return;
     if (state.autoReturning) {
       hooks.cancelAutoReturn(false);
       hooks.say("\u5e30\u9084\u3092\u4e2d\u65ad\u3057\u305f\u3002");
     }
     if (!state.anim) turn(amount);
+  }
+
+  function handleNpcEncounterInput(action) {
+    if (!state.npcEncounter) return false;
+    if (action === "cancel") {
+      leaveNpcEncounter();
+      return true;
+    }
+    if (action === "confirm") return true;
+    return true;
+  }
+
+  function startNpcEncounter(npc, fromGX, fromGY) {
+    state.npcEncounter = { npc, fromGX, fromGY };
+    hooks.cancelAutoReturn(false);
+    hooks.say("\u307f\u304b\u3093\u306b\u3083\u3093\u3053\u300c\u306b\u3083\uff5e\uff1f\u300d\n\uff0aA\u30dc\u30bf\u30f3\u3067\u4f1a\u8a71\u3000B\u30dc\u30bf\u30f3\u3067\u629c\u3051\u307e\u3059");
+  }
+
+  function leaveNpcEncounter() {
+    const encounter = state.npcEncounter;
+    state.npcEncounter = null;
+    hooks.say("");
+    if (!encounter || state.anim) return;
+    state.anim = {
+      type: "move",
+      start: performance.now(),
+      duration: STEP_MS,
+      fromX: state.x,
+      fromY: state.y,
+      toX: encounter.fromGX + .5,
+      toY: encounter.fromGY + .5,
+      toGX: encounter.fromGX,
+      toGY: encounter.fromGY,
+      cellType: getCellType(encounter.fromGX, encounter.fromGY),
+      npcRetreat: true
+    };
+  }
+
+  function updateNpcAwareness() {
+    if (state.npcEncounter || state.anim) return;
+    const dir = DIRS[state.dir];
+    const npc = getNpcAt(state.gridX + dir.dx, state.gridY + dir.dy);
+    if (npc) hooks.say("\u524d\u65b9\u306b\u4f55\u304b\u3044\u308b\u3088\u3046\u3060");
   }
   
   function turnToward(from, to) {
@@ -615,6 +681,7 @@
     });
     if (renderer.minimapOverlayVisible) drawMinimapOverlay();
     if (state.torchFuel <= 0) drawDarknessMessage();
+    if (state.npcEncounter) drawNpcEncounterOverlay();
     ctx.restore();
     drawFrame();
     renderer.updateHud();
@@ -683,6 +750,33 @@
     ctx.textBaseline = "middle";
     ctx.font = "700 34px GameFont, sans-serif";
     ctx.fillText("\u3042\u305f\u308a\u306f\u304f\u3089\u3084\u307f\u306b\u3000\u3064\u3064\u307e\u308c\u305f\u2026\u3002", W / 2, H / 2);
+    ctx.restore();
+  }
+
+  function drawNpcEncounterOverlay() {
+    const { ctx, W, H, state } = renderer;
+    const npc = state.npcEncounter?.npc;
+    if (!npc) return;
+    const image = renderer.npcImages.get(npc.id);
+
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,.8)";
+    ctx.fillRect(0, 0, W, H);
+
+    if (image && image.complete && image.naturalWidth > 0) {
+      const aspect = image.naturalWidth / image.naturalHeight;
+      const maxH = H * .86;
+      const maxW = W * .68;
+      let drawH = maxH;
+      let drawW = drawH * aspect;
+      if (drawW > maxW) {
+        drawW = maxW;
+        drawH = drawW / aspect;
+      }
+      ctx.shadowColor = "rgba(255,224,150,.42)";
+      ctx.shadowBlur = Math.max(12, H * .035);
+      ctx.drawImage(image, (W - drawW) / 2, H * .52 - drawH / 2, drawW, drawH);
+    }
     ctx.restore();
   }
   
@@ -1369,6 +1463,7 @@
     generateRandomDungeon,
     buttonA,
     buttonB,
+    handleNpcInput = () => false,
     handleMenuInput
   }) {
     window.addEventListener("keydown", (e) => {
@@ -1376,8 +1471,8 @@
       if (e.key === "ArrowDown" && handleMenuInput("down")) { e.preventDefault(); return; }
       if (e.key === "ArrowLeft" && handleMenuInput("left")) { e.preventDefault(); return; }
       if (e.key === "ArrowRight" && handleMenuInput("right")) { e.preventDefault(); return; }
-      if (e.code === "KeyX" && handleMenuInput("confirm")) { e.preventDefault(); return; }
-      if (e.code === "KeyZ" && handleMenuInput("cancel")) { e.preventDefault(); return; }
+      if (e.code === "KeyX" && (handleNpcInput("confirm") || handleMenuInput("confirm"))) { e.preventDefault(); return; }
+      if (e.code === "KeyZ" && (handleNpcInput("cancel") || handleMenuInput("cancel"))) { e.preventDefault(); return; }
       if (e.key === "ArrowUp") { e.preventDefault(); manualMove(1); }
       if (e.key === "ArrowDown") { e.preventDefault(); manualMove(-1); }
       if (e.key === "ArrowLeft") { e.preventDefault(); manualTurn(-1); }
@@ -1390,8 +1485,8 @@
     bindControl(rightBtn, () => manualTurn(1));
     bindControl(autoReturnBtn, startAutoReturn);
     bindControl(randomGenerateBtn, generateRandomDungeon);
-    bindControl(buttonA, () => handleMenuInput("confirm"));
-    bindControl(buttonB, () => handleMenuInput("cancel"));
+    bindControl(buttonA, () => handleNpcInput("confirm") || handleMenuInput("confirm"));
+    bindControl(buttonB, () => handleNpcInput("cancel") || handleMenuInput("cancel"));
     configureTouchGuards();
   }
 
@@ -2080,6 +2175,7 @@
         if (c.type === "stairsUp" || c.type === "stairsDown") {
           drawStairsMark(ctx, x1, y1, cell, c.type);
         }
+        if (c.npc) drawNpcMark(ctx, x1, y1, cell);
       }
     }
 
@@ -2153,6 +2249,16 @@
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(label, x + size / 2, y + size / 2);
+    ctx.restore();
+  }
+
+  function drawNpcMark(ctx, x, y, size) {
+    ctx.save();
+    ctx.fillStyle = "#f0eadc";
+    ctx.font = `700 ${Math.max(8, size * .62)}px GameFont, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("\ud83d\udc64", x + size / 2, y + size / 2);
     ctx.restore();
   }
 
@@ -2444,6 +2550,7 @@
     generateRandomDungeon,
     buttonA,
     buttonB,
+    handleNpcInput: handleNpcEncounterInput,
     handleMenuInput
   });
   configureMenu({

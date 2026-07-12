@@ -55,6 +55,7 @@
       if (c.type === "stairsUp" || c.type === "stairsDown") {
         drawStairsMark(ctx, x1, y1, cell, c.type);
       }
+      if (c.npc) drawNpcMark(ctx, x1, y1, cell);
     }
   }
 
@@ -101,6 +102,16 @@ export function drawStairsMark(ctx, x, y, size, type) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(label, x + size / 2, y + size / 2);
+  ctx.restore();
+}
+
+export function drawNpcMark(ctx, x, y, size) {
+  ctx.save();
+  ctx.fillStyle = "#f0eadc";
+  ctx.font = `700 ${Math.max(8, size * .62)}px GameFont, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("👤", x + size / 2, y + size / 2);
   ctx.restore();
 }
 

@@ -11,6 +11,7 @@
   generateRandomDungeon,
   buttonA,
   buttonB,
+  handleNpcInput = () => false,
   handleMenuInput
 }) {
   window.addEventListener("keydown", (e) => {
@@ -18,8 +19,8 @@
     if (e.key === "ArrowDown" && handleMenuInput("down")) { e.preventDefault(); return; }
     if (e.key === "ArrowLeft" && handleMenuInput("left")) { e.preventDefault(); return; }
     if (e.key === "ArrowRight" && handleMenuInput("right")) { e.preventDefault(); return; }
-    if (e.code === "KeyX" && handleMenuInput("confirm")) { e.preventDefault(); return; }
-    if (e.code === "KeyZ" && handleMenuInput("cancel")) { e.preventDefault(); return; }
+    if (e.code === "KeyX" && (handleNpcInput("confirm") || handleMenuInput("confirm"))) { e.preventDefault(); return; }
+    if (e.code === "KeyZ" && (handleNpcInput("cancel") || handleMenuInput("cancel"))) { e.preventDefault(); return; }
     if (e.key === "ArrowUp") { e.preventDefault(); manualMove(1); }
     if (e.key === "ArrowDown") { e.preventDefault(); manualMove(-1); }
     if (e.key === "ArrowLeft") { e.preventDefault(); manualTurn(-1); }
@@ -32,8 +33,8 @@
   bindControl(rightBtn, () => manualTurn(1));
   bindControl(autoReturnBtn, startAutoReturn);
   bindControl(randomGenerateBtn, generateRandomDungeon);
-  bindControl(buttonA, () => handleMenuInput("confirm"));
-  bindControl(buttonB, () => handleMenuInput("cancel"));
+  bindControl(buttonA, () => handleNpcInput("confirm") || handleMenuInput("confirm"));
+  bindControl(buttonB, () => handleNpcInput("cancel") || handleMenuInput("cancel"));
   configureTouchGuards();
 }
 
