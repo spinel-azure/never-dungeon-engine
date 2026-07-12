@@ -273,10 +273,11 @@ function projectWorldPoint(worldX, worldY) {
   if (x < -W * .08 || x > W * 1.08) return null;
 
   const projectedWallH = Math.min(H * 1.85, H / forward);
-  const y = Math.max(H * .5, Math.min(H * .94, H / 2 + projectedWallH / 2));
+  const floorY = Math.max(H * .5, Math.min(H * .94, H / 2 + projectedWallH / 2));
+  const ceilingY = Math.min(H * .5, Math.max(H * .06, H / 2 - projectedWallH / 2));
   const size = Math.max(14, Math.min(104, (H * .32) / Math.max(.8, forward)));
   const alpha = Math.max(.52, Math.min(1, 1 - forward / (MAX_DIST * 1.45)));
-  return { x, y, size, alpha, forward };
+  return { x, y: floorY, floorY, ceilingY, size, alpha, forward };
 }
 
 function hasLineOfSightToCell(targetCellX, targetCellY) {
@@ -319,41 +320,99 @@ function directionKeyBetween(fromX, fromY, toX, toY) {
 function drawStairsEventMarker(ctx, W, H, event) {
   const isUp = event.type === "stairsUp";
   const color = isUp ? "#8ed4ff" : "#f3b15a";
-  const label = isUp ? "↑" : "↓";
-  const r = event.size * .52;
-  const ringY = event.y;
-  const glowY = event.y - r * .2;
+  const centerY = isUp ? event.ceilingY : event.floorY;
+  const glowY = isUp ? centerY + event.size * .22 : centerY - event.size * .22;
 
   ctx.save();
   ctx.globalAlpha = event.alpha;
-  const glow = ctx.createRadialGradient(event.x, glowY, 2, event.x, glowY, r * 2.15);
+  const glow = ctx.createRadialGradient(event.x, glowY, 2, event.x, glowY, event.size * 1.55);
   glow.addColorStop(0, isUp ? "rgba(142,212,255,.68)" : "rgba(243,177,90,.68)");
   glow.addColorStop(.5, isUp ? "rgba(142,212,255,.24)" : "rgba(243,177,90,.24)");
   glow.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = glow;
   ctx.beginPath();
-  ctx.arc(event.x, glowY, r * 2.15, 0, Math.PI * 2);
+  ctx.arc(event.x, glowY, event.size * 1.55, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = "rgba(0,0,0,.26)";
-  ctx.beginPath();
-  ctx.ellipse(event.x, ringY + r * .18, r * 1.28, r * .46, 0, 0, Math.PI * 2);
+  if (isUp) {
+    drawCeilingStairsOpening(ctx, event.x, centerY, event.size, color);
+  } else {
+    drawFloorStairsOpening(ctx, event.x, centerY, event.size, color);
+  }
+  ctx.restore();
+}
+
+function drawFloorStairsOpening(ctx, x, y, size, color) {
+  const topY = y - size * .72;
+  const bottomY = y + size * .16;
+  const topW = size * .84;
+  const bottomW = size * 1.62;
+  const sideInset = size * .13;
+
+  ctx.fillStyle = "rgba(0,0,0,.46)";
+  drawQuad(ctx, x - topW / 2, topY, x + topW / 2, topY, x + bottomW / 2, bottomY, x - bottomW / 2, bottomY);
   ctx.fill();
 
   ctx.strokeStyle = color;
-  ctx.lineWidth = Math.max(2, event.size * .06);
-  ctx.beginPath();
-  ctx.ellipse(event.x, ringY, r * 1.15, r * .46, 0, 0, Math.PI * 2);
+  ctx.lineWidth = Math.max(2, size * .06);
+  ctx.shadowColor = color;
+  ctx.shadowBlur = size * .22;
+  drawQuad(ctx, x - topW / 2, topY, x + topW / 2, topY, x + bottomW / 2, bottomY, x - bottomW / 2, bottomY);
   ctx.stroke();
 
-  ctx.fillStyle = color;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `700 ${Math.max(14, event.size * .88)}px GameFont, sans-serif`;
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(255,226,158,.42)";
+  ctx.lineWidth = Math.max(1, size * .025);
+  for (let i = 1; i <= 3; i++) {
+    const t = i / 4;
+    const rowY = topY + (bottomY - topY) * t;
+    const rowW = topW + (bottomW - topW) * t;
+    ctx.beginPath();
+    ctx.moveTo(x - rowW / 2 + sideInset * t, rowY);
+    ctx.lineTo(x + rowW / 2 - sideInset * t, rowY);
+    ctx.stroke();
+  }
+}
+
+function drawCeilingStairsOpening(ctx, x, y, size, color) {
+  const topY = y - size * .16;
+  const bottomY = y + size * .72;
+  const topW = size * 1.5;
+  const bottomW = size * .78;
+  const sideInset = size * .11;
+
+  ctx.fillStyle = "rgba(0,0,0,.5)";
+  drawQuad(ctx, x - topW / 2, topY, x + topW / 2, topY, x + bottomW / 2, bottomY, x - bottomW / 2, bottomY);
+  ctx.fill();
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(2, size * .06);
   ctx.shadowColor = color;
-  ctx.shadowBlur = event.size * .32;
-  ctx.fillText(label, event.x, ringY - r * .55);
-  ctx.restore();
+  ctx.shadowBlur = size * .22;
+  drawQuad(ctx, x - topW / 2, topY, x + topW / 2, topY, x + bottomW / 2, bottomY, x - bottomW / 2, bottomY);
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(203,237,255,.42)";
+  ctx.lineWidth = Math.max(1, size * .025);
+  for (let i = 1; i <= 3; i++) {
+    const t = i / 4;
+    const rowY = topY + (bottomY - topY) * t;
+    const rowW = topW + (bottomW - topW) * t;
+    ctx.beginPath();
+    ctx.moveTo(x - rowW / 2 + sideInset * (1 - t), rowY);
+    ctx.lineTo(x + rowW / 2 - sideInset * (1 - t), rowY);
+    ctx.stroke();
+  }
+}
+
+function drawQuad(ctx, x1, y1, x2, y2, x3, y3, x4, y4) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.lineTo(x3, y3);
+  ctx.lineTo(x4, y4);
+  ctx.closePath();
 }
 
 export function drawFrame() {
