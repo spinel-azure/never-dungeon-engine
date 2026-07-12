@@ -80,6 +80,7 @@
         x,
         y,
         type: "floor",
+        npc: null,
         walls: { N: true, E: true, S: true, W: true },
         doors: { N: null, E: null, S: null, W: null }
       }))
@@ -110,6 +111,7 @@
       addLoopOpenings(EXTRA_OPENINGS);
     }
     placeStairs();
+    placeNpc();
     placeNormalDoors(NORMAL_DOOR_COUNT);
   }
   
@@ -117,6 +119,7 @@
     for (let y = 0; y < MAP_H; y++) {
       for (let x = 0; x < MAP_W; x++) {
         cells[y][x].type = "floor";
+        cells[y][x].npc = null;
         cells[y][x].walls = { N: true, E: true, S: true, W: true };
         cells[y][x].doors = { N: null, E: null, S: null, W: null };
       }
@@ -128,6 +131,28 @@
     cells[START_Y][START_X].type = "stairsUp";
     const stairsDown = findFarthestReachableCell(7);
     if (stairsDown) cells[stairsDown.y][stairsDown.x].type = "stairsDown";
+  }
+
+  function placeNpc() {
+    resetNpcs();
+    const distances = makeDistanceMap(START_X, START_Y);
+    const candidates = [];
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        if (x === START_X && y === START_Y) continue;
+        if (cells[y][x].type !== "floor") continue;
+        if (distances[y][x] < 4) continue;
+        candidates.push({ x, y, distance: distances[y][x] });
+      }
+    }
+
+    const selected = shuffled(candidates)[0];
+    if (selected) {
+      cells[selected.y][selected.x].npc = {
+        id: "NPC_01",
+        image: "images/npc/NPC_01.PNG"
+      };
+    }
   }
 
   function getCellType(x, y) {
@@ -157,6 +182,12 @@
     }
   }
 
+  function resetNpcs() {
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) cells[y][x].npc = null;
+    }
+  }
+
   function placeNormalDoors(count = NORMAL_DOOR_COUNT) {
     resetDoors();
     const distances = makeDistanceMap(START_X, START_Y);
@@ -169,6 +200,7 @@
           if (!inBounds(nx, ny)) continue;
           if (cells[y][x].walls[dir.key]) continue;
           if (isStairCell(x, y) || isStairCell(nx, ny)) continue;
+          if (cells[y][x].npc || cells[ny][nx].npc) continue;
           if (distances[y][x] < 3 || distances[ny][nx] < 3) continue;
           candidates.push({ x, y, dir: dir.key });
         }
@@ -540,7 +572,8 @@
     minimapOverlayVisible: false,
     lastCanvasTouchAt: 0,
     wallTexture: null,
-    doorTexture: null
+    doorTexture: null,
+    npcImages: new Map()
   };
   
   function configureRenderer(options) {
@@ -549,6 +582,7 @@
     renderer.H = renderer.canvas.height;
     renderer.wallTexture = makeWallTexture();
     renderer.doorTexture = makeDoorTexture();
+    loadNpcImage("NPC_01", "images/npc/NPC_01.PNG");
     renderer.canvas.addEventListener("pointerup", handleCanvasPointerUp);
     renderer.canvas.addEventListener("touchend", handleCanvasTouchEnd, { passive: false });
   }
@@ -571,8 +605,9 @@
   
     drawCeiling();
     drawFloor();
-    drawCellEvents();
+    drawCellEvents("floor");
     drawBoundaryWalls();
+    drawCellEvents("sprite");
     drawMist();
     renderer.drawMinimap(ctx, {
       ...renderer.getMinimapOptions(),
@@ -747,7 +782,7 @@
     ctx.fillRect(0, 0, W, H);
   }
 
-  function drawCellEvents() {
+  function drawCellEvents(layer = "all") {
     const { ctx, W, H, state } = renderer;
     const {
       MAP_W,
@@ -760,21 +795,42 @@
     for (let y = 0; y < MAP_H; y++) {
       for (let x = 0; x < MAP_W; x++) {
         const cell = cells[y][x];
-        if (cell.type !== "stairsUp" && cell.type !== "stairsDown") continue;
         const projected = projectCellCenter(x, y);
         if (!projected) continue;
         if (!hasLineOfSightToCell(x, y)) continue;
-        events.push({
-          ...projected,
-          footprint: projectCellFootprint(x, y, projected.forward),
-          type: cell.type
-        });
+        if (cell.type === "stairsUp" || cell.type === "stairsDown") {
+          if (layer === "sprite") continue;
+          events.push({
+            ...projected,
+            footprint: projectCellFootprint(x, y, projected.forward),
+            eventKind: "stairs",
+            type: cell.type
+          });
+        }
+        if (cell.npc) {
+          if (layer === "floor") continue;
+          events.push({
+            ...projected,
+            eventKind: "npc",
+            npc: cell.npc
+          });
+        }
       }
     }
 
     events
       .sort((a, b) => b.forward - a.forward)
-      .forEach(event => drawStairsEventMarker(ctx, W, H, event));
+      .forEach(event => {
+        if (event.eventKind === "stairs") drawStairsEventMarker(ctx, W, H, event);
+        if (event.eventKind === "npc") drawNpcEvent(ctx, event);
+      });
+  }
+
+  function loadNpcImage(id, src) {
+    if (renderer.npcImages.has(id)) return;
+    const image = new Image();
+    image.src = src;
+    renderer.npcImages.set(id, image);
   }
 
   function projectCellCenter(cellX, cellY) {
@@ -897,6 +953,29 @@
       drawCeilingStairsOpening(ctx, event.x, centerY, event.size, color, quad);
     } else {
       drawFloorStairsOpening(ctx, event.x, centerY, event.size, color, quad);
+    }
+    ctx.restore();
+  }
+
+  function drawNpcEvent(ctx, event) {
+    const image = renderer.npcImages.get(event.npc.id);
+    const spriteH = event.size * 2.05;
+    const fallbackW = spriteH * .64;
+    const top = event.floorY - spriteH;
+
+    ctx.save();
+    ctx.globalAlpha = event.alpha;
+    ctx.shadowColor = "rgba(255,221,151,.45)";
+    ctx.shadowBlur = event.size * .14;
+    if (image && image.complete && image.naturalWidth > 0) {
+      const drawW = spriteH * (image.naturalWidth / image.naturalHeight);
+      ctx.drawImage(image, event.x - drawW / 2, top, drawW, spriteH);
+    } else {
+      ctx.fillStyle = "rgba(255,232,186,.72)";
+      ctx.fillRect(event.x - fallbackW / 2, top, fallbackW, spriteH);
+      ctx.strokeStyle = "rgba(65,38,20,.9)";
+      ctx.lineWidth = Math.max(2, event.size * .04);
+      ctx.strokeRect(event.x - fallbackW / 2, top, fallbackW, spriteH);
     }
     ctx.restore();
   }

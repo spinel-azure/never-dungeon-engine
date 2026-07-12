@@ -18,6 +18,7 @@ export function makeCells(w, h) {
       x,
       y,
       type: "floor",
+      npc: null,
       walls: { N: true, E: true, S: true, W: true },
       doors: { N: null, E: null, S: null, W: null }
     }))
@@ -48,6 +49,7 @@ export function buildBoundaryWallMap() {
     addLoopOpenings(EXTRA_OPENINGS);
   }
   placeStairs();
+  placeNpc();
   placeNormalDoors(NORMAL_DOOR_COUNT);
 }
 
@@ -55,6 +57,7 @@ export function resetAllWalls() {
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
       cells[y][x].type = "floor";
+      cells[y][x].npc = null;
       cells[y][x].walls = { N: true, E: true, S: true, W: true };
       cells[y][x].doors = { N: null, E: null, S: null, W: null };
     }
@@ -66,6 +69,28 @@ export function placeStairs() {
   cells[START_Y][START_X].type = "stairsUp";
   const stairsDown = findFarthestReachableCell(7);
   if (stairsDown) cells[stairsDown.y][stairsDown.x].type = "stairsDown";
+}
+
+export function placeNpc() {
+  resetNpcs();
+  const distances = makeDistanceMap(START_X, START_Y);
+  const candidates = [];
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      if (x === START_X && y === START_Y) continue;
+      if (cells[y][x].type !== "floor") continue;
+      if (distances[y][x] < 4) continue;
+      candidates.push({ x, y, distance: distances[y][x] });
+    }
+  }
+
+  const selected = shuffled(candidates)[0];
+  if (selected) {
+    cells[selected.y][selected.x].npc = {
+      id: "NPC_01",
+      image: "images/npc/NPC_01.PNG"
+    };
+  }
 }
 
 export function getCellType(x, y) {
@@ -95,6 +120,12 @@ export function resetCellTypes() {
   }
 }
 
+export function resetNpcs() {
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) cells[y][x].npc = null;
+  }
+}
+
 export function placeNormalDoors(count = NORMAL_DOOR_COUNT) {
   resetDoors();
   const distances = makeDistanceMap(START_X, START_Y);
@@ -107,6 +138,7 @@ export function placeNormalDoors(count = NORMAL_DOOR_COUNT) {
         if (!inBounds(nx, ny)) continue;
         if (cells[y][x].walls[dir.key]) continue;
         if (isStairCell(x, y) || isStairCell(nx, ny)) continue;
+        if (cells[y][x].npc || cells[ny][nx].npc) continue;
         if (distances[y][x] < 3 || distances[ny][nx] < 3) continue;
         candidates.push({ x, y, dir: dir.key });
       }
