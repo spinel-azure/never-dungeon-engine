@@ -54,8 +54,8 @@ export function drawScene(now) {
 
   drawCeiling();
   drawFloor();
-  drawBoundaryWalls();
   drawCellEvents();
+  drawBoundaryWalls();
   drawMist();
   renderer.drawMinimap(ctx, {
     ...renderer.getMinimapOptions(),
@@ -357,7 +357,7 @@ function drawStairsEventMarker(ctx, W, H, event) {
   const quad = event.footprint ? (isUp ? event.footprint.ceiling : event.footprint.floor) : null;
   const centerY = isUp ? event.ceilingY : event.floorY;
   const glowY = isUp ? centerY + event.size * .22 : centerY - event.size * .22;
-  if (!quad && event.forward > 1.35) return;
+  if (!quad && event.forward > 2.25) return;
 
   ctx.save();
   ctx.globalAlpha = event.alpha;
