@@ -265,16 +265,23 @@ function projectCellCenter(cellX, cellY) {
 }
 
 function projectCellFootprint(cellX, cellY) {
-  const inset = .18;
-  const samples = [
-    { x: cellX + inset, y: cellY + inset },
-    { x: cellX + 1 - inset, y: cellY + inset },
-    { x: cellX + 1 - inset, y: cellY + 1 - inset },
-    { x: cellX + inset, y: cellY + 1 - inset }
+  const visibilityInset = .18;
+  const projectionInset = .03;
+  const visibilitySamples = [
+    { x: cellX + visibilityInset, y: cellY + visibilityInset },
+    { x: cellX + 1 - visibilityInset, y: cellY + visibilityInset },
+    { x: cellX + 1 - visibilityInset, y: cellY + 1 - visibilityInset },
+    { x: cellX + visibilityInset, y: cellY + 1 - visibilityInset }
   ];
-  if (samples.some(sample => !hasLineOfSightToPoint(sample.x, sample.y, cellX, cellY))) return null;
+  if (visibilitySamples.some(sample => !hasLineOfSightToPoint(sample.x, sample.y, cellX, cellY))) return null;
 
-  const corners = samples.map(sample => projectWorldPoint(sample.x, sample.y));
+  const projectionSamples = [
+    { x: cellX + projectionInset, y: cellY + projectionInset },
+    { x: cellX + 1 - projectionInset, y: cellY + projectionInset },
+    { x: cellX + 1 - projectionInset, y: cellY + 1 - projectionInset },
+    { x: cellX + projectionInset, y: cellY + 1 - projectionInset }
+  ];
+  const corners = projectionSamples.map(sample => projectWorldPoint(sample.x, sample.y));
   if (corners.some(corner => !corner)) return null;
   return {
     floor: corners.map(corner => ({ x: corner.x, y: corner.floorY })),
@@ -359,9 +366,9 @@ function drawStairsEventMarker(ctx, W, H, event) {
   ctx.fill();
 
   if (isUp) {
-    drawCeilingStairsOpening(ctx, event.x, centerY, event.size, color, stabilizeOpeningQuad(quad, event.x, event.size, true));
+    drawCeilingStairsOpening(ctx, event.x, centerY, event.size, color, quad);
   } else {
-    drawFloorStairsOpening(ctx, event.x, centerY, event.size, color, stabilizeOpeningQuad(quad, event.x, event.size, false));
+    drawFloorStairsOpening(ctx, event.x, centerY, event.size, color, quad);
   }
   ctx.restore();
 }
@@ -420,17 +427,6 @@ function makeFallbackCeilingOpening(x, y, size) {
     { x: x + bottomW / 2, y: bottomY },
     { x: x - bottomW / 2, y: bottomY }
   ];
-}
-
-function stabilizeOpeningQuad(points, centerX, size, isUp) {
-  const minWidth = size * (isUp ? 1.85 : 1.95);
-  const maxWidth = Math.max(...points.map(point => point.x)) - Math.min(...points.map(point => point.x));
-  if (maxWidth >= minWidth || maxWidth <= 0) return points;
-  const scale = minWidth / maxWidth;
-  return points.map(point => ({
-    x: centerX + (point.x - centerX) * scale,
-    y: point.y
-  }));
 }
 
 function drawPointQuad(ctx, points) {
