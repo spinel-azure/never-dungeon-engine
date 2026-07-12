@@ -872,9 +872,9 @@
     const isUp = event.type === "stairsUp";
     const color = isUp ? "#8ed4ff" : "#f3b15a";
     const quad = event.footprint ? (isUp ? event.footprint.ceiling : event.footprint.floor) : null;
-    if (!quad) return;
     const centerY = isUp ? event.ceilingY : event.floorY;
     const glowY = isUp ? centerY + event.size * .22 : centerY - event.size * .22;
+    if (!quad && event.forward > 1.35) return;
 
     ctx.save();
     ctx.globalAlpha = event.alpha;
@@ -886,6 +886,12 @@
     ctx.beginPath();
     ctx.arc(event.x, glowY, event.size * 1.55, 0, Math.PI * 2);
     ctx.fill();
+
+    if (!quad) {
+      drawNearStairsFallbackLine(ctx, event.x, centerY, event.size, color, isUp);
+      ctx.restore();
+      return;
+    }
 
     if (isUp) {
       drawCeilingStairsOpening(ctx, event.x, centerY, event.size, color, quad);
@@ -922,6 +928,19 @@
     ctx.shadowColor = color;
     ctx.shadowBlur = size * .22;
     drawPointQuad(ctx, points);
+    ctx.stroke();
+  }
+
+  function drawNearStairsFallbackLine(ctx, x, y, size, color, isUp) {
+    const halfW = size * 1.35;
+    const lineY = isUp ? y + size * .16 : y - size * .08;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(3, size * .07);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = size * .24;
+    ctx.beginPath();
+    ctx.moveTo(x - halfW, lineY);
+    ctx.lineTo(x + halfW, lineY);
     ctx.stroke();
   }
 
