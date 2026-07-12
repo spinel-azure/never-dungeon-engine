@@ -12,9 +12,9 @@ import {
   inBounds,
   wallOnCell,
   closedDoorOnCell,
-  openDoor
-  , getNpcAt
-} from "./dungeon.js";
+    openDoor,
+    getNpcAt
+  } from "./dungeon.js";
 
 const hooks = {
   say: () => {},
@@ -22,6 +22,8 @@ const hooks = {
   continueAutoReturn: () => {},
   messageFor: () => ""
 };
+
+const NPC_AWARENESS_MESSAGE = "前方に何かいるようだ";
 
 const TORCH_FUEL_MAX = 100;
 const TORCH_FUEL_STEP = 1;
@@ -47,7 +49,8 @@ export function createPlayerState(startDir) {
     torchFuel: TORCH_FUEL_MAX,
     autoReturning: false,
     autoPath: [],
-    npcEncounter: null
+    npcEncounter: null,
+    npcAwarenessShown: false
   };
 }
 
@@ -63,6 +66,7 @@ export function resetPlayer(startDir) {
   state.torchFuel = TORCH_FUEL_MAX;
   state.autoPath = [];
   state.npcEncounter = null;
+  state.npcAwarenessShown = false;
   markExplored(START_X, START_Y);
 }
 
@@ -206,6 +210,7 @@ export function handleNpcEncounterInput(action) {
 
 function startNpcEncounter(npc, fromGX, fromGY) {
   state.npcEncounter = { npc, fromGX, fromGY };
+  state.npcAwarenessShown = false;
   hooks.cancelAutoReturn(false);
   hooks.say("みかんにゃんこ「にゃ～？」\n＊Aボタンで会話　Bボタンで抜けます");
 }
@@ -233,8 +238,15 @@ function leaveNpcEncounter() {
 function updateNpcAwareness() {
   if (state.npcEncounter) return;
   const dir = DIRS[state.dir];
-  const npc = getNpcAt(state.gridX + dir.dx, state.gridY + dir.dy);
-  if (npc) hooks.say("前方に何かいるようだ");
+  const isBlocked = wallOnCell(state.gridX, state.gridY, dir.key);
+  const npc = isBlocked ? null : getNpcAt(state.gridX + dir.dx, state.gridY + dir.dy);
+  if (npc) {
+    state.npcAwarenessShown = true;
+    hooks.say(NPC_AWARENESS_MESSAGE);
+  } else if (state.npcAwarenessShown) {
+    state.npcAwarenessShown = false;
+    hooks.say("");
+  }
 }
 
 export function turnToward(from, to) {

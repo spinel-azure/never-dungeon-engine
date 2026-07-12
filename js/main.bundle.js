@@ -391,6 +391,8 @@
     messageFor: () => ""
   };
 
+  const NPC_AWARENESS_MESSAGE = "\u524d\u65b9\u306b\u4f55\u304b\u3044\u308b\u3088\u3046\u3060";
+
   const TORCH_FUEL_MAX = 100;
   const TORCH_FUEL_STEP = 1;
   const DOOR_OPEN_MS = 520;
@@ -415,7 +417,8 @@
       torchFuel: TORCH_FUEL_MAX,
       autoReturning: false,
       autoPath: [],
-      npcEncounter: null
+      npcEncounter: null,
+      npcAwarenessShown: false
     };
   }
   
@@ -431,6 +434,7 @@
     state.torchFuel = TORCH_FUEL_MAX;
     state.autoPath = [];
     state.npcEncounter = null;
+    state.npcAwarenessShown = false;
     markExplored(START_X, START_Y);
   }
 
@@ -574,6 +578,7 @@
 
   function startNpcEncounter(npc, fromGX, fromGY) {
     state.npcEncounter = { npc, fromGX, fromGY };
+    state.npcAwarenessShown = false;
     hooks.cancelAutoReturn(false);
     hooks.say("\u307f\u304b\u3093\u306b\u3083\u3093\u3053\u300c\u306b\u3083\uff5e\uff1f\u300d\n\uff0aA\u30dc\u30bf\u30f3\u3067\u4f1a\u8a71\u3000B\u30dc\u30bf\u30f3\u3067\u629c\u3051\u307e\u3059");
   }
@@ -601,8 +606,15 @@
   function updateNpcAwareness() {
     if (state.npcEncounter) return;
     const dir = DIRS[state.dir];
-    const npc = getNpcAt(state.gridX + dir.dx, state.gridY + dir.dy);
-    if (npc) hooks.say("\u524d\u65b9\u306b\u4f55\u304b\u3044\u308b\u3088\u3046\u3060");
+    const isBlocked = wallOnCell(state.gridX, state.gridY, dir.key);
+    const npc = isBlocked ? null : getNpcAt(state.gridX + dir.dx, state.gridY + dir.dy);
+    if (npc) {
+      state.npcAwarenessShown = true;
+      hooks.say(NPC_AWARENESS_MESSAGE);
+    } else if (state.npcAwarenessShown) {
+      state.npcAwarenessShown = false;
+      hooks.say("");
+    }
   }
   
   function turnToward(from, to) {
