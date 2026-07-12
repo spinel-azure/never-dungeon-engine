@@ -247,7 +247,11 @@ export function drawCellEvents() {
       const projected = projectCellCenter(x, y);
       if (!projected) continue;
       if (!hasLineOfSightToCell(x, y)) continue;
-      events.push({ ...projected, type: cell.type });
+      events.push({
+        ...projected,
+        footprint: projectCellFootprint(x, y),
+        type: cell.type
+      });
     }
   }
 
@@ -258,6 +262,21 @@ export function drawCellEvents() {
 
 function projectCellCenter(cellX, cellY) {
   return projectWorldPoint(cellX + .5, cellY + .5);
+}
+
+function projectCellFootprint(cellX, cellY) {
+  const inset = .08;
+  const corners = [
+    projectWorldPoint(cellX + inset, cellY + inset),
+    projectWorldPoint(cellX + 1 - inset, cellY + inset),
+    projectWorldPoint(cellX + 1 - inset, cellY + 1 - inset),
+    projectWorldPoint(cellX + inset, cellY + 1 - inset)
+  ];
+  if (corners.some(corner => !corner)) return null;
+  return {
+    floor: corners.map(corner => ({ x: corner.x, y: corner.floorY })),
+    ceiling: corners.map(corner => ({ x: corner.x, y: corner.ceilingY }))
+  };
 }
 
 function projectWorldPoint(worldX, worldY) {
@@ -320,6 +339,7 @@ function directionKeyBetween(fromX, fromY, toX, toY) {
 function drawStairsEventMarker(ctx, W, H, event) {
   const isUp = event.type === "stairsUp";
   const color = isUp ? "#8ed4ff" : "#f3b15a";
+  const quad = event.footprint ? (isUp ? event.footprint.ceiling : event.footprint.floor) : null;
   const centerY = isUp ? event.ceilingY : event.floorY;
   const glowY = isUp ? centerY + event.size * .22 : centerY - event.size * .22;
 
@@ -335,83 +355,73 @@ function drawStairsEventMarker(ctx, W, H, event) {
   ctx.fill();
 
   if (isUp) {
-    drawCeilingStairsOpening(ctx, event.x, centerY, event.size, color);
+    drawCeilingStairsOpening(ctx, event.x, centerY, event.size, color, quad);
   } else {
-    drawFloorStairsOpening(ctx, event.x, centerY, event.size, color);
+    drawFloorStairsOpening(ctx, event.x, centerY, event.size, color, quad);
   }
   ctx.restore();
 }
 
-function drawFloorStairsOpening(ctx, x, y, size, color) {
-  const topY = y - size * .72;
-  const bottomY = y + size * .16;
-  const topW = size * .84;
-  const bottomW = size * 1.62;
-  const sideInset = size * .13;
+function drawFloorStairsOpening(ctx, x, y, size, color, quad) {
+  const points = quad || makeFallbackFloorOpening(x, y, size);
 
   ctx.fillStyle = "rgba(0,0,0,.46)";
-  drawQuad(ctx, x - topW / 2, topY, x + topW / 2, topY, x + bottomW / 2, bottomY, x - bottomW / 2, bottomY);
+  drawPointQuad(ctx, points);
   ctx.fill();
 
   ctx.strokeStyle = color;
   ctx.lineWidth = Math.max(2, size * .06);
   ctx.shadowColor = color;
   ctx.shadowBlur = size * .22;
-  drawQuad(ctx, x - topW / 2, topY, x + topW / 2, topY, x + bottomW / 2, bottomY, x - bottomW / 2, bottomY);
+  drawPointQuad(ctx, points);
   ctx.stroke();
-
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = "rgba(255,226,158,.42)";
-  ctx.lineWidth = Math.max(1, size * .025);
-  for (let i = 1; i <= 3; i++) {
-    const t = i / 4;
-    const rowY = topY + (bottomY - topY) * t;
-    const rowW = topW + (bottomW - topW) * t;
-    ctx.beginPath();
-    ctx.moveTo(x - rowW / 2 + sideInset * t, rowY);
-    ctx.lineTo(x + rowW / 2 - sideInset * t, rowY);
-    ctx.stroke();
-  }
 }
 
-function drawCeilingStairsOpening(ctx, x, y, size, color) {
-  const topY = y - size * .16;
-  const bottomY = y + size * .72;
-  const topW = size * 1.5;
-  const bottomW = size * .78;
-  const sideInset = size * .11;
+function drawCeilingStairsOpening(ctx, x, y, size, color, quad) {
+  const points = quad || makeFallbackCeilingOpening(x, y, size);
 
   ctx.fillStyle = "rgba(0,0,0,.5)";
-  drawQuad(ctx, x - topW / 2, topY, x + topW / 2, topY, x + bottomW / 2, bottomY, x - bottomW / 2, bottomY);
+  drawPointQuad(ctx, points);
   ctx.fill();
 
   ctx.strokeStyle = color;
   ctx.lineWidth = Math.max(2, size * .06);
   ctx.shadowColor = color;
   ctx.shadowBlur = size * .22;
-  drawQuad(ctx, x - topW / 2, topY, x + topW / 2, topY, x + bottomW / 2, bottomY, x - bottomW / 2, bottomY);
+  drawPointQuad(ctx, points);
   ctx.stroke();
-
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = "rgba(203,237,255,.42)";
-  ctx.lineWidth = Math.max(1, size * .025);
-  for (let i = 1; i <= 3; i++) {
-    const t = i / 4;
-    const rowY = topY + (bottomY - topY) * t;
-    const rowW = topW + (bottomW - topW) * t;
-    ctx.beginPath();
-    ctx.moveTo(x - rowW / 2 + sideInset * (1 - t), rowY);
-    ctx.lineTo(x + rowW / 2 - sideInset * (1 - t), rowY);
-    ctx.stroke();
-  }
 }
 
-function drawQuad(ctx, x1, y1, x2, y2, x3, y3, x4, y4) {
+function makeFallbackFloorOpening(x, y, size) {
+  const topY = y - size * .44;
+  const bottomY = y + size * .12;
+  const topW = size * 1.05;
+  const bottomW = size * 1.62;
+  return [
+    { x: x - topW / 2, y: topY },
+    { x: x + topW / 2, y: topY },
+    { x: x + bottomW / 2, y: bottomY },
+    { x: x - bottomW / 2, y: bottomY }
+  ];
+}
+
+function makeFallbackCeilingOpening(x, y, size) {
+  const topY = y - size * .12;
+  const bottomY = y + size * .44;
+  const topW = size * 1.62;
+  const bottomW = size * 1.05;
+  return [
+    { x: x - topW / 2, y: topY },
+    { x: x + topW / 2, y: topY },
+    { x: x + bottomW / 2, y: bottomY },
+    { x: x - bottomW / 2, y: bottomY }
+  ];
+}
+
+function drawPointQuad(ctx, points) {
   ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.lineTo(x3, y3);
-  ctx.lineTo(x4, y4);
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
   ctx.closePath();
 }
 
