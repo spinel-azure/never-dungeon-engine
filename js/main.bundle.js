@@ -417,7 +417,7 @@
       torchFuel: TORCH_FUEL_MAX,
       autoReturning: false,
       autoPath: [],
-      npcEncounter: null,
+      overlayEvent: null,
       npcAwarenessShown: false
     };
   }
@@ -433,7 +433,7 @@
     state.shake = 0;
     state.torchFuel = TORCH_FUEL_MAX;
     state.autoPath = [];
-    state.npcEncounter = null;
+    state.overlayEvent = null;
     state.npcAwarenessShown = false;
     markExplored(START_X, START_Y);
   }
@@ -467,7 +467,7 @@
           state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
           const npc = getNpcAt(state.gridX, state.gridY);
           if (npc) {
-            startNpcEncounter(npc, a.fromGX, a.fromGY);
+            startNpcTalkEvent(npc, a.fromGX, a.fromGY);
           } else {
             hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
             updateNpcAwareness();
@@ -549,7 +549,7 @@
   }
   
   function manualMove(amount) {
-    if (state.npcEncounter) return;
+    if (state.overlayEvent) return;
     if (state.autoReturning) {
       hooks.cancelAutoReturn(false);
       hooks.say("\u5e30\u9084\u3092\u4e2d\u65ad\u3057\u305f\u3002");
@@ -558,7 +558,7 @@
   }
   
   function manualTurn(amount) {
-    if (state.npcEncounter) return;
+    if (state.overlayEvent) return;
     if (state.autoReturning) {
       hooks.cancelAutoReturn(false);
       hooks.say("\u5e30\u9084\u3092\u4e2d\u65ad\u3057\u305f\u3002");
@@ -566,45 +566,63 @@
     if (!state.anim) turn(amount);
   }
 
-  function handleNpcEncounterInput(action) {
-    if (!state.npcEncounter) return false;
+  function handleOverlayEventInput(action) {
+    if (!state.overlayEvent) return false;
     if (action === "cancel") {
-      leaveNpcEncounter();
+      cancelOverlayEvent();
       return true;
     }
     if (action === "confirm") return true;
     return true;
   }
 
-  function startNpcEncounter(npc, fromGX, fromGY) {
-    state.npcEncounter = { npc, fromGX, fromGY };
-    state.npcAwarenessShown = false;
-    hooks.cancelAutoReturn(false);
-    hooks.say("\u307f\u304b\u3093\u306b\u3083\u3093\u3053\u300c\u306b\u3083\uff5e\uff1f\u300d\n\uff0aA\u30dc\u30bf\u30f3\u3067\u4f1a\u8a71\u3000B\u30dc\u30bf\u30f3\u3067\u629c\u3051\u307e\u3059");
+  function startNpcTalkEvent(npc, fromGX, fromGY) {
+    startOverlayEvent({
+      type: "npcTalk",
+      imageId: npc.id,
+      npc,
+      fromGX,
+      fromGY,
+      message: "\u307f\u304b\u3093\u306b\u3083\u3093\u3053\u300c\u306b\u3083\uff5e\uff1f\u300d\n\uff0aA\u30dc\u30bf\u30f3\u3067\u4f1a\u8a71\u3000B\u30dc\u30bf\u30f3\u3067\u629c\u3051\u307e\u3059",
+      canCancel: true,
+      retreatOnCancel: true
+    });
   }
 
-  function leaveNpcEncounter() {
-    const encounter = state.npcEncounter;
-    state.npcEncounter = null;
+  function startOverlayEvent(event) {
+    state.overlayEvent = {
+      canCancel: false,
+      retreatOnCancel: false,
+      ...event
+    };
+    state.npcAwarenessShown = false;
+    hooks.cancelAutoReturn(false);
+    if (state.overlayEvent.message) hooks.say(state.overlayEvent.message);
+  }
+
+  function cancelOverlayEvent() {
+    const event = state.overlayEvent;
+    if (!event?.canCancel) return;
+    state.overlayEvent = null;
     hooks.say("");
-    if (!encounter || state.anim) return;
+    if (!event.retreatOnCancel || state.anim) return;
     state.anim = {
       type: "move",
       start: performance.now(),
       duration: STEP_MS,
       fromX: state.x,
       fromY: state.y,
-      toX: encounter.fromGX + .5,
-      toY: encounter.fromGY + .5,
-      toGX: encounter.fromGX,
-      toGY: encounter.fromGY,
-      cellType: getCellType(encounter.fromGX, encounter.fromGY),
+      toX: event.fromGX + .5,
+      toY: event.fromGY + .5,
+      toGX: event.fromGX,
+      toGY: event.fromGY,
+      cellType: getCellType(event.fromGX, event.fromGY),
       npcRetreat: true
     };
   }
 
   function updateNpcAwareness() {
-    if (state.npcEncounter) return;
+    if (state.overlayEvent) return;
     const dir = DIRS[state.dir];
     const isBlocked = wallOnCell(state.gridX, state.gridY, dir.key);
     const npc = isBlocked ? null : getNpcAt(state.gridX + dir.dx, state.gridY + dir.dy);
@@ -694,7 +712,7 @@
     });
     if (renderer.minimapOverlayVisible) drawMinimapOverlay();
     if (state.torchFuel <= 0) drawDarknessMessage();
-    if (state.npcEncounter) drawNpcEncounterOverlay();
+    if (state.overlayEvent) drawOverlayEvent();
     ctx.restore();
     drawFrame();
     renderer.updateHud();
@@ -766,11 +784,11 @@
     ctx.restore();
   }
 
-  function drawNpcEncounterOverlay() {
+  function drawOverlayEvent() {
     const { ctx, W, H, state } = renderer;
-    const npc = state.npcEncounter?.npc;
-    if (!npc) return;
-    const image = renderer.npcImages.get(npc.id);
+    const event = state.overlayEvent;
+    if (!event) return;
+    const image = event.imageId ? renderer.npcImages.get(event.imageId) : null;
 
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,.8)";
@@ -1473,19 +1491,19 @@
     manualMove,
     manualTurn,
     startAutoReturn,
-    generateRandomDungeon,
-    buttonA,
-    buttonB,
-    handleNpcInput = () => false,
-    handleMenuInput
-  }) {
+      generateRandomDungeon,
+      buttonA,
+      buttonB,
+      handleOverlayInput = () => false,
+      handleMenuInput
+    }) {
     window.addEventListener("keydown", (e) => {
       if (e.key === "ArrowUp" && handleMenuInput("up")) { e.preventDefault(); return; }
       if (e.key === "ArrowDown" && handleMenuInput("down")) { e.preventDefault(); return; }
       if (e.key === "ArrowLeft" && handleMenuInput("left")) { e.preventDefault(); return; }
       if (e.key === "ArrowRight" && handleMenuInput("right")) { e.preventDefault(); return; }
-      if (e.code === "KeyX" && (handleNpcInput("confirm") || handleMenuInput("confirm"))) { e.preventDefault(); return; }
-      if (e.code === "KeyZ" && (handleNpcInput("cancel") || handleMenuInput("cancel"))) { e.preventDefault(); return; }
+      if (e.code === "KeyX" && (handleOverlayInput("confirm") || handleMenuInput("confirm"))) { e.preventDefault(); return; }
+      if (e.code === "KeyZ" && (handleOverlayInput("cancel") || handleMenuInput("cancel"))) { e.preventDefault(); return; }
       if (e.key === "ArrowUp") { e.preventDefault(); manualMove(1); }
       if (e.key === "ArrowDown") { e.preventDefault(); manualMove(-1); }
       if (e.key === "ArrowLeft") { e.preventDefault(); manualTurn(-1); }
@@ -1498,8 +1516,8 @@
     bindControl(rightBtn, () => manualTurn(1));
     bindControl(autoReturnBtn, startAutoReturn);
     bindControl(randomGenerateBtn, generateRandomDungeon);
-    bindControl(buttonA, () => handleNpcInput("confirm") || handleMenuInput("confirm"));
-    bindControl(buttonB, () => handleNpcInput("cancel") || handleMenuInput("cancel"));
+    bindControl(buttonA, () => handleOverlayInput("confirm") || handleMenuInput("confirm"));
+    bindControl(buttonB, () => handleOverlayInput("cancel") || handleMenuInput("cancel"));
     configureTouchGuards();
   }
 
@@ -2563,7 +2581,7 @@
     generateRandomDungeon,
     buttonA,
     buttonB,
-    handleNpcInput: handleNpcEncounterInput,
+    handleOverlayInput: handleOverlayEventInput,
     handleMenuInput
   });
   configureMenu({

@@ -22,7 +22,7 @@ import {
   updateAnimation,
   manualMove,
   manualTurn,
-  handleNpcEncounterInput
+  handleOverlayEventInput
 } from "./player.js";
 import { configureRenderer, startRenderLoop } from "./renderer.js";
 import { drawMinimap, getMinimapBounds } from "./minimap.js";
@@ -124,7 +124,7 @@ import { configureDevice } from "./device.js";
     generateRandomDungeon,
     buttonA,
     buttonB,
-    handleNpcInput: handleNpcEncounterInput,
+    handleOverlayInput: handleOverlayEventInput,
     handleMenuInput
   });
   configureMenu({

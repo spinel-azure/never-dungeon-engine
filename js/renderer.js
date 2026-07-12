@@ -66,7 +66,7 @@ export function drawScene(now) {
   });
   if (renderer.minimapOverlayVisible) drawMinimapOverlay();
   if (state.torchFuel <= 0) drawDarknessMessage();
-  if (state.npcEncounter) drawNpcEncounterOverlay();
+  if (state.overlayEvent) drawOverlayEvent();
   ctx.restore();
   drawFrame();
   renderer.updateHud();
@@ -138,11 +138,11 @@ function drawDarknessMessage() {
   ctx.restore();
 }
 
-function drawNpcEncounterOverlay() {
+function drawOverlayEvent() {
   const { ctx, W, H, state } = renderer;
-  const npc = state.npcEncounter?.npc;
-  if (!npc) return;
-  const image = renderer.npcImages.get(npc.id);
+  const event = state.overlayEvent;
+  if (!event) return;
+  const image = event.imageId ? renderer.npcImages.get(event.imageId) : null;
 
   ctx.save();
   ctx.fillStyle = "rgba(0,0,0,.8)";

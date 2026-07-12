@@ -12,9 +12,9 @@ import {
   inBounds,
   wallOnCell,
   closedDoorOnCell,
-    openDoor,
-    getNpcAt
-  } from "./dungeon.js";
+  openDoor,
+  getNpcAt
+} from "./dungeon.js";
 
 const hooks = {
   say: () => {},
@@ -49,7 +49,7 @@ export function createPlayerState(startDir) {
     torchFuel: TORCH_FUEL_MAX,
     autoReturning: false,
     autoPath: [],
-    npcEncounter: null,
+    overlayEvent: null,
     npcAwarenessShown: false
   };
 }
@@ -65,7 +65,7 @@ export function resetPlayer(startDir) {
   state.shake = 0;
   state.torchFuel = TORCH_FUEL_MAX;
   state.autoPath = [];
-  state.npcEncounter = null;
+  state.overlayEvent = null;
   state.npcAwarenessShown = false;
   markExplored(START_X, START_Y);
 }
@@ -99,7 +99,7 @@ export function updateAnimation(now) {
         state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
         const npc = getNpcAt(state.gridX, state.gridY);
         if (npc) {
-          startNpcEncounter(npc, a.fromGX, a.fromGY);
+          startNpcTalkEvent(npc, a.fromGX, a.fromGY);
         } else {
           hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
           updateNpcAwareness();
@@ -181,7 +181,7 @@ export function turn(amount, automated = false) {
 }
 
 export function manualMove(amount) {
-  if (state.npcEncounter) return;
+  if (state.overlayEvent) return;
   if (state.autoReturning) {
     hooks.cancelAutoReturn(false);
     hooks.say("帰還を中断した。");
@@ -190,7 +190,7 @@ export function manualMove(amount) {
 }
 
 export function manualTurn(amount) {
-  if (state.npcEncounter) return;
+  if (state.overlayEvent) return;
   if (state.autoReturning) {
     hooks.cancelAutoReturn(false);
     hooks.say("帰還を中断した。");
@@ -198,45 +198,63 @@ export function manualTurn(amount) {
   if (!state.anim) turn(amount);
 }
 
-export function handleNpcEncounterInput(action) {
-  if (!state.npcEncounter) return false;
+export function handleOverlayEventInput(action) {
+  if (!state.overlayEvent) return false;
   if (action === "cancel") {
-    leaveNpcEncounter();
+    cancelOverlayEvent();
     return true;
   }
   if (action === "confirm") return true;
   return true;
 }
 
-function startNpcEncounter(npc, fromGX, fromGY) {
-  state.npcEncounter = { npc, fromGX, fromGY };
-  state.npcAwarenessShown = false;
-  hooks.cancelAutoReturn(false);
-  hooks.say("みかんにゃんこ「にゃ～？」\n＊Aボタンで会話　Bボタンで抜けます");
+function startNpcTalkEvent(npc, fromGX, fromGY) {
+  startOverlayEvent({
+    type: "npcTalk",
+    imageId: npc.id,
+    npc,
+    fromGX,
+    fromGY,
+    message: "みかんにゃんこ「にゃ～？」\n＊Aボタンで会話　Bボタンで抜けます",
+    canCancel: true,
+    retreatOnCancel: true
+  });
 }
 
-function leaveNpcEncounter() {
-  const encounter = state.npcEncounter;
-  state.npcEncounter = null;
+export function startOverlayEvent(event) {
+  state.overlayEvent = {
+    canCancel: false,
+    retreatOnCancel: false,
+    ...event
+  };
+  state.npcAwarenessShown = false;
+  hooks.cancelAutoReturn(false);
+  if (state.overlayEvent.message) hooks.say(state.overlayEvent.message);
+}
+
+function cancelOverlayEvent() {
+  const event = state.overlayEvent;
+  if (!event?.canCancel) return;
+  state.overlayEvent = null;
   hooks.say("");
-  if (!encounter || state.anim) return;
+  if (!event.retreatOnCancel || state.anim) return;
   state.anim = {
     type: "move",
     start: performance.now(),
     duration: STEP_MS,
     fromX: state.x,
     fromY: state.y,
-    toX: encounter.fromGX + .5,
-    toY: encounter.fromGY + .5,
-    toGX: encounter.fromGX,
-    toGY: encounter.fromGY,
-    cellType: getCellType(encounter.fromGX, encounter.fromGY),
+    toX: event.fromGX + .5,
+    toY: event.fromGY + .5,
+    toGX: event.fromGX,
+    toGY: event.fromGY,
+    cellType: getCellType(event.fromGX, event.fromGY),
     npcRetreat: true
   };
 }
 
 function updateNpcAwareness() {
-  if (state.npcEncounter) return;
+  if (state.overlayEvent) return;
   const dir = DIRS[state.dir];
   const isBlocked = wallOnCell(state.gridX, state.gridY, dir.key);
   const npc = isBlocked ? null : getNpcAt(state.gridX + dir.dx, state.gridY + dir.dy);
