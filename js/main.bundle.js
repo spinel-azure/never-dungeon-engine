@@ -457,6 +457,7 @@
         state.y = state.gridY + .5;
         if (a.npcRetreat) {
           markExplored(state.gridX, state.gridY);
+          updateNpcAwareness();
         } else {
           markExplored(state.gridX, state.gridY);
           state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
@@ -598,7 +599,7 @@
   }
 
   function updateNpcAwareness() {
-    if (state.npcEncounter || state.anim) return;
+    if (state.npcEncounter) return;
     const dir = DIRS[state.dir];
     const npc = getNpcAt(state.gridX + dir.dx, state.gridY + dir.dy);
     if (npc) hooks.say("\u524d\u65b9\u306b\u4f55\u304b\u3044\u308b\u3088\u3046\u3060");

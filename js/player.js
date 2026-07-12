@@ -89,6 +89,7 @@ export function updateAnimation(now) {
       state.y = state.gridY + .5;
       if (a.npcRetreat) {
         markExplored(state.gridX, state.gridY);
+        updateNpcAwareness();
       } else {
         markExplored(state.gridX, state.gridY);
         state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
@@ -230,7 +231,7 @@ function leaveNpcEncounter() {
 }
 
 function updateNpcAwareness() {
-  if (state.npcEncounter || state.anim) return;
+  if (state.npcEncounter) return;
   const dir = DIRS[state.dir];
   const npc = getNpcAt(state.gridX + dir.dx, state.gridY + dir.dy);
   if (npc) hooks.say("前方に何かいるようだ");
