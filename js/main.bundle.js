@@ -782,13 +782,16 @@
   }
 
   function projectCellFootprint(cellX, cellY) {
-    const inset = .08;
-    const corners = [
-      projectWorldPoint(cellX + inset, cellY + inset),
-      projectWorldPoint(cellX + 1 - inset, cellY + inset),
-      projectWorldPoint(cellX + 1 - inset, cellY + 1 - inset),
-      projectWorldPoint(cellX + inset, cellY + 1 - inset)
+    const inset = .18;
+    const samples = [
+      { x: cellX + inset, y: cellY + inset },
+      { x: cellX + 1 - inset, y: cellY + inset },
+      { x: cellX + 1 - inset, y: cellY + 1 - inset },
+      { x: cellX + inset, y: cellY + 1 - inset }
     ];
+    if (samples.some(sample => !hasLineOfSightToPoint(sample.x, sample.y, cellX, cellY))) return null;
+
+    const corners = samples.map(sample => projectWorldPoint(sample.x, sample.y));
     if (corners.some(corner => !corner)) return null;
     return {
       floor: corners.map(corner => ({ x: corner.x, y: corner.floorY })),
@@ -857,6 +860,7 @@
     const isUp = event.type === "stairsUp";
     const color = isUp ? "#8ed4ff" : "#f3b15a";
     const quad = event.footprint ? (isUp ? event.footprint.ceiling : event.footprint.floor) : null;
+    if (!quad) return;
     const centerY = isUp ? event.ceilingY : event.floorY;
     const glowY = isUp ? centerY + event.size * .22 : centerY - event.size * .22;
 
@@ -872,9 +876,9 @@
     ctx.fill();
 
     if (isUp) {
-      drawCeilingStairsOpening(ctx, event.x, centerY, event.size, color, quad);
+      drawCeilingStairsOpening(ctx, event.x, centerY, event.size, color, stabilizeOpeningQuad(quad, event.x, event.size, true));
     } else {
-      drawFloorStairsOpening(ctx, event.x, centerY, event.size, color, quad);
+      drawFloorStairsOpening(ctx, event.x, centerY, event.size, color, stabilizeOpeningQuad(quad, event.x, event.size, false));
     }
     ctx.restore();
   }
@@ -933,6 +937,17 @@
       { x: x + bottomW / 2, y: bottomY },
       { x: x - bottomW / 2, y: bottomY }
     ];
+  }
+
+  function stabilizeOpeningQuad(points, centerX, size, isUp) {
+    const minWidth = size * (isUp ? 1.85 : 1.95);
+    const maxWidth = Math.max(...points.map(point => point.x)) - Math.min(...points.map(point => point.x));
+    if (maxWidth >= minWidth || maxWidth <= 0) return points;
+    const scale = minWidth / maxWidth;
+    return points.map(point => ({
+      x: centerX + (point.x - centerX) * scale,
+      y: point.y
+    }));
   }
 
   function drawPointQuad(ctx, points) {
