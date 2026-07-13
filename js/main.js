@@ -22,7 +22,8 @@ import {
   updateAnimation,
   manualMove,
   manualTurn,
-  handleOverlayEventInput
+  handleOverlayEventInput,
+  resumeDismissedStairsPrompt
 } from "./player.js";
 import { configureRenderer, startRenderLoop } from "./renderer.js";
 import { drawMinimap, getMinimapBounds } from "./minimap.js";
@@ -131,7 +132,8 @@ import { configureDevice } from "./device.js";
     root: menuScreen,
     generateRandomDungeon,
     startAutoReturn,
-    refillTorch
+    refillTorch,
+    onReturnToDungeon: resumeDismissedStairsPrompt
   });
   configureVirtualStick({
     stickEl: virtualStickEl,

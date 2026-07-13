@@ -53,7 +53,8 @@ export function createPlayerState(startDir) {
     autoPath: [],
     overlayEvent: null,
     npcAwarenessShown: false,
-    npcEncounterCounts: {}
+    npcEncounterCounts: {},
+    stairsPromptDismissed: false
   };
 }
 
@@ -70,6 +71,7 @@ export function resetPlayer(startDir) {
   state.autoPath = [];
   state.overlayEvent = null;
   state.npcAwarenessShown = false;
+  state.stairsPromptDismissed = false;
   markExplored(START_X, START_Y);
 }
 
@@ -153,6 +155,7 @@ export function tryMove(amount, automated = false) {
     hooks.say("外周の向こうは闇に閉ざされている。");
     return;
   }
+  state.stairsPromptDismissed = false;
   state.anim = {
     type: "move",
     start: performance.now(),
@@ -218,6 +221,7 @@ export function handleOverlayEventInput(action) {
 }
 
 function startStairsPrompt(cellType) {
+  state.stairsPromptDismissed = false;
   startOverlayEvent({
     type: "stairsPrompt",
     showOverlay: false,
@@ -227,8 +231,20 @@ function startStairsPrompt(cellType) {
 }
 
 function confirmStairsPrompt() {
+  state.stairsPromptDismissed = false;
   state.overlayEvent = null;
   hooks.say("まだ実装されていません。");
+}
+
+export function resumeDismissedStairsPrompt() {
+  if (!state.stairsPromptDismissed || state.overlayEvent || state.anim) return false;
+  const cellType = getCellType(state.gridX, state.gridY);
+  if (cellType !== "stairsUp" && cellType !== "stairsDown") {
+    state.stairsPromptDismissed = false;
+    return false;
+  }
+  startStairsPrompt(cellType);
+  return true;
 }
 
 function startNpcTalkEvent(npc, fromGX, fromGY) {
@@ -293,6 +309,7 @@ export function startOverlayEvent(event) {
 function cancelOverlayEvent() {
   const event = state.overlayEvent;
   if (!event?.canCancel) return;
+  if (event.type === "stairsPrompt") state.stairsPromptDismissed = true;
   state.overlayEvent = null;
   hooks.say("");
   if (event.retreatOnCancel) startNpcRetreat(event);

@@ -27,7 +27,8 @@ const menu = {
   },
   generateRandomDungeon: () => {},
   startAutoReturn: () => {},
-  refillTorch: () => {}
+  refillTorch: () => {},
+  onReturnToDungeon: () => {}
 };
 
 export function configureMenu(options) {
@@ -59,9 +60,12 @@ export function openCampMenu() {
   updateMenuView();
 }
 
-export function closeCampMenu() {
+export function closeCampMenu(returnReason = "action") {
   menu.view = "dungeon";
   updateMenuView();
+  if (returnReason === "back" || returnReason === "main") {
+    menu.onReturnToDungeon(returnReason);
+  }
 }
 
 export function handleMenuInput(action) {
@@ -80,7 +84,7 @@ export function handleMenuInput(action) {
 
 function handleMainInput(action) {
   if (action === "cancel") {
-    closeCampMenu();
+    closeCampMenu("back");
     return;
   }
   if (action === "up" || action === "down") {
@@ -94,7 +98,7 @@ function handleMainInput(action) {
       setOptionPage(0);
       return;
     }
-    closeCampMenu();
+    closeCampMenu("back");
   }
 }
 
@@ -176,7 +180,7 @@ function executeOptionNav(key) {
   }
   if (key === "next") {
     if (menu.optionPage === 0) setOptionPage(1);
-    else closeCampMenu();
+    else closeCampMenu("main");
   }
 }
 
@@ -286,7 +290,7 @@ function bindBackButtons() {
   if (!menu.mainBackButton) return;
   menu.mainBackButton.addEventListener("click", () => {
     menu.mainCursor = 1;
-    closeCampMenu();
+    closeCampMenu("back");
   });
 }
 
