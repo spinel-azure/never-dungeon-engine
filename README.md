@@ -41,7 +41,6 @@ NDEは、クラシックな3DダンジョンRPGの探索体験をHTML / CSS / Ja
 - PC / タブレット / スマホ向けのデバイス判定基盤
 - レスポンシブUI基盤
 - ゲーム用フォント管理
-- `file://` 直開き用のバンドルスクリプト対応
 
 ## 技術構成
 
@@ -53,8 +52,7 @@ NDEは、クラシックな3DダンジョンRPGの探索体験をHTML / CSS / Ja
 - 外部ライブラリなし
 - ビルド環境なし
 
-通常のWebサーバー環境では `js/main.js` を `type="module"` で読み込みます。
-ローカルの `file://` 直開き環境では `js/main.bundle.js` を読み込みます。
+`index.html` からES Modules版の `js/main.js` を `type="module"` で読み込みます。
 
 ## フォルダ構成
 
@@ -66,7 +64,6 @@ css/
 
 js/
   main.js
-  main.bundle.js
   config.js
   dungeon.js
   player.js
