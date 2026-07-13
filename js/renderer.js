@@ -67,7 +67,7 @@ export function drawScene(now) {
   });
   if (renderer.minimapOverlayVisible) drawMinimapOverlay();
   if (state.torchFuel <= 0) drawDarknessMessage();
-  if (state.overlayEvent) drawOverlayEvent();
+  if (state.overlayEvent?.showOverlay) drawOverlayEvent();
   ctx.restore();
   drawFrame();
   renderer.updateHud();

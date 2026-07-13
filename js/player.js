@@ -103,6 +103,8 @@ export function updateAnimation(now) {
         const npc = getNpcAt(state.gridX, state.gridY);
         if (npc) {
           startNpcTalkEvent(npc, a.fromGX, a.fromGY);
+        } else if (a.cellType === "stairsUp" || a.cellType === "stairsDown") {
+          startStairsPrompt(a.cellType);
         } else {
           hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
           updateNpcAwareness();
@@ -209,9 +211,24 @@ export function handleOverlayEventInput(action) {
   }
   if (action === "confirm") {
     if (state.overlayEvent.type === "npcTalk") advanceNpcTalkEvent();
+    else if (state.overlayEvent.type === "stairsPrompt") confirmStairsPrompt();
     return true;
   }
   return true;
+}
+
+function startStairsPrompt(cellType) {
+  startOverlayEvent({
+    type: "stairsPrompt",
+    showOverlay: false,
+    message: hooks.messageFor(state.gridX, state.gridY, cellType),
+    canCancel: true
+  });
+}
+
+function confirmStairsPrompt() {
+  state.overlayEvent = null;
+  hooks.say("まだ実装されていません。");
 }
 
 function startNpcTalkEvent(npc, fromGX, fromGY) {
@@ -265,6 +282,7 @@ export function startOverlayEvent(event) {
   state.overlayEvent = {
     canCancel: false,
     retreatOnCancel: false,
+    showOverlay: true,
     ...event
   };
   state.npcAwarenessShown = false;
