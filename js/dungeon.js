@@ -81,6 +81,9 @@ export function placeNpc() {
       if (x === START_X && y === START_Y) continue;
       if (cells[y][x].type !== "floor") continue;
       if (distances[y][x] < 4) continue;
+      // NPCs currently behave as impassable cells. Reject placements that
+      // would disconnect any other cell from the dungeon entrance.
+      if (countReachableCells(START_X, START_Y, { x, y }) !== MAP_W * MAP_H - 1) continue;
       candidates.push({ x, y, distance: distances[y][x] });
     }
   }
@@ -231,7 +234,8 @@ export function addLoopOpenings(count) {
   });
 }
 
-export function countReachableCells(startX, startY) {
+export function countReachableCells(startX, startY, blockedCell = null) {
+  if (blockedCell?.x === startX && blockedCell?.y === startY) return 0;
   const queue = [{ x: startX, y: startY }];
   const seen = new Set([`${startX},${startY}`]);
   for (let i = 0; i < queue.length; i++) {
@@ -241,6 +245,7 @@ export function countReachableCells(startX, startY) {
       const ny = cur.y + dir.dy;
       const key = `${nx},${ny}`;
       if (!inBounds(nx, ny)) continue;
+      if (blockedCell?.x === nx && blockedCell?.y === ny) continue;
       if (wallOnCell(cur.x, cur.y, dir.key)) continue;
       if (seen.has(key)) continue;
       seen.add(key);
