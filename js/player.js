@@ -13,8 +13,10 @@ import {
   wallOnCell,
   closedDoorOnCell,
   openDoor,
-  getNpcAt
+  getNpcAt,
+  removeNpcAt
 } from "./dungeon.js";
+import { getNpcEncounter } from "../data/npcs.js";
 
 const hooks = {
   say: () => {},
@@ -50,7 +52,8 @@ export function createPlayerState(startDir) {
     autoReturning: false,
     autoPath: [],
     overlayEvent: null,
-    npcAwarenessShown: false
+    npcAwarenessShown: false,
+    npcEncounterCounts: {}
   };
 }
 
@@ -204,22 +207,58 @@ export function handleOverlayEventInput(action) {
     cancelOverlayEvent();
     return true;
   }
-  if (action === "confirm") return true;
+  if (action === "confirm") {
+    if (state.overlayEvent.type === "npcTalk") advanceNpcTalkEvent();
+    return true;
+  }
   return true;
 }
 
 function startNpcTalkEvent(npc, fromGX, fromGY) {
-  const dialogue = npc.dialogue.map(line => `${npc.name}「${line}」`).join("\n");
+  const encounterCount = getNpcEncounterCount(npc.id);
+  const encounter = getNpcEncounter(npc, encounterCount);
+  const greeting = npc.greeting ? `${npc.name}「${npc.greeting}」\n` : "";
   startOverlayEvent({
     type: "npcTalk",
     imageId: npc.imageId,
     npc,
     fromGX,
     fromGY,
-    message: `${dialogue}\n＊Aボタンで会話　Bボタンで抜けます`,
+    npcGX: state.gridX,
+    npcGY: state.gridY,
+    dialogue: encounter?.dialogue || [],
+    dialogueIndex: -1,
+    encounterCount,
+    leaveAfterTalk: encounter?.leaveAfterTalk || false,
+    message: `${greeting}＊Aボタンで会話　Bボタンで抜けます`,
     canCancel: npc.canCancel,
     retreatOnCancel: npc.retreatOnCancel
   });
+}
+
+function advanceNpcTalkEvent() {
+  const event = state.overlayEvent;
+  const nextIndex = event.dialogueIndex + 1;
+  if (nextIndex < event.dialogue.length) {
+    event.dialogueIndex = nextIndex;
+    hooks.say(`${event.npc.name}「${event.dialogue[nextIndex]}」\n＊Aボタンで次へ`);
+    return;
+  }
+
+  state.npcEncounterCounts[event.npc.id] = event.encounterCount + 1;
+  state.overlayEvent = null;
+  if (event.leaveAfterTalk) {
+    removeNpcAt(event.npcGX, event.npcGY);
+    hooks.say(`${event.npc.name}は去っていった。`);
+    return;
+  }
+
+  hooks.say("");
+  startNpcRetreat(event);
+}
+
+export function getNpcEncounterCount(npcId) {
+  return state.npcEncounterCounts[npcId] || 0;
 }
 
 export function startOverlayEvent(event) {
@@ -238,7 +277,11 @@ function cancelOverlayEvent() {
   if (!event?.canCancel) return;
   state.overlayEvent = null;
   hooks.say("");
-  if (!event.retreatOnCancel || state.anim) return;
+  if (event.retreatOnCancel) startNpcRetreat(event);
+}
+
+function startNpcRetreat(event) {
+  if (state.anim) return;
   state.anim = {
     type: "move",
     start: performance.now(),

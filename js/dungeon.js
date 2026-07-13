@@ -102,6 +102,12 @@ export function getNpcAt(x, y) {
   return getNpcById(cells[y][x].npc);
 }
 
+export function removeNpcAt(x, y) {
+  if (!inBounds(x, y) || !cells[y][x].npc) return false;
+  cells[y][x].npc = null;
+  return true;
+}
+
 export function findFarthestReachableCell(minDistance = 7) {
   const distances = makeDistanceMap(START_X, START_Y);
   let farthest = null;
