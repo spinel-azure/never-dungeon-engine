@@ -3,6 +3,7 @@
   RAYS,
   MAX_DIST
 } from "./config.js";
+import { npcs, getNpcById } from "../data/npcs.js";
 
 const renderer = {
   canvas: null,
@@ -33,7 +34,7 @@ export function configureRenderer(options) {
   renderer.H = renderer.canvas.height;
   renderer.wallTexture = makeWallTexture();
   renderer.doorTexture = makeDoorTexture();
-  loadNpcImage("NPC_01", "images/npc/NPC_01.PNG");
+  npcs.forEach(npc => loadNpcImage(npc.imageId, npc.image));
   renderer.canvas.addEventListener("pointerup", handleCanvasPointerUp);
   renderer.canvas.addEventListener("touchend", handleCanvasTouchEnd, { passive: false });
 }
@@ -288,10 +289,12 @@ export function drawCellEvents(layer = "all") {
       }
       if (cell.npc) {
         if (layer === "floor") continue;
+        const npc = getNpcById(cell.npc);
+        if (!npc) continue;
         events.push({
           ...projected,
           eventKind: "npc",
-          npc: cell.npc
+          npc
         });
       }
     }
@@ -437,7 +440,7 @@ function drawStairsEventMarker(ctx, W, H, event) {
 }
 
 function drawNpcEvent(ctx, event) {
-  const image = renderer.npcImages.get(event.npc.id);
+  const image = renderer.npcImages.get(event.npc.imageId);
   const spriteH = event.size * 2.05;
   const fallbackW = spriteH * .64;
   const top = event.floorY - spriteH;

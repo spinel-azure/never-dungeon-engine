@@ -1,4 +1,21 @@
 (() => {
+  const npcs = [
+    {
+      id: "NPC_01",
+      name: "\u307f\u304b\u3093\u306b\u3083\u3093\u3053",
+      imageId: "NPC_01",
+      image: "images/npc/NPC_01.avif",
+      interactionType: "talk",
+      dialogue: ["\u306b\u3083\uff5e\uff1f"],
+      canCancel: true,
+      retreatOnCancel: true
+    }
+  ];
+
+  function getNpcById(id) {
+    return npcs.find(npc => npc.id === id) || null;
+  }
+
   const LAYOUT_CLASSES = ["layout-mobile", "layout-tablet", "layout-pc"];
   const INPUT_CLASSES = ["input-touch", "input-pointer"];
   const ORIENTATION_CLASSES = ["orientation-portrait", "orientation-landscape"];
@@ -147,12 +164,7 @@
     }
 
     const selected = shuffled(candidates)[0];
-    if (selected) {
-      cells[selected.y][selected.x].npc = {
-        id: "NPC_01",
-        image: "images/npc/NPC_01.PNG"
-      };
-    }
+    if (selected) cells[selected.y][selected.x].npc = "NPC_01";
   }
 
   function getCellType(x, y) {
@@ -162,7 +174,7 @@
 
   function getNpcAt(x, y) {
     if (!inBounds(x, y)) return null;
-    return cells[y][x].npc;
+    return getNpcById(cells[y][x].npc);
   }
 
   function findFarthestReachableCell(minDistance = 7) {
@@ -577,15 +589,16 @@
   }
 
   function startNpcTalkEvent(npc, fromGX, fromGY) {
+    const dialogue = npc.dialogue.map(line => `${npc.name}\u300c${line}\u300d`).join("\n");
     startOverlayEvent({
       type: "npcTalk",
-      imageId: npc.id,
+      imageId: npc.imageId,
       npc,
       fromGX,
       fromGY,
-      message: "\u307f\u304b\u3093\u306b\u3083\u3093\u3053\u300c\u306b\u3083\uff5e\uff1f\u300d\n\uff0aA\u30dc\u30bf\u30f3\u3067\u4f1a\u8a71\u3000B\u30dc\u30bf\u30f3\u3067\u629c\u3051\u307e\u3059",
-      canCancel: true,
-      retreatOnCancel: true
+      message: `${dialogue}\n\uff0aA\u30dc\u30bf\u30f3\u3067\u4f1a\u8a71\u3000B\u30dc\u30bf\u30f3\u3067\u629c\u3051\u307e\u3059`,
+      canCancel: npc.canCancel,
+      retreatOnCancel: npc.retreatOnCancel
     });
   }
 
@@ -679,7 +692,7 @@
     renderer.H = renderer.canvas.height;
     renderer.wallTexture = makeWallTexture();
     renderer.doorTexture = makeDoorTexture();
-    loadNpcImage("NPC_01", "images/npc/NPC_01.PNG");
+    npcs.forEach(npc => loadNpcImage(npc.imageId, npc.image));
     renderer.canvas.addEventListener("pointerup", handleCanvasPointerUp);
     renderer.canvas.addEventListener("touchend", handleCanvasTouchEnd, { passive: false });
   }
@@ -934,10 +947,12 @@
         }
         if (cell.npc) {
           if (layer === "floor") continue;
+          const npc = getNpcById(cell.npc);
+          if (!npc) continue;
           events.push({
             ...projected,
             eventKind: "npc",
-            npc: cell.npc
+            npc
           });
         }
       }
@@ -1083,7 +1098,7 @@
   }
 
   function drawNpcEvent(ctx, event) {
-    const image = renderer.npcImages.get(event.npc.id);
+    const image = renderer.npcImages.get(event.npc.imageId);
     const spriteH = event.size * 2.05;
     const fallbackW = spriteH * .64;
     const top = event.floorY - spriteH;

@@ -209,15 +209,16 @@ export function handleOverlayEventInput(action) {
 }
 
 function startNpcTalkEvent(npc, fromGX, fromGY) {
+  const dialogue = npc.dialogue.map(line => `${npc.name}「${line}」`).join("\n");
   startOverlayEvent({
     type: "npcTalk",
-    imageId: npc.id,
+    imageId: npc.imageId,
     npc,
     fromGX,
     fromGY,
-    message: "みかんにゃんこ「にゃ～？」\n＊Aボタンで会話　Bボタンで抜けます",
-    canCancel: true,
-    retreatOnCancel: true
+    message: `${dialogue}\n＊Aボタンで会話　Bボタンで抜けます`,
+    canCancel: npc.canCancel,
+    retreatOnCancel: npc.retreatOnCancel
   });
 }
 

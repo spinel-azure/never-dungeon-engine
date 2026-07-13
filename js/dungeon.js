@@ -8,6 +8,7 @@
   EXTRA_OPENINGS,
   NORMAL_DOOR_COUNT
 } from "./config.js";
+import { getNpcById } from "../data/npcs.js";
 
 export const cells = makeCells(MAP_W, MAP_H);
 export const explored = makeExplored(MAP_W, MAP_H);
@@ -85,12 +86,7 @@ export function placeNpc() {
   }
 
   const selected = shuffled(candidates)[0];
-  if (selected) {
-    cells[selected.y][selected.x].npc = {
-      id: "NPC_01",
-      image: "images/npc/NPC_01.PNG"
-    };
-  }
+  if (selected) cells[selected.y][selected.x].npc = "NPC_01";
 }
 
 export function getCellType(x, y) {
@@ -100,7 +96,7 @@ export function getCellType(x, y) {
 
 export function getNpcAt(x, y) {
   if (!inBounds(x, y)) return null;
-  return cells[y][x].npc;
+  return getNpcById(cells[y][x].npc);
 }
 
 export function findFarthestReachableCell(minDistance = 7) {
