@@ -297,12 +297,18 @@
       width: min(30vw, 180px);
       transform: translateX(-50%);
       pointer-events: none;
-      background: linear-gradient(90deg,
-        #176bff 0%, #00b7ff 20%,
-        #00cf73 21%, #70df35 40%,
-        #dfe82d 41%, #ffd12b 60%,
-        #ff9a20 61%, #ff641d 80%,
-        #ff3a2b 81%, #d60018 100%);
+      background: linear-gradient(
+        90deg,
+        #1b78ff 0%,
+        #16a8ff 14%,
+        #14d4e2 28%,
+        #32dd7a 42%,
+        #96e33a 56%,
+        #f0df39 70%,
+        #ffb52a 82%,
+        #ff7421 92%,
+        #df2f2f 100%
+      );
     }
     .presence-meter::after {
       content: "";
