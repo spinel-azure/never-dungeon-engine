@@ -14,10 +14,11 @@
       <canvas id="screen" width="960" height="540"></canvas>
       <div class="status">
         <div class="readout">
-          <span class="chip coordinate-chip" id="pos">X:0 Y:0</span>
-          <canvas id="compass" class="compass" width="72" height="72" aria-label="コンパス"></canvas>
           <span class="chip depth-chip" id="depth">B1F</span>
+          <span class="chip coordinate-chip" id="pos">X:0 Y:0</span>
         </div>
+        <div class="meter presence-meter" id="presenceMeter" role="progressbar" aria-label="気配" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+        <canvas id="compass" class="compass" width="72" height="72" aria-label="コンパス"></canvas>
         <div class="meter torch-meter" aria-label="たいまつ"><span id="torchMeter"></span></div>
       </div>
       <canvas id="eventOverlay" class="event-overlay" width="960" height="540" aria-hidden="true"></canvas>

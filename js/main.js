@@ -40,6 +40,11 @@ import {
 } from "./autoReturn.js";
 import { configureEvents, messageFor, say } from "./events.js";
 import { configureDevice } from "./device.js";
+import {
+  configurePresence,
+  getPresence,
+  resetPresence
+} from "./presence.js";
 
 (() => {
   const canvas = document.getElementById("screen");
@@ -58,6 +63,7 @@ import { configureDevice } from "./device.js";
   const posEl = document.getElementById("pos");
   const msgEl = document.getElementById("message");
   const torchMeterEl = document.getElementById("torchMeter");
+  const presenceMeterEl = document.getElementById("presenceMeter");
   const compassCanvas = document.getElementById("compass");
   const forwardBtn = document.getElementById("forward");
   const backBtn = document.getElementById("back");
@@ -71,6 +77,9 @@ import { configureDevice } from "./device.js";
   const menuScreen = document.getElementById("menuScreen");
   configureDevice();
   configureEvents({ messageEl: msgEl });
+  configurePresence({
+    onEncounter: message => say(message)
+  });
   configureCompass({ canvas: compassCanvas, state });
   configureRenderer({
     canvas,
@@ -106,6 +115,7 @@ import { configureDevice } from "./device.js";
     startDir = chooseStartDirection();
     resetExplored();
     resetPlayer(startDir);
+    resetPresence();
     updateAutoReturnButton();
     updateHud();
   }
@@ -114,6 +124,9 @@ import { configureDevice } from "./device.js";
     posEl.textContent = `X:${state.gridX} Y:${state.gridY}`;
     drawCompass();
     torchMeterEl.style.width = `${state.torchFuel}%`;
+    const presence = getPresence();
+    presenceMeterEl.style.setProperty("--presence", `${presence}%`);
+    presenceMeterEl.setAttribute("aria-valuenow", String(presence));
   }
 
   configureInput({

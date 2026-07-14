@@ -17,6 +17,7 @@ import {
   removeNpcAt
 } from "./dungeon.js";
 import { getNpcEncounter } from "../data/npcs.js";
+import { onPlayerStep } from "./presence.js";
 
 const hooks = {
   say: () => {},
@@ -102,11 +103,15 @@ export function updateAnimation(now) {
       } else {
         markExplored(state.gridX, state.gridY);
         state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
+        const encounterTriggered = onPlayerStep();
+        if (encounterTriggered) hooks.cancelAutoReturn(false);
         const npc = getNpcAt(state.gridX, state.gridY);
         if (npc) {
           startNpcTalkEvent(npc, a.fromGX, a.fromGY);
         } else if (a.cellType === "stairsUp" || a.cellType === "stairsDown") {
           startStairsPrompt(a.cellType);
+        } else if (encounterTriggered) {
+          state.npcAwarenessShown = false;
         } else {
           hooks.say(hooks.messageFor(state.gridX, state.gridY, a.cellType));
           updateNpcAwareness();

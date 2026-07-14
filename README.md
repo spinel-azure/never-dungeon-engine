@@ -41,6 +41,7 @@ NDEは、クラシックな3DダンジョンRPGの探索体験をHTML / CSS / Ja
 - PC / タブレット / スマホ向けのデバイス判定基盤
 - レスポンシブUI基盤
 - ゲーム用フォント管理
+- 移動で蓄積する気配ゲージ
 
 ## 技術構成
 
@@ -67,6 +68,7 @@ js/
   config.js
   dungeon.js
   player.js
+  presence.js
   renderer.js
   minimap.js
   input.js
