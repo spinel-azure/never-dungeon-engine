@@ -23,7 +23,8 @@ import {
   manualMove,
   manualTurn,
   handleOverlayEventInput,
-  resumeDismissedStairsPrompt
+  resumeDismissedStairsPrompt,
+  startRandomEncounterNotice
 } from "./player.js";
 import { configureRenderer, startRenderLoop } from "./renderer.js";
 import { drawMinimap, getMinimapBounds } from "./minimap.js";
@@ -78,7 +79,7 @@ import {
   configureDevice();
   configureEvents({ messageEl: msgEl });
   configurePresence({
-    onEncounter: message => say(message)
+    onEncounter: startRandomEncounterNotice
   });
   configureCompass({ canvas: compassCanvas, state });
   configureRenderer({

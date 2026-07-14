@@ -17,7 +17,7 @@ import {
   removeNpcAt
 } from "./dungeon.js";
 import { getNpcEncounter } from "../data/npcs.js";
-import { onPlayerStep } from "./presence.js";
+import { onPlayerStep, resetPresence } from "./presence.js";
 
 const hooks = {
   say: () => {},
@@ -103,12 +103,14 @@ export function updateAnimation(now) {
       } else {
         markExplored(state.gridX, state.gridY);
         state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
-        const encounterTriggered = onPlayerStep();
-        if (encounterTriggered) hooks.cancelAutoReturn(false);
         const npc = getNpcAt(state.gridX, state.gridY);
+        const isStairs = a.cellType === "stairsUp" || a.cellType === "stairsDown";
+        const isSpecialEventCell = Boolean(npc) || isStairs;
+        const encounterTriggered = !isSpecialEventCell && onPlayerStep();
+        if (encounterTriggered) hooks.cancelAutoReturn(false);
         if (npc) {
           startNpcTalkEvent(npc, a.fromGX, a.fromGY);
-        } else if (a.cellType === "stairsUp" || a.cellType === "stairsDown") {
+        } else if (isStairs) {
           startStairsPrompt(a.cellType);
         } else if (encounterTriggered) {
           state.npcAwarenessShown = false;
@@ -220,9 +222,25 @@ export function handleOverlayEventInput(action) {
   if (action === "confirm") {
     if (state.overlayEvent.type === "npcTalk") advanceNpcTalkEvent();
     else if (state.overlayEvent.type === "stairsPrompt") confirmStairsPrompt();
+    else if (state.overlayEvent.type === "randomEncounter") confirmRandomEncounter();
     return true;
   }
   return true;
+}
+
+export function startRandomEncounterNotice(message) {
+  startOverlayEvent({
+    type: "randomEncounter",
+    showOverlay: false,
+    message: `${message}\n＊Aボタンで次へ`
+  });
+}
+
+function confirmRandomEncounter() {
+  state.overlayEvent = null;
+  resetPresence();
+  hooks.say("");
+  updateNpcAwareness();
 }
 
 function startStairsPrompt(cellType) {
