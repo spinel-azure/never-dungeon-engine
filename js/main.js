@@ -44,6 +44,8 @@ import { configureDevice } from "./device.js";
 (() => {
   const canvas = document.getElementById("screen");
   const ctx = canvas.getContext("2d", { alpha: false });
+  const eventOverlayCanvas = document.getElementById("eventOverlay");
+  const eventOverlayCtx = eventOverlayCanvas.getContext("2d");
   const W = canvas.width;
 
 
@@ -73,6 +75,8 @@ import { configureDevice } from "./device.js";
   configureRenderer({
     canvas,
     ctx,
+    eventOverlayCanvas,
+    eventOverlayCtx,
     state,
     wallOnCell,
     closedDoorOnCell,

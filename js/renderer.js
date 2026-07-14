@@ -8,6 +8,8 @@ import { npcs, getNpcById } from "../data/npcs.js";
 const renderer = {
   canvas: null,
   ctx: null,
+  eventOverlayCanvas: null,
+  eventOverlayCtx: null,
   W: 0,
   H: 0,
   state: null,
@@ -25,16 +27,20 @@ const renderer = {
   lastCanvasTouchAt: 0,
   wallTexture: null,
   doorTexture: null,
-  npcImages: new Map()
+  characterImages: new Map()
 };
 
 export function configureRenderer(options) {
   Object.assign(renderer, options);
   renderer.W = renderer.canvas.width;
   renderer.H = renderer.canvas.height;
+  if (renderer.eventOverlayCanvas) {
+    renderer.eventOverlayCanvas.width = renderer.W;
+    renderer.eventOverlayCanvas.height = renderer.H;
+  }
   renderer.wallTexture = makeWallTexture();
   renderer.doorTexture = makeDoorTexture();
-  npcs.forEach(npc => loadNpcImage(npc.imageId, npc.image));
+  npcs.forEach(npc => loadCharacterImage(npc.imageId, npc.image));
   renderer.canvas.addEventListener("pointerup", handleCanvasPointerUp);
   renderer.canvas.addEventListener("touchend", handleCanvasTouchEnd, { passive: false });
 }
@@ -67,10 +73,10 @@ export function drawScene(now) {
   });
   if (renderer.minimapOverlayVisible) drawMinimapOverlay();
   if (state.torchFuel <= 0) drawDarknessMessage();
-  if (state.overlayEvent?.showOverlay) drawOverlayEvent();
   ctx.restore();
   drawFrame();
   renderer.updateHud();
+  drawOverlayEvent();
   requestAnimationFrame(drawScene);
 }
 
@@ -140,10 +146,12 @@ function drawDarknessMessage() {
 }
 
 function drawOverlayEvent() {
-  const { ctx, W, H, state } = renderer;
+  const { eventOverlayCtx: ctx, W, H, state } = renderer;
+  if (!ctx) return;
+  ctx.clearRect(0, 0, W, H);
   const event = state.overlayEvent;
-  if (!event) return;
-  const image = event.imageId ? renderer.npcImages.get(event.imageId) : null;
+  if (!event?.showOverlay) return;
+  const image = event.imageId ? renderer.characterImages.get(event.imageId) : null;
 
   ctx.save();
   ctx.fillStyle = "rgba(0,0,0,.8)";
@@ -308,11 +316,11 @@ export function drawCellEvents(layer = "all") {
     });
 }
 
-function loadNpcImage(id, src) {
-  if (renderer.npcImages.has(id)) return;
+function loadCharacterImage(id, src) {
+  if (renderer.characterImages.has(id)) return;
   const image = new Image();
   image.src = src;
-  renderer.npcImages.set(id, image);
+  renderer.characterImages.set(id, image);
 }
 
 function projectCellCenter(cellX, cellY) {
@@ -440,7 +448,7 @@ function drawStairsEventMarker(ctx, W, H, event) {
 }
 
 function drawNpcEvent(ctx, event) {
-  const image = renderer.npcImages.get(event.npc.imageId);
+  const image = renderer.characterImages.get(event.npc.imageId);
   const spriteH = event.size * 2.05;
   const fallbackW = spriteH * .64;
   const top = event.floorY - spriteH;

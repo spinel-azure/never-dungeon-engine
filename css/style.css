@@ -69,6 +69,10 @@
       user-select: none;
       -webkit-user-select: none;
     }
+    #screen {
+      position: relative;
+      z-index: 0;
+    }
     .status {
       position: absolute;
       left: 12px;
@@ -78,6 +82,15 @@
       justify-content: space-between;
       align-items: center;
       gap: 10px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .event-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
       pointer-events: none;
     }
     .readout {
