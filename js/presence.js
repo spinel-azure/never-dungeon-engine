@@ -1,6 +1,8 @@
 const PRESENCE_MAX = 100;
-const STEP_MIN = 4;
-const STEP_MAX = 8;
+const NORMAL_STEP_MIN = 4;
+const NORMAL_STEP_MAX = 8;
+const DARK_STEP_MIN = 5;
+const DARK_STEP_MAX = 10;
 const ENCOUNTER_MESSAGE = "＊　何者かと遭遇した！　＊（戦闘は未実装です）";
 
 let presence = 0;
@@ -34,8 +36,10 @@ export function resetPresence() {
   hooks.onChange(presence);
 }
 
-export function onPlayerStep(random = Math.random) {
-  const amount = Math.floor(random() * (STEP_MAX - STEP_MIN + 1)) + STEP_MIN;
+export function onPlayerStep({ inDarkness = false, random = Math.random } = {}) {
+  const min = inDarkness ? DARK_STEP_MIN : NORMAL_STEP_MIN;
+  const max = inDarkness ? DARK_STEP_MAX : NORMAL_STEP_MAX;
+  const amount = Math.floor(random() * (max - min + 1)) + min;
   return addPresence(amount);
 }
 

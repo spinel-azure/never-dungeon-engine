@@ -102,11 +102,12 @@ export function updateAnimation(now) {
         updateNpcAwareness();
       } else {
         markExplored(state.gridX, state.gridY);
+        const movedInDarkness = state.torchFuel <= 0;
         state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
         const npc = getNpcAt(state.gridX, state.gridY);
         const isStairs = a.cellType === "stairsUp" || a.cellType === "stairsDown";
         const isSpecialEventCell = Boolean(npc) || isStairs;
-        const encounterTriggered = !isSpecialEventCell && onPlayerStep();
+        const encounterTriggered = !isSpecialEventCell && onPlayerStep({ inDarkness: movedInDarkness });
         if (encounterTriggered) hooks.cancelAutoReturn(false);
         if (npc) {
           startNpcTalkEvent(npc, a.fromGX, a.fromGY);
