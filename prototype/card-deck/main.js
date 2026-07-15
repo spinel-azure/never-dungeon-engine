@@ -5,13 +5,46 @@ const DECK_CONFIG = Object.freeze({
   maxCost: 48,
   cardWidth: 180,
   cardHeight: 260,
+  flipDuration: 480,
 });
 
 const CARD_CATALOG = Object.freeze({
-  capricorn: { id: "capricorn", rarity: "Z", cost: 8, name: "CAPRICORN" },
-  aquarius: { id: "aquarius", rarity: "Z", cost: 8, name: "AQUARIUS" },
-  pisces: { id: "pisces", rarity: "Z", cost: 8, name: "PISCES" },
-  aries: { id: "aries", rarity: "Z", cost: 8, name: "ARIES" },
+  capricorn: {
+    id: "capricorn",
+    rarity: "Z",
+    cost: 8,
+    name: "CAPRICORN",
+    japaneseName: "カプリコーン",
+    concept: "長期戦",
+    effect: "ターン経過で全能力上昇。",
+  },
+  aquarius: {
+    id: "aquarius",
+    rarity: "Z",
+    cost: 8,
+    name: "AQUARIUS",
+    japaneseName: "アクエリアス",
+    concept: "魔力解放",
+    effect: "SP消費0を3回付与。最大SP+20%。",
+  },
+  pisces: {
+    id: "pisces",
+    rarity: "Z",
+    cost: 8,
+    name: "PISCES",
+    japaneseName: "パイシーズ",
+    concept: "復活",
+    effect: "1探索につき1回、HP50%で復活。復活直後1ターン完全回避。",
+  },
+  aries: {
+    id: "aries",
+    rarity: "Z",
+    cost: 8,
+    name: "ARIES",
+    japaneseName: "エアリーズ",
+    concept: "開幕火力",
+    effect: "戦闘開始時に必ず先制。最初の攻撃のみ威力2倍・防御50%貫通。",
+  },
 });
 
 const deckSlots = [
@@ -27,6 +60,9 @@ const state = {
   cursorIndex: 3,
   confirmedIndex: null,
   confirmationTimer: null,
+  revealedSlots: new Set(),
+  flippingIndex: null,
+  flipTimer: null,
 };
 
 const elements = {
@@ -161,7 +197,59 @@ function drawStars(context, stars) {
   context.globalAlpha = 1;
 }
 
-function drawMiniCard(context, card) {
+function splitJapaneseText(text, maxCharacters) {
+  const characters = [...text];
+  const lines = [];
+  for (let index = 0; index < characters.length; index += maxCharacters) {
+    lines.push(characters.slice(index, index + maxCharacters).join(""));
+  }
+  return lines;
+}
+
+function drawCardDetails(context, card) {
+  const centerX = DECK_CONFIG.cardWidth / 2;
+
+  context.save();
+  roundedRectPath(context, 18, 52, DECK_CONFIG.cardWidth - 36, 151, 7);
+  context.fillStyle = "rgba(3, 6, 14, 0.72)";
+  context.fill();
+  context.strokeStyle = "rgba(230, 189, 84, 0.38)";
+  context.lineWidth = 1;
+  context.stroke();
+
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillStyle = "#fff8d2";
+  context.shadowColor = "rgba(255, 218, 99, 0.45)";
+  context.shadowBlur = 6;
+  context.font = "17px NdeDot, sans-serif";
+  context.fillText(card.japaneseName, centerX, 70);
+
+  context.shadowBlur = 0;
+  context.fillStyle = THEME.brightGold;
+  context.font = "12px NdeDot, sans-serif";
+  context.fillText(`COST ${card.cost}`, centerX, 92);
+
+  context.strokeStyle = "rgba(238, 197, 87, 0.55)";
+  context.beginPath();
+  context.moveTo(34, 105);
+  context.lineTo(DECK_CONFIG.cardWidth - 34, 105);
+  context.stroke();
+
+  context.fillStyle = "#a9f2ff";
+  context.font = "12px NdeDot, sans-serif";
+  context.fillText(`【${card.concept}】`, centerX, 119);
+
+  context.fillStyle = "#f4f5e9";
+  context.font = "12px NdeDot, sans-serif";
+  const effectLines = splitJapaneseText(card.effect, 11).slice(0, 5);
+  effectLines.forEach((line, index) => {
+    context.fillText(line, centerX, 136 + index * 14);
+  });
+  context.restore();
+}
+
+function drawMiniCard(context, card, showDetails = false) {
   const width = DECK_CONFIG.cardWidth;
   const height = DECK_CONFIG.cardHeight;
   context.clearRect(0, 0, width, height);
@@ -192,7 +280,11 @@ function drawMiniCard(context, card) {
 
   context.restore();
 
-  zodiacDrawers[card.id](context, width / 2, height * 0.5, 76);
+  if (showDetails) {
+    drawCardDetails(context, card);
+  } else {
+    zodiacDrawers[card.id](context, width / 2, height * 0.5, 76);
+  }
 
   context.fillStyle = "rgba(5, 6, 11, 0.88)";
   context.strokeStyle = THEME.brightGold;
@@ -261,6 +353,7 @@ function createSlot(card, index) {
     canvas.width = DECK_CONFIG.cardWidth;
     canvas.height = DECK_CONFIG.cardHeight;
     canvas.dataset.cardId = card.id;
+    canvas.dataset.slotIndex = String(index);
     slot.append(canvas);
   } else {
     const label = document.createElement("span");
@@ -283,6 +376,7 @@ function updateCursor() {
     slot.classList.toggle("is-cursor", index === state.cursorIndex);
     slot.classList.toggle("is-confirmed", index === state.confirmedIndex);
     slot.setAttribute("aria-current", index === state.cursorIndex ? "true" : "false");
+    slot.setAttribute("aria-pressed", String(state.revealedSlots.has(index)));
   });
 }
 
@@ -290,11 +384,10 @@ function setStatus(message) {
   elements.status.textContent = message;
 }
 
-function confirmSlot(index) {
-  const card = deckSlots[index];
+function confirmEmptySlot(index) {
   state.confirmedIndex = index;
   window.clearTimeout(state.confirmationTimer);
-  setStatus(card ? `${card.name} SELECTED` : "ADD CARD SELECTED / NOT IMPLEMENTED");
+  setStatus("ADD CARD SELECTED / NOT IMPLEMENTED");
   updateCursor();
   state.confirmationTimer = window.setTimeout(() => {
     state.confirmedIndex = null;
@@ -302,16 +395,55 @@ function confirmSlot(index) {
   }, 650);
 }
 
+function toggleCardFace(index) {
+  if (state.flippingIndex !== null) return;
+
+  const card = deckSlots[index];
+  const slot = elements.grid.querySelectorAll(".card-slot")[index];
+  const wasShowingDetails = state.revealedSlots.has(index);
+  const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+  const duration = reduceMotion ? 0 : DECK_CONFIG.flipDuration;
+
+  state.flippingIndex = index;
+  state.confirmedIndex = index;
+  slot.classList.toggle("is-flipping", true);
+  setStatus(wasShowingDetails ? `${card.name} FRONT` : `${card.japaneseName} / ${card.concept}`);
+  updateCursor();
+
+  window.setTimeout(() => {
+    if (wasShowingDetails) {
+      state.revealedSlots.delete(index);
+      state.confirmedIndex = null;
+    } else {
+      state.revealedSlots.add(index);
+      state.confirmedIndex = index;
+    }
+    drawCards();
+    updateCursor();
+  }, duration / 2);
+
+  state.flipTimer = window.setTimeout(() => {
+    slot.classList.toggle("is-flipping", false);
+    state.flippingIndex = null;
+  }, duration);
+}
+
 function handleSlotPress(index) {
   if (state.cursorIndex === index) {
-    confirmSlot(index);
+    if (deckSlots[index]) {
+      toggleCardFace(index);
+    } else {
+      confirmEmptySlot(index);
+    }
     return;
   }
 
   state.cursorIndex = index;
   state.confirmedIndex = null;
+  state.revealedSlots.clear();
   const card = deckSlots[index];
   setStatus(card ? card.name : "EMPTY SLOT");
+  drawCards();
   updateCursor();
 }
 
@@ -328,7 +460,8 @@ function drawCards() {
   const canvases = elements.grid.querySelectorAll("canvas[data-card-id]");
   canvases.forEach((canvas) => {
     const card = CARD_CATALOG[canvas.dataset.cardId];
-    drawMiniCard(canvas.getContext("2d"), card);
+    const slotIndex = Number(canvas.dataset.slotIndex);
+    drawMiniCard(canvas.getContext("2d"), card, state.revealedSlots.has(slotIndex));
   });
 }
 

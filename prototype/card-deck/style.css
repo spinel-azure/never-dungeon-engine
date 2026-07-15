@@ -146,7 +146,12 @@ button {
   width: 100%;
   height: 100%;
   border-radius: 4px;
+  transform-origin: center;
   pointer-events: none;
+}
+
+.card-slot.is-flipping canvas {
+  animation: cardFlip 480ms ease-in-out;
 }
 
 .card-slot.is-empty {
@@ -247,6 +252,16 @@ button {
   }
 }
 
+@keyframes cardFlip {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.02);
+  }
+}
+
 @media (max-width: 430px) {
   .prototype-shell {
     padding-inline: max(7px, env(safe-area-inset-left));
@@ -286,5 +301,9 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .card-slot.is-cursor::after {
     animation: none;
+  }
+
+  .card-slot.is-flipping canvas {
+    animation-duration: 1ms;
   }
 }
