@@ -25,21 +25,31 @@ const EFFECTS = Object.freeze({
   strongGlow: 18,
 });
 
-const cardData = Object.freeze({
-  rarity: "Z",
-  cost: 8,
-  zodiac: "aries",
-  name: "ARIES",
-});
+const CARD_DATA = Object.freeze([
+  { rarity: "Z", cost: 8, zodiac: "aries", name: "ARIES" },
+  { rarity: "Z", cost: 8, zodiac: "taurus", name: "TAURUS" },
+  { rarity: "Z", cost: 8, zodiac: "gemini", name: "GEMINI" },
+  { rarity: "Z", cost: 8, zodiac: "cancer", name: "CANCER" },
+  { rarity: "Z", cost: 8, zodiac: "leo", name: "LEO" },
+  { rarity: "Z", cost: 8, zodiac: "virgo", name: "VIRGO" },
+  { rarity: "Z", cost: 8, zodiac: "libra", name: "LIBRA" },
+  { rarity: "Z", cost: 8, zodiac: "scorpio", name: "SCORPIO" },
+  { rarity: "Z", cost: 8, zodiac: "sagittarius", name: "SAGITTARIUS" },
+  { rarity: "Z", cost: 8, zodiac: "capricorn", name: "CAPRICORN" },
+  { rarity: "Z", cost: 8, zodiac: "aquarius", name: "AQUARIUS" },
+  { rarity: "Z", cost: 8, zodiac: "pisces", name: "PISCES" },
+]);
 
 const canvas = document.querySelector("#cardCanvas");
 const ctx = canvas.getContext("2d");
 const hologramButton = document.querySelector("#hologramButton");
 const glowButton = document.querySelector("#glowButton");
+const cardChangeButton = document.querySelector("#cardChangeButton");
 
 const state = {
   hologramEnabled: true,
   strongGlow: true,
+  currentCardIndex: 0,
   flashStartedAt: -Infinity,
   pointer: { x: 0.5, y: 0.45 },
   pointerTarget: { x: 0.5, y: 0.45 },
@@ -221,8 +231,317 @@ function drawAriesSymbol(context, centerX, centerY, size, glowStrength) {
   context.restore();
 }
 
+function setZodiacStroke(context, size, glowStrength) {
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.strokeStyle = THEME.brightGold;
+  context.lineWidth = Math.max(4, size * 0.055);
+  context.shadowColor = "rgba(255, 207, 82, 0.95)";
+  context.shadowBlur = glowStrength;
+}
+
+function drawTaurusSymbol(context, centerX, centerY, size, glowStrength) {
+  context.save();
+  setZodiacStroke(context, size, glowStrength);
+
+  context.beginPath();
+  context.arc(centerX, centerY + size * 0.14, size * 0.25, 0, Math.PI * 2);
+  context.stroke();
+
+  context.beginPath();
+  context.moveTo(centerX - size * 0.42, centerY - size * 0.36);
+  context.bezierCurveTo(
+    centerX - size * 0.36,
+    centerY - size * 0.12,
+    centerX - size * 0.18,
+    centerY - size * 0.15,
+    centerX,
+    centerY - size * 0.08,
+  );
+  context.bezierCurveTo(
+    centerX + size * 0.18,
+    centerY - size * 0.15,
+    centerX + size * 0.36,
+    centerY - size * 0.12,
+    centerX + size * 0.42,
+    centerY - size * 0.36,
+  );
+  context.stroke();
+  context.restore();
+}
+
+function drawGeminiSymbol(context, centerX, centerY, size, glowStrength) {
+  const left = centerX - size * 0.25;
+  const right = centerX + size * 0.25;
+  const top = centerY - size * 0.36;
+  const bottom = centerY + size * 0.36;
+  context.save();
+  setZodiacStroke(context, size, glowStrength);
+
+  context.beginPath();
+  context.moveTo(left, top + size * 0.06);
+  context.lineTo(left, bottom - size * 0.06);
+  context.moveTo(right, top + size * 0.06);
+  context.lineTo(right, bottom - size * 0.06);
+  context.stroke();
+
+  context.beginPath();
+  context.moveTo(centerX - size * 0.38, top);
+  context.quadraticCurveTo(centerX, top + size * 0.13, centerX + size * 0.38, top);
+  context.moveTo(centerX - size * 0.38, bottom);
+  context.quadraticCurveTo(centerX, bottom - size * 0.13, centerX + size * 0.38, bottom);
+  context.stroke();
+  context.restore();
+}
+
+function drawCancerSymbol(context, centerX, centerY, size, glowStrength) {
+  context.save();
+  setZodiacStroke(context, size, glowStrength);
+
+  context.beginPath();
+  context.arc(centerX - size * 0.2, centerY - size * 0.11, size * 0.095, 0, Math.PI * 2);
+  context.arc(centerX + size * 0.2, centerY + size * 0.11, size * 0.095, 0, Math.PI * 2);
+  context.stroke();
+
+  context.beginPath();
+  context.moveTo(centerX - size * 0.39, centerY - size * 0.01);
+  context.bezierCurveTo(
+    centerX - size * 0.25,
+    centerY - size * 0.35,
+    centerX + size * 0.27,
+    centerY - size * 0.33,
+    centerX + size * 0.39,
+    centerY - size * 0.1,
+  );
+  context.moveTo(centerX + size * 0.39, centerY + size * 0.01);
+  context.bezierCurveTo(
+    centerX + size * 0.25,
+    centerY + size * 0.35,
+    centerX - size * 0.27,
+    centerY + size * 0.33,
+    centerX - size * 0.39,
+    centerY + size * 0.1,
+  );
+  context.stroke();
+  context.restore();
+}
+
+function drawLeoSymbol(context, centerX, centerY, size, glowStrength) {
+  context.save();
+  setZodiacStroke(context, size, glowStrength);
+
+  context.beginPath();
+  context.arc(centerX - size * 0.24, centerY + size * 0.15, size * 0.13, 0, Math.PI * 2);
+  context.moveTo(centerX - size * 0.11, centerY + size * 0.12);
+  context.bezierCurveTo(
+    centerX - size * 0.05,
+    centerY - size * 0.37,
+    centerX + size * 0.36,
+    centerY - size * 0.38,
+    centerX + size * 0.24,
+    centerY - size * 0.01,
+  );
+  context.bezierCurveTo(
+    centerX + size * 0.14,
+    centerY + size * 0.3,
+    centerX + size * 0.32,
+    centerY + size * 0.35,
+    centerX + size * 0.42,
+    centerY + size * 0.2,
+  );
+  context.stroke();
+  context.restore();
+}
+
+function drawVirgoSymbol(context, centerX, centerY, size, glowStrength) {
+  const left = centerX - size * 0.36;
+  const top = centerY - size * 0.25;
+  const base = centerY + size * 0.28;
+  context.save();
+  setZodiacStroke(context, size, glowStrength);
+
+  context.beginPath();
+  context.moveTo(left, top);
+  context.quadraticCurveTo(left + size * 0.12, top - size * 0.09, left + size * 0.12, top + size * 0.1);
+  context.lineTo(left + size * 0.12, base);
+  context.moveTo(left + size * 0.12, top + size * 0.02);
+  context.quadraticCurveTo(left + size * 0.27, top - size * 0.11, left + size * 0.28, top + size * 0.1);
+  context.lineTo(left + size * 0.28, base);
+  context.moveTo(left + size * 0.28, top + size * 0.02);
+  context.quadraticCurveTo(left + size * 0.44, top - size * 0.11, left + size * 0.45, top + size * 0.12);
+  context.lineTo(left + size * 0.45, base - size * 0.03);
+  context.stroke();
+
+  context.beginPath();
+  context.moveTo(left + size * 0.45, centerY - size * 0.01);
+  context.bezierCurveTo(
+    left + size * 0.74,
+    centerY - size * 0.02,
+    left + size * 0.75,
+    centerY + size * 0.29,
+    left + size * 0.51,
+    centerY + size * 0.34,
+  );
+  context.lineTo(left + size * 0.73, centerY + size * 0.11);
+  context.stroke();
+  context.restore();
+}
+
+function drawLibraSymbol(context, centerX, centerY, size, glowStrength) {
+  context.save();
+  setZodiacStroke(context, size, glowStrength);
+
+  context.beginPath();
+  context.moveTo(centerX - size * 0.4, centerY + size * 0.25);
+  context.lineTo(centerX + size * 0.4, centerY + size * 0.25);
+  context.moveTo(centerX - size * 0.4, centerY + size * 0.08);
+  context.lineTo(centerX - size * 0.18, centerY + size * 0.08);
+  context.arc(centerX, centerY + size * 0.08, size * 0.18, Math.PI, 0);
+  context.lineTo(centerX + size * 0.4, centerY + size * 0.08);
+  context.stroke();
+  context.restore();
+}
+
+function drawScorpioSymbol(context, centerX, centerY, size, glowStrength) {
+  const left = centerX - size * 0.37;
+  const top = centerY - size * 0.25;
+  const base = centerY + size * 0.27;
+  context.save();
+  setZodiacStroke(context, size, glowStrength);
+
+  context.beginPath();
+  context.moveTo(left, top);
+  context.quadraticCurveTo(left + size * 0.12, top - size * 0.09, left + size * 0.12, top + size * 0.1);
+  context.lineTo(left + size * 0.12, base);
+  context.moveTo(left + size * 0.12, top + size * 0.02);
+  context.quadraticCurveTo(left + size * 0.28, top - size * 0.11, left + size * 0.29, top + size * 0.1);
+  context.lineTo(left + size * 0.29, base);
+  context.moveTo(left + size * 0.29, top + size * 0.02);
+  context.quadraticCurveTo(left + size * 0.47, top - size * 0.11, left + size * 0.48, top + size * 0.12);
+  context.lineTo(left + size * 0.48, centerY + size * 0.19);
+  context.quadraticCurveTo(left + size * 0.52, base, left + size * 0.78, centerY + size * 0.05);
+  context.stroke();
+
+  context.beginPath();
+  context.moveTo(left + size * 0.66, centerY + size * 0.06);
+  context.lineTo(left + size * 0.78, centerY + size * 0.05);
+  context.lineTo(left + size * 0.75, centerY + size * 0.17);
+  context.stroke();
+  context.restore();
+}
+
+function drawSagittariusSymbol(context, centerX, centerY, size, glowStrength) {
+  context.save();
+  setZodiacStroke(context, size, glowStrength);
+
+  context.beginPath();
+  context.moveTo(centerX - size * 0.33, centerY + size * 0.34);
+  context.lineTo(centerX + size * 0.34, centerY - size * 0.34);
+  context.moveTo(centerX + size * 0.08, centerY - size * 0.34);
+  context.lineTo(centerX + size * 0.34, centerY - size * 0.34);
+  context.lineTo(centerX + size * 0.34, centerY - size * 0.08);
+  context.moveTo(centerX - size * 0.2, centerY - size * 0.08);
+  context.lineTo(centerX + size * 0.08, centerY + size * 0.2);
+  context.stroke();
+  context.restore();
+}
+
+function drawCapricornSymbol(context, centerX, centerY, size, glowStrength) {
+  context.save();
+  setZodiacStroke(context, size, glowStrength);
+
+  context.beginPath();
+  context.moveTo(centerX - size * 0.4, centerY - size * 0.22);
+  context.quadraticCurveTo(centerX - size * 0.25, centerY - size * 0.36, centerX - size * 0.19, centerY - size * 0.08);
+  context.lineTo(centerX - size * 0.03, centerY + size * 0.34);
+  context.lineTo(centerX + size * 0.08, centerY - size * 0.08);
+  context.bezierCurveTo(
+    centerX + size * 0.17,
+    centerY - size * 0.38,
+    centerX + size * 0.45,
+    centerY - size * 0.15,
+    centerX + size * 0.35,
+    centerY + size * 0.12,
+  );
+  context.bezierCurveTo(
+    centerX + size * 0.27,
+    centerY + size * 0.32,
+    centerX + size * 0.05,
+    centerY + size * 0.28,
+    centerX + size * 0.04,
+    centerY + size * 0.13,
+  );
+  context.bezierCurveTo(
+    centerX + size * 0.03,
+    centerY - size * 0.03,
+    centerX + size * 0.26,
+    centerY - size * 0.02,
+    centerX + size * 0.39,
+    centerY + size * 0.27,
+  );
+  context.stroke();
+  context.restore();
+}
+
+function drawAquariusSymbol(context, centerX, centerY, size, glowStrength) {
+  context.save();
+  setZodiacStroke(context, size, glowStrength);
+
+  for (const offset of [-size * 0.14, size * 0.16]) {
+    context.beginPath();
+    context.moveTo(centerX - size * 0.42, centerY + offset);
+    for (let i = 0; i < 4; i += 1) {
+      const x = centerX - size * 0.42 + size * 0.21 * i;
+      context.lineTo(x + size * 0.105, centerY + offset - size * 0.12);
+      context.lineTo(x + size * 0.21, centerY + offset);
+    }
+    context.stroke();
+  }
+  context.restore();
+}
+
+function drawPiscesSymbol(context, centerX, centerY, size, glowStrength) {
+  context.save();
+  setZodiacStroke(context, size, glowStrength);
+
+  context.beginPath();
+  context.moveTo(centerX - size * 0.36, centerY - size * 0.36);
+  context.bezierCurveTo(
+    centerX - size * 0.12,
+    centerY - size * 0.18,
+    centerX - size * 0.12,
+    centerY + size * 0.18,
+    centerX - size * 0.36,
+    centerY + size * 0.36,
+  );
+  context.moveTo(centerX + size * 0.36, centerY - size * 0.36);
+  context.bezierCurveTo(
+    centerX + size * 0.12,
+    centerY - size * 0.18,
+    centerX + size * 0.12,
+    centerY + size * 0.18,
+    centerX + size * 0.36,
+    centerY + size * 0.36,
+  );
+  context.moveTo(centerX - size * 0.34, centerY);
+  context.lineTo(centerX + size * 0.34, centerY);
+  context.stroke();
+  context.restore();
+}
+
 const zodiacDrawers = Object.freeze({
   aries: drawAriesSymbol,
+  taurus: drawTaurusSymbol,
+  gemini: drawGeminiSymbol,
+  cancer: drawCancerSymbol,
+  leo: drawLeoSymbol,
+  virgo: drawVirgoSymbol,
+  libra: drawLibraSymbol,
+  scorpio: drawScorpioSymbol,
+  sagittarius: drawSagittariusSymbol,
+  capricorn: drawCapricornSymbol,
+  aquarius: drawAquariusSymbol,
+  pisces: drawPiscesSymbol,
 });
 
 function drawRarityBadge(context, rect, rarity) {
@@ -278,6 +597,35 @@ function drawCostBadge(context, rect, cost) {
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillText(String(cost), x, y + 1);
+  context.restore();
+}
+
+function drawSeriesLabel(context, rect) {
+  const centerX = rect.x + rect.width / 2;
+  const centerY = rect.y + 47;
+  context.save();
+  context.fillStyle = THEME.brightGold;
+  context.strokeStyle = "rgba(229, 185, 76, 0.55)";
+  context.lineWidth = 1;
+  context.shadowColor = "rgba(255, 220, 112, 0.58)";
+  context.shadowBlur = 9;
+  context.font = "17px NdePixel, monospace";
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText("Zodiac", centerX, centerY);
+  context.shadowBlur = 0;
+
+  context.beginPath();
+  context.moveTo(centerX - 68, centerY + 16);
+  context.lineTo(centerX - 28, centerY + 16);
+  context.moveTo(centerX + 28, centerY + 16);
+  context.lineTo(centerX + 68, centerY + 16);
+  context.stroke();
+
+  context.fillStyle = THEME.gold;
+  context.translate(centerX, centerY + 16);
+  context.rotate(Math.PI / 4);
+  context.fillRect(-3, -3, 6, 6);
   context.restore();
 }
 
@@ -426,6 +774,7 @@ function drawZodiacCard(context, data, rect, time) {
     drawHologram(context, rect, time, state.pointer, flashStrength);
   }
 
+  drawSeriesLabel(context, rect);
   drawRarityBadge(context, rect, data.rarity);
   drawCostBadge(context, rect, data.cost);
   drawNamePlate(context, rect, data.name);
@@ -441,7 +790,7 @@ function render(time) {
   updatePointer();
   ctx.clearRect(0, 0, CANVAS_SIZE.width, CANVAS_SIZE.height);
   drawSceneBackground(ctx);
-  drawZodiacCard(ctx, cardData, CARD_RECT, time);
+  drawZodiacCard(ctx, CARD_DATA[state.currentCardIndex], CARD_RECT, time);
   requestAnimationFrame(render);
 }
 
@@ -457,10 +806,14 @@ function triggerCardFlash(event) {
 }
 
 function updateControls() {
+  const currentCard = CARD_DATA[state.currentCardIndex];
+  const nextCard = CARD_DATA[(state.currentCardIndex + 1) % CARD_DATA.length];
   hologramButton.setAttribute("aria-pressed", String(state.hologramEnabled));
   hologramButton.querySelector("span").textContent = state.hologramEnabled ? "ON" : "OFF";
   glowButton.setAttribute("aria-pressed", String(state.strongGlow));
   glowButton.querySelector("span").textContent = state.strongGlow ? "STRONG" : "WEAK";
+  cardChangeButton.setAttribute("aria-label", `次のカードへ切り替える: ${nextCard.name}`);
+  canvas.setAttribute("aria-label", `最高レアリティZの${currentCard.name}カード`);
 }
 
 hologramButton.addEventListener("click", () => {
@@ -470,6 +823,12 @@ hologramButton.addEventListener("click", () => {
 
 glowButton.addEventListener("click", () => {
   state.strongGlow = !state.strongGlow;
+  updateControls();
+});
+
+cardChangeButton.addEventListener("click", () => {
+  state.currentCardIndex = (state.currentCardIndex + 1) % CARD_DATA.length;
+  state.flashStartedAt = performance.now();
   updateControls();
 });
 

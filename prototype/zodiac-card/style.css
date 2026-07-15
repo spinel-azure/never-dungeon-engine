@@ -112,7 +112,7 @@ button {
 .controls {
   width: min(100%, 480px);
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -204,7 +204,11 @@ button {
   .controls button {
     min-height: 44px;
     padding-inline: 6px;
-    font-size: 12px;
+    font-size: 10px;
+  }
+
+  .controls button span {
+    font-size: 14px;
   }
 }
 
