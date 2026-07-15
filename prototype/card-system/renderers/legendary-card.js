@@ -30,6 +30,7 @@ function createStars(count, seed) {
 }
 
 const STARS = createStars(76, 0x1e6e4d);
+const deckArtworkCache = new Map();
 
 function roundedRectPath(context, rect, inset = 0) {
   context.beginPath();
@@ -42,38 +43,139 @@ function roundedRectPath(context, rect, inset = 0) {
   );
 }
 
-function drawLegendaryBackground(context, rect, time, mode) {
-  const animated = mode === CARD_DISPLAY_MODES.GALLERY;
-  const drift = animated ? Math.sin(time * 0.00022) * rect.width * 0.22 : 0;
-  const gradient = context.createLinearGradient(
-    rect.x - rect.width * 0.15 + drift,
-    rect.y,
-    rect.x + rect.width * 1.15 + drift,
-    rect.y + rect.height,
+function fillRadialColor(context, rect, xRatio, yRatio, radiusRatio, color) {
+  const centerX = rect.x + rect.width * xRatio;
+  const centerY = rect.y + rect.height * yRatio;
+  const glow = context.createRadialGradient(
+    centerX,
+    centerY,
+    0,
+    centerX,
+    centerY,
+    rect.width * radiusRatio,
   );
-  gradient.addColorStop(0, "#491053");
-  gradient.addColorStop(0.16, "#a40d45");
-  gradient.addColorStop(0.33, "#e14b14");
-  gradient.addColorStop(0.5, "#e6a815");
-  gradient.addColorStop(0.66, "#25a852");
-  gradient.addColorStop(0.82, "#087d91");
-  gradient.addColorStop(1, "#17295f");
-  context.fillStyle = gradient;
+  glow.addColorStop(0, color);
+  glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  context.fillStyle = glow;
+  context.fillRect(rect.x, rect.y, rect.width, rect.height);
+}
+
+function drawRainbowLayer(context, rect) {
+  const base = context.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.height);
+  base.addColorStop(0, "#341129");
+  base.addColorStop(0.52, "#152334");
+  base.addColorStop(1, "#100d2f");
+  context.fillStyle = base;
   context.fillRect(rect.x, rect.y, rect.width, rect.height);
 
-  const shade = context.createRadialGradient(
-    rect.x + rect.width * 0.52,
-    rect.y + rect.height * 0.45,
-    20,
-    rect.x + rect.width * 0.52,
-    rect.y + rect.height * 0.45,
-    rect.width * 0.72,
+  context.save();
+  context.globalCompositeOperation = "screen";
+  fillRadialColor(context, rect, 0.02, 0.02, 0.78, "rgba(229, 10, 72, 0.86)");
+  fillRadialColor(context, rect, 0.5, -0.02, 0.7, "rgba(255, 145, 18, 0.9)");
+  fillRadialColor(context, rect, 1.0, 0.02, 0.72, "rgba(178, 218, 31, 0.8)");
+  fillRadialColor(context, rect, 1.02, 0.46, 0.72, "rgba(0, 179, 117, 0.76)");
+  fillRadialColor(context, rect, 1.02, 0.96, 0.8, "rgba(10, 88, 213, 0.82)");
+  fillRadialColor(context, rect, -0.03, 0.93, 0.76, "rgba(129, 24, 177, 0.82)");
+  fillRadialColor(context, rect, -0.06, 0.48, 0.58, "rgba(213, 12, 126, 0.58)");
+  context.restore();
+}
+
+function drawGoldenRadiance(context, rect) {
+  const centerX = rect.x + rect.width * 0.5;
+  const centerY = rect.y + rect.height * 0.47;
+  const radiance = context.createRadialGradient(
+    centerX,
+    centerY,
+    0,
+    centerX,
+    centerY,
+    rect.width * 0.68,
   );
-  shade.addColorStop(0, "rgba(255, 191, 45, 0.16)");
-  shade.addColorStop(0.52, "rgba(8, 8, 17, 0.08)");
-  shade.addColorStop(1, "rgba(2, 4, 13, 0.72)");
-  context.fillStyle = shade;
+  radiance.addColorStop(0, "rgba(255, 249, 177, 0.88)");
+  radiance.addColorStop(0.17, "rgba(255, 203, 61, 0.72)");
+  radiance.addColorStop(0.42, "rgba(246, 144, 20, 0.4)");
+  radiance.addColorStop(0.74, "rgba(213, 82, 15, 0.1)");
+  radiance.addColorStop(1, "rgba(0, 0, 0, 0)");
+  context.save();
+  context.globalCompositeOperation = "screen";
+  context.fillStyle = radiance;
   context.fillRect(rect.x, rect.y, rect.width, rect.height);
+  context.restore();
+}
+
+function drawIndigoFalloff(context, rect) {
+  const falloff = context.createLinearGradient(
+    rect.x,
+    rect.y + rect.height * 0.48,
+    rect.x,
+    rect.y + rect.height,
+  );
+  falloff.addColorStop(0, "rgba(8, 12, 45, 0)");
+  falloff.addColorStop(0.44, "rgba(8, 13, 61, 0.26)");
+  falloff.addColorStop(0.76, "rgba(7, 9, 48, 0.58)");
+  falloff.addColorStop(1, "rgba(3, 5, 25, 0.9)");
+  context.fillStyle = falloff;
+  context.fillRect(rect.x, rect.y, rect.width, rect.height);
+}
+
+function drawLegendaryBackground(context, rect) {
+  drawRainbowLayer(context, rect);
+  drawGoldenRadiance(context, rect);
+  drawIndigoFalloff(context, rect);
+}
+
+function createArtworkCanvas(width, height) {
+  if (typeof OffscreenCanvas === "function") {
+    return new OffscreenCanvas(width, height);
+  }
+  if (typeof document !== "undefined" && typeof document.createElement === "function") {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  }
+  return null;
+}
+
+function drawCardArtwork(context, card, rect, time, mode) {
+  context.save();
+  roundedRectPath(context, rect);
+  context.clip();
+  drawLegendaryBackground(context, rect);
+  drawStars(context, rect, time, mode);
+  drawDoubleCircle(context, rect);
+  context.restore();
+
+  const drawIcon = legendaryIconDrawers[card.icon];
+  if (drawIcon) {
+    drawIcon(
+      context,
+      rect.x + rect.width / 2,
+      rect.y + rect.height * 0.49,
+      250,
+    );
+  }
+}
+
+function getDeckArtwork(card, rect) {
+  const width = Math.ceil(rect.width);
+  const height = Math.ceil(rect.height);
+  const cacheKey = `${card.id}:${width}x${height}`;
+  const cached = deckArtworkCache.get(cacheKey);
+  if (cached) return cached;
+
+  const canvas = createArtworkCanvas(width, height);
+  const cacheContext = canvas?.getContext("2d");
+  if (!cacheContext) return null;
+
+  const localRect = { x: 0, y: 0, width, height, radius: rect.radius };
+  drawCardArtwork(cacheContext, card, localRect, 0, CARD_DISPLAY_MODES.DECK);
+  deckArtworkCache.set(cacheKey, canvas);
+  return canvas;
+}
+
+export function clearLegendaryCardCache() {
+  deckArtworkCache.clear();
 }
 
 function drawStars(context, rect, time, mode) {
@@ -268,22 +370,15 @@ export function drawLegendaryCard(context, card, cardRect, options = {}) {
   const mode = options.mode ?? CARD_DISPLAY_MODES.DECK;
   const time = options.time ?? 0;
 
-  context.save();
-  roundedRectPath(context, cardRect);
-  context.clip();
-  drawLegendaryBackground(context, cardRect, time, mode);
-  drawStars(context, cardRect, time, mode);
-  drawDoubleCircle(context, cardRect);
-  context.restore();
-
-  const drawIcon = legendaryIconDrawers[card.icon];
-  if (drawIcon) {
-    drawIcon(
-      context,
-      cardRect.x + cardRect.width / 2,
-      cardRect.y + cardRect.height * 0.49,
-      250,
-    );
+  if (mode === CARD_DISPLAY_MODES.DECK) {
+    const cachedArtwork = getDeckArtwork(card, cardRect);
+    if (cachedArtwork) {
+      context.drawImage(cachedArtwork, cardRect.x, cardRect.y, cardRect.width, cardRect.height);
+    } else {
+      drawCardArtwork(context, card, cardRect, time, mode);
+    }
+  } else {
+    drawCardArtwork(context, card, cardRect, time, mode);
   }
 
   if (mode === CARD_DISPLAY_MODES.GALLERY) {
