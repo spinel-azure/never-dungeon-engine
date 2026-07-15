@@ -57,7 +57,7 @@ function createStars(seed, count = 34) {
     x: 0.08 + random() * 0.84,
     y: 0.15 + random() * 0.68,
     radius: 0.35 + random() * 1.05,
-    phase: random() * Math.PI * 2,
+    alpha: 0.25 + random() * 0.4,
   }));
 }
 
@@ -150,10 +150,9 @@ const zodiacDrawers = Object.freeze({
   aries: drawAriesSymbol,
 });
 
-function drawStars(context, stars, time) {
+function drawStars(context, stars) {
   for (const star of stars) {
-    const alpha = 0.2 + 0.48 * ((Math.sin(time * 0.002 + star.phase) + 1) / 2);
-    context.globalAlpha = alpha;
+    context.globalAlpha = star.alpha;
     context.fillStyle = "#e5f5ff";
     context.beginPath();
     context.arc(star.x * DECK_CONFIG.cardWidth, star.y * DECK_CONFIG.cardHeight, star.radius, 0, Math.PI * 2);
@@ -162,7 +161,7 @@ function drawStars(context, stars, time) {
   context.globalAlpha = 1;
 }
 
-function drawMiniCard(context, card, time) {
+function drawMiniCard(context, card) {
   const width = DECK_CONFIG.cardWidth;
   const height = DECK_CONFIG.cardHeight;
   context.clearRect(0, 0, width, height);
@@ -182,7 +181,7 @@ function drawMiniCard(context, card, time) {
   context.save();
   roundedRectPath(context, 8, 8, width - 16, height - 16, 5);
   context.clip();
-  drawStars(context, cardStars[card.id], time);
+  drawStars(context, cardStars[card.id]);
 
   context.strokeStyle = "rgba(227, 190, 83, 0.13)";
   context.lineWidth = 1;
@@ -191,15 +190,6 @@ function drawMiniCard(context, card, time) {
   context.arc(width / 2, height * 0.49, 74, 0, Math.PI * 2);
   context.stroke();
 
-  const sheenX = ((time * 0.035) % (width + 100)) - 50;
-  const sheen = context.createLinearGradient(sheenX - 35, 0, sheenX + 35, height);
-  sheen.addColorStop(0, "rgba(100, 205, 255, 0)");
-  sheen.addColorStop(0.5, "rgba(166, 231, 255, 0.08)");
-  sheen.addColorStop(1, "rgba(255, 122, 218, 0)");
-  context.globalCompositeOperation = "screen";
-  context.fillStyle = sheen;
-  context.fillRect(7, 7, width - 14, height - 14);
-  context.globalCompositeOperation = "source-over";
   context.restore();
 
   zodiacDrawers[card.id](context, width / 2, height * 0.5, 76);
@@ -334,13 +324,12 @@ function handleAction(action) {
   setStatus(messages[action]);
 }
 
-function drawCards(time) {
+function drawCards() {
   const canvases = elements.grid.querySelectorAll("canvas[data-card-id]");
   canvases.forEach((canvas) => {
     const card = CARD_CATALOG[canvas.dataset.cardId];
-    drawMiniCard(canvas.getContext("2d"), card, time);
+    drawMiniCard(canvas.getContext("2d"), card);
   });
-  requestAnimationFrame(drawCards);
 }
 
 function initialize() {
@@ -350,7 +339,8 @@ function initialize() {
   elements.actions.forEach((button) => {
     button.addEventListener("click", () => handleAction(button.dataset.action));
   });
-  requestAnimationFrame(drawCards);
+  drawCards();
+  document.fonts?.ready.then(drawCards);
 }
 
 initialize();
