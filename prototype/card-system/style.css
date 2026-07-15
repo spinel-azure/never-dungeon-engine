@@ -1,0 +1,191 @@
+@font-face {
+  font-family: "NdePixel";
+  src: url("../../fonts/k8x12.woff2") format("woff2");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "NdeDot";
+  src: url("../../fonts/DotGothic16-Regular.woff2") format("woff2");
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+  --background: #040711;
+  --gold: #f8cf5a;
+  --gold-light: #fff2a3;
+  --panel: rgba(7, 10, 20, 0.86);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-width: 280px;
+  min-height: 100%;
+  margin: 0;
+  background: var(--background);
+}
+
+body,
+button {
+  font-family: "NdePixel", monospace;
+}
+
+body {
+  color: #fff7cc;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(72, 48, 108, 0.26), transparent 32rem),
+    radial-gradient(circle at 20% 15%, rgba(28, 87, 113, 0.14), transparent 22rem),
+    #040711;
+}
+
+.prototype-shell {
+  width: min(100%, 760px);
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0 auto;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  justify-items: center;
+  gap: 12px;
+}
+
+.prototype-header {
+  text-align: center;
+}
+
+.prototype-header p,
+.prototype-header h1,
+.mode-message {
+  margin: 0;
+}
+
+.prototype-header p {
+  color: #cda74d;
+  font-size: clamp(10px, 2.2vw, 13px);
+  letter-spacing: 0.18em;
+}
+
+.prototype-header h1 {
+  margin-top: 5px;
+  color: var(--gold-light);
+  font-size: clamp(28px, 6vw, 42px);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 14px rgba(255, 212, 89, 0.25);
+}
+
+.card-stage {
+  width: min(100%, 360px);
+  align-self: center;
+  filter: drop-shadow(0 22px 34px rgba(0, 0, 0, 0.58));
+}
+
+#cardCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+}
+
+.view-controls {
+  width: min(100%, 440px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.view-controls button {
+  min-height: 48px;
+  padding: 8px;
+  border: 1px solid #795a1d;
+  border-radius: 5px;
+  color: #a28f5a;
+  background: var(--panel);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.view-controls button span {
+  display: block;
+  margin-top: 3px;
+  color: #b9b3a1;
+  font-size: 12px;
+}
+
+.view-controls button[aria-pressed="true"] {
+  border-color: var(--gold-light);
+  color: var(--gold-light);
+  background:
+    linear-gradient(180deg, rgba(255, 224, 117, 0.12), transparent),
+    var(--panel);
+  box-shadow: 0 0 12px rgba(255, 207, 73, 0.3);
+}
+
+.view-controls button[aria-pressed="true"] span {
+  color: #fff2a3;
+}
+
+.view-controls button:focus-visible {
+  outline: 2px solid #fff5b8;
+  outline-offset: 3px;
+}
+
+.mode-message {
+  min-height: 16px;
+  color: rgba(204, 220, 226, 0.7);
+  font-family: "NdeDot", sans-serif;
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (max-width: 380px) {
+  .prototype-shell {
+    padding-top: max(11px, env(safe-area-inset-top));
+    gap: 8px;
+  }
+
+  .card-stage {
+    width: min(100%, 330px);
+  }
+
+  .view-controls button {
+    min-height: 43px;
+    font-size: 13px;
+  }
+}
+
+@media (max-height: 700px) and (min-width: 620px) {
+  .prototype-shell {
+    grid-template-columns: minmax(250px, 340px) minmax(210px, 280px);
+    grid-template-rows: auto auto auto;
+    align-content: center;
+    justify-content: center;
+  }
+
+  .card-stage {
+    grid-column: 1;
+    grid-row: 1 / 4;
+    width: min(44vw, 330px);
+  }
+
+  .prototype-header,
+  .view-controls,
+  .mode-message {
+    grid-column: 2;
+  }
+
+  .view-controls {
+    grid-template-columns: 1fr;
+  }
+}
