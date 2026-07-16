@@ -54,7 +54,7 @@ body {
     max(20px, env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-left));
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   justify-items: center;
   gap: 12px;
 }
@@ -93,9 +93,52 @@ body {
   letter-spacing: 0.08em;
 }
 
-.card-stage {
-  width: min(100%, 360px);
+.rarity-filters {
+  width: min(100%, 440px);
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.rarity-filters button {
+  min-width: 0;
+  min-height: 42px;
+  padding: 6px 2px 4px;
+  border: 1px solid rgba(129, 222, 255, 0.34);
+  background: #07101a;
+  color: rgba(205, 238, 245, 0.64);
+  font-size: clamp(10px, 2.8vw, 14px);
+  cursor: pointer;
+}
+
+.rarity-filters button[aria-pressed="true"] {
+  border-color: #9cf3ff;
+  background:
+    linear-gradient(180deg, rgba(116, 238, 255, 0.2), transparent),
+    #0a1c28;
+  color: #efffff;
+  box-shadow:
+    0 0 8px rgba(75, 230, 255, 0.58),
+    inset 0 0 7px rgba(75, 230, 255, 0.16);
+}
+
+.rarity-filters button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.gallery-card-area {
+  position: relative;
+  width: min(100%, 400px);
   align-self: center;
+  display: grid;
+  place-items: center;
+}
+
+.card-stage {
+  position: relative;
+  width: min(78vw, 320px);
+  max-width: 100%;
   filter: drop-shadow(0 22px 34px rgba(0, 0, 0, 0.58));
 }
 
@@ -104,6 +147,71 @@ body {
   width: 100%;
   height: auto;
   aspect-ratio: 2 / 3;
+  cursor: pointer;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card-stage:not(.has-card) #cardCanvas {
+  visibility: hidden;
+}
+
+.card-stage.is-flipping #cardCanvas {
+  animation: galleryCardFlip 480ms ease-in-out;
+}
+
+.empty-gallery-message {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(178, 228, 238, 0.68);
+  font-family: "NdeDot", sans-serif;
+  font-size: clamp(16px, 4vw, 24px);
+  text-align: center;
+}
+
+.empty-gallery-message[hidden] {
+  display: none;
+}
+
+.card-navigation {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  width: 46px;
+  min-height: 76px;
+  padding: 0;
+  border: 0;
+  background: rgba(0, 8, 16, 0.56);
+  color: #62f4ff;
+  font-family: sans-serif;
+  font-size: 34px;
+  line-height: 1;
+  text-shadow:
+    0 0 7px rgba(0, 238, 255, 0.95),
+    0 0 14px rgba(0, 188, 255, 0.72);
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.card-navigation.previous {
+  left: 0;
+}
+
+.card-navigation.next {
+  right: 0;
+}
+
+.card-navigation:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.card-navigation:disabled {
+  opacity: 0.18;
+  cursor: default;
 }
 
 .view-controls {
@@ -177,6 +285,16 @@ body {
   display: none;
 }
 
+@keyframes galleryCardFlip {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.02);
+  }
+}
+
 @media (max-width: 380px) {
   .prototype-shell {
     padding-top: max(11px, env(safe-area-inset-top));
@@ -184,7 +302,22 @@ body {
   }
 
   .card-stage {
-    width: min(100%, 330px);
+    width: min(76vw, 300px);
+  }
+
+  .rarity-filters {
+    gap: 3px;
+  }
+
+  .rarity-filters button {
+    min-height: 38px;
+    font-size: 10px;
+  }
+
+  .card-navigation {
+    width: 40px;
+    min-height: 64px;
+    font-size: 29px;
   }
 
   .view-controls button {
@@ -196,18 +329,23 @@ body {
 @media (max-height: 700px) and (min-width: 620px) {
   .prototype-shell {
     grid-template-columns: minmax(250px, 340px) minmax(210px, 280px);
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto auto auto;
     align-content: center;
     justify-content: center;
   }
 
-  .card-stage {
+  .gallery-card-area {
     grid-column: 1;
-    grid-row: 1 / 4;
-    width: min(44vw, 330px);
+    grid-row: 1 / 5;
+    width: min(48vw, 360px);
+  }
+
+  .card-stage {
+    width: min(38vw, 300px);
   }
 
   .prototype-header,
+  .rarity-filters,
   .view-controls,
   .mode-message {
     grid-column: 2;
@@ -215,5 +353,15 @@ body {
 
   .view-controls {
     grid-template-columns: 1fr;
+  }
+
+  .rarity-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-stage.is-flipping #cardCanvas {
+    animation-duration: 1ms;
   }
 }
