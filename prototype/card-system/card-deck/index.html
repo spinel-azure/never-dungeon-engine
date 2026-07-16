@@ -36,12 +36,21 @@
     <button class="picker-backdrop" type="button" data-picker-close aria-label="カード選択を閉じる"></button>
     <div class="picker-panel" role="dialog" aria-modal="true">
       <header class="picker-header">
-        <div>
+        <div class="picker-heading">
           <h2 id="cardPickerTitle">SELECT CARD</h2>
           <p id="cardPickerMessage">SELECT A CARD</p>
         </div>
+        <nav id="rarityFilters" class="rarity-filters" aria-label="レアリティフィルター">
+          <button type="button" data-rarity-filter="ALL" aria-pressed="true">ALL</button>
+          <button type="button" data-rarity-filter="C" aria-pressed="false">C</button>
+          <button type="button" data-rarity-filter="R" aria-pressed="false">R</button>
+          <button type="button" data-rarity-filter="SR" aria-pressed="false">SR</button>
+          <button type="button" data-rarity-filter="L" aria-pressed="false">L</button>
+          <button type="button" data-rarity-filter="Z" aria-pressed="false">Z</button>
+        </nav>
         <button id="cardPickerClose" class="picker-close" type="button" aria-label="カード選択を閉じる">×</button>
       </header>
+      <p id="cardPickerEmpty" class="picker-empty" aria-live="polite" hidden></p>
       <div id="cardPickerGrid" class="picker-grid" role="list" aria-label="選択可能なカード"></div>
     </div>
   </section>

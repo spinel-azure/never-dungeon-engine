@@ -40,6 +40,7 @@ const state = {
   revealedSlots: new Set(),
   flippingIndex: null,
   pickerSlotIndex: null,
+  rarityFilter: "ALL",
   confirmationTimer: null,
   flipTimer: null,
 };
@@ -53,13 +54,20 @@ const elements = {
   picker: document.querySelector("#cardPicker"),
   pickerGrid: document.querySelector("#cardPickerGrid"),
   pickerMessage: document.querySelector("#cardPickerMessage"),
+  pickerEmpty: document.querySelector("#cardPickerEmpty"),
   pickerClose: document.querySelector("#cardPickerClose"),
   pickerBackdrop: document.querySelector("[data-picker-close]"),
+  rarityFilters: [...document.querySelectorAll("[data-rarity-filter]")],
 };
 
 const allCards = [...getAllCards()].sort((left, right) => (
   right.rarity.localeCompare(left.rarity) || left.name.localeCompare(right.name)
 ));
+
+function getOwnedCards() {
+  // 所持カードシステム実装後は、この返却元だけを差し替える。
+  return allCards;
+}
 
 function loadDeck() {
   try {
@@ -225,6 +233,55 @@ function drawPickerCards() {
   });
 }
 
+function getFilteredOwnedCards() {
+  const ownedCards = getOwnedCards();
+  if (state.rarityFilter === "ALL") return ownedCards;
+  return ownedCards.filter((card) => card.rarity === state.rarityFilter);
+}
+
+function updateRarityFilters() {
+  elements.rarityFilters.forEach((button) => {
+    const active = button.dataset.rarityFilter === state.rarityFilter;
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
+function getEmptyFilterMessage() {
+  return state.rarityFilter === "ALL"
+    ? "NO CARDS OWNED"
+    : `NO [ ${state.rarityFilter} ] CARDS OWNED`;
+}
+
+function renderPickerCards() {
+  const cards = getFilteredOwnedCards();
+  const validations = cards.map((card) => (
+    validateCardPlacement(deckSlots, state.pickerSlotIndex, card.id, MODEL_OPTIONS)
+  ));
+  const availableCards = validations.filter((validation) => validation.allowed).length;
+  updateRarityFilters();
+  elements.pickerEmpty.hidden = cards.length > 0;
+  elements.pickerEmpty.textContent = cards.length > 0 ? "" : getEmptyFilterMessage();
+  if (cards.length === 0) {
+    elements.pickerMessage.textContent = "SELECT ANOTHER RARITY";
+  } else if (availableCards === 0) {
+    const label = state.rarityFilter === "ALL" ? "" : `[ ${state.rarityFilter} ] `;
+    elements.pickerMessage.textContent = `NO ${label}CARDS AVAILABLE`;
+  } else {
+    elements.pickerMessage.textContent = `SLOT ${state.pickerSlotIndex + 1} / SELECT A CARD`;
+  }
+  elements.pickerGrid.replaceChildren(...cards.map(createPickerCard));
+  drawPickerCards();
+}
+
+function setRarityFilter(rarityId) {
+  if (state.rarityFilter === rarityId) return;
+  state.rarityFilter = rarityId;
+  renderPickerCards();
+
+  const enabledCard = elements.pickerGrid.querySelector(".picker-card:not(:disabled)");
+  enabledCard?.focus();
+}
+
 function openPicker(preferredIndex = state.cursorIndex) {
   const targetIndex = deckSlots[preferredIndex] ? deckSlots.indexOf(null) : preferredIndex;
   if (targetIndex < 0) {
@@ -236,10 +293,9 @@ function openPicker(preferredIndex = state.cursorIndex) {
   state.cursorIndex = targetIndex;
   state.revealedSlots.clear();
   elements.pickerMessage.textContent = `SLOT ${targetIndex + 1} / SELECT A CARD`;
-  elements.pickerGrid.replaceChildren(...allCards.map(createPickerCard));
   elements.picker.hidden = false;
   updateCursor();
-  drawPickerCards();
+  renderPickerCards();
 
   const enabledCard = elements.pickerGrid.querySelector(".picker-card:not(:disabled)");
   enabledCard?.focus();
@@ -353,6 +409,9 @@ function initialize() {
   });
   elements.pickerClose.addEventListener("click", closePicker);
   elements.pickerBackdrop.addEventListener("click", closePicker);
+  elements.rarityFilters.forEach((button) => {
+    button.addEventListener("click", () => setRarityFilter(button.dataset.rarityFilter));
+  });
   window.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !elements.picker.hidden) closePicker();
   });

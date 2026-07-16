@@ -294,6 +294,10 @@ button {
   margin-bottom: 12px;
 }
 
+.picker-heading {
+  flex: 0 0 auto;
+}
+
 .picker-header h2,
 .picker-header p {
   margin: 0;
@@ -313,6 +317,7 @@ button {
 }
 
 .picker-close {
+  flex: 0 0 auto;
   width: 42px;
   height: 42px;
   padding: 0;
@@ -323,6 +328,55 @@ button {
   font-size: 28px;
   line-height: 1;
   cursor: pointer;
+}
+
+.rarity-filters {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.rarity-filters button {
+  min-width: 42px;
+  min-height: 34px;
+  padding: 5px 7px 3px;
+  border: 1px solid rgba(129, 222, 255, 0.34);
+  background: #07101a;
+  color: rgba(205, 238, 245, 0.64);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.rarity-filters button[aria-pressed="true"] {
+  border-color: var(--cyan);
+  background:
+    linear-gradient(180deg, rgba(116, 238, 255, 0.2), transparent),
+    #0a1c28;
+  color: #efffff;
+  box-shadow:
+    0 0 8px rgba(75, 230, 255, 0.58),
+    inset 0 0 7px rgba(75, 230, 255, 0.16);
+}
+
+.rarity-filters button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.picker-empty {
+  min-height: 190px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(170, 225, 237, 0.62);
+  font-family: "NdeDot", sans-serif;
+  font-size: clamp(16px, 4vw, 24px);
+  text-align: center;
+}
+
+.picker-empty[hidden] {
+  display: none;
 }
 
 .picker-grid {
@@ -422,6 +476,28 @@ button {
   .picker-panel {
     width: 100%;
     padding: 10px 7px;
+  }
+
+  .picker-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .picker-heading {
+    flex: 1 1 auto;
+  }
+
+  .rarity-filters {
+    order: 3;
+    flex: 1 0 100%;
+    justify-content: stretch;
+  }
+
+  .rarity-filters button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 2px;
+    font-size: 11px;
   }
 
   .picker-grid {
