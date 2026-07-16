@@ -183,13 +183,13 @@ function drawDoubleCircle(context, rect) {
 }
 
 function drawRarityBadge(context, rect, rarity) {
-  const x = rect.x + 23;
+  const x = rect.x + 24;
   const y = rect.y + 24;
-  const size = 48;
+  const size = 50;
   context.save();
   context.fillStyle = "rgba(9, 7, 12, 0.88)";
   context.strokeStyle = THEME.brightGold;
-  context.lineWidth = 2.5;
+  context.lineWidth = 2;
   context.shadowColor = THEME.frameGlow;
   context.shadowBlur = 12;
   context.fillRect(x, y, size, size);
@@ -199,7 +199,7 @@ function drawRarityBadge(context, rect, rarity) {
   context.lineWidth = 1;
   context.strokeRect(x + 6, y + 6, size - 12, size - 12);
   context.fillStyle = THEME.whiteGold;
-  context.font = "34px NdePixel, monospace";
+  context.font = "36px NdePixel, monospace";
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillText(rarity, x + size / 2, y + size / 2 + 1);
@@ -207,20 +207,20 @@ function drawRarityBadge(context, rect, rarity) {
 }
 
 function drawCostBadge(context, rect, cost) {
-  const centerX = rect.x + rect.width - 48;
+  const centerX = rect.x + rect.width - 49;
   const centerY = rect.y + 49;
   context.save();
-  const fill = context.createRadialGradient(centerX - 5, centerY - 7, 2, centerX, centerY, 27);
+  const fill = context.createRadialGradient(centerX - 5, centerY - 7, 2, centerX, centerY, 26);
   fill.addColorStop(0, "#fff0a0");
   fill.addColorStop(0.28, "#b47518");
   fill.addColorStop(1, "#130c08");
   context.fillStyle = fill;
   context.strokeStyle = THEME.brightGold;
-  context.lineWidth = 3;
+  context.lineWidth = 2.5;
   context.shadowColor = THEME.frameGlow;
   context.shadowBlur = 12;
   context.beginPath();
-  context.arc(centerX, centerY, 27, 0, Math.PI * 2);
+  context.arc(centerX, centerY, 26, 0, Math.PI * 2);
   context.fill();
   context.stroke();
   context.shadowBlur = 0;
@@ -230,7 +230,7 @@ function drawCostBadge(context, rect, cost) {
   context.arc(centerX, centerY, 20, 0, Math.PI * 2);
   context.stroke();
   context.fillStyle = "#fffbe0";
-  context.font = "29px NdePixel, monospace";
+  context.font = "30px NdePixel, monospace";
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillText(String(cost), centerX, centerY + 1);
@@ -239,7 +239,7 @@ function drawCostBadge(context, rect, cost) {
 
 function drawLegendaryLabel(context, rect) {
   const centerX = rect.x + rect.width / 2;
-  const y = rect.y + 50;
+  const y = rect.y + 47;
   context.save();
   context.fillStyle = THEME.whiteGold;
   context.font = "17px NdePixel, monospace";
@@ -265,10 +265,10 @@ function drawLegendaryLabel(context, rect) {
 }
 
 function drawFooter(context, rect, name) {
-  const lineY = rect.y + rect.height - 78;
+  const lineY = rect.y + rect.height - 84;
   const centerX = rect.x + rect.width / 2;
   context.save();
-  const line = context.createLinearGradient(rect.x + 30, 0, rect.x + rect.width - 30, 0);
+  const line = context.createLinearGradient(rect.x + 34, 0, rect.x + rect.width - 34, 0);
   line.addColorStop(0, "rgba(255, 214, 73, 0)");
   line.addColorStop(0.2, THEME.gold);
   line.addColorStop(0.5, THEME.whiteGold);
@@ -277,8 +277,8 @@ function drawFooter(context, rect, name) {
   context.strokeStyle = line;
   context.lineWidth = 1.4;
   context.beginPath();
-  context.moveTo(rect.x + 28, lineY);
-  context.lineTo(rect.x + rect.width - 28, lineY);
+  context.moveTo(rect.x + 30, lineY);
+  context.lineTo(rect.x + rect.width - 30, lineY);
   context.stroke();
   context.fillStyle = THEME.whiteGold;
   context.font = "18px NdePixel, monospace";
@@ -286,7 +286,7 @@ function drawFooter(context, rect, name) {
   context.textBaseline = "middle";
   context.shadowColor = THEME.frameGlow;
   context.shadowBlur = 7;
-  context.fillText(name, centerX, lineY + 40);
+  context.fillText(name, centerX, lineY + 43);
   context.restore();
 }
 
@@ -333,16 +333,22 @@ function drawFrontFrame(context, rect) {
 export function drawLegendaryCard(context, card, cardRect, options = {}) {
   const mode = options.mode ?? CARD_DISPLAY_MODES.DECK;
   const time = options.time ?? 0;
+  const renderRect = { x: 0, y: 0, width: 328, height: 512, radius: 22 };
 
-  drawCardArtwork(context, card, cardRect, time, mode);
+  context.save();
+  context.translate(cardRect.x, cardRect.y);
+  context.scale(cardRect.width / renderRect.width, cardRect.height / renderRect.height);
+
+  drawCardArtwork(context, card, renderRect, time, mode);
 
   if (mode === CARD_DISPLAY_MODES.GALLERY) {
-    drawGalleryHologram(context, cardRect, time);
+    drawGalleryHologram(context, renderRect, time);
   }
 
-  drawRarityBadge(context, cardRect, card.rarity);
-  drawLegendaryLabel(context, cardRect);
-  drawCostBadge(context, cardRect, card.cost);
-  drawFooter(context, cardRect, card.footerText ?? card.name);
-  drawFrontFrame(context, cardRect);
+  drawRarityBadge(context, renderRect, card.rarity);
+  drawLegendaryLabel(context, renderRect);
+  drawCostBadge(context, renderRect, card.cost);
+  drawFooter(context, renderRect, card.footerText ?? card.name);
+  drawFrontFrame(context, renderRect);
+  context.restore();
 }
