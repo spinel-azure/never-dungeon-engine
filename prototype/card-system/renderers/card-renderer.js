@@ -2,9 +2,11 @@ import { CARD_DISPLAY_MODES } from "../data/cards.js";
 import { getCachedCard } from "./cache/card-cache.js";
 import { drawCachedIcon } from "./cache/icon-cache.js";
 import { drawLegendaryCard } from "./legendary-card.js";
+import { drawZodiacCard } from "./zodiac-card.js";
 
 const rarityRenderers = new Map([
   ["L", drawLegendaryCard],
+  ["Z", drawZodiacCard],
 ]);
 const warnedRarities = new Set();
 

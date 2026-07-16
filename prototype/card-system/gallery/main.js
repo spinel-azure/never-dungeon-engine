@@ -1,12 +1,12 @@
-import { CARD_DISPLAY_MODES, CARDS } from "./data/cards.js";
-import { drawCard } from "./renderers/card-renderer.js";
+import { CARD_DISPLAY_MODES, CARD_RARITIES, CARDS } from "../data/cards.js";
+import { drawCard } from "../renderers/card-renderer.js";
 import {
   clearAllRenderCaches,
   clearCardCache,
   getRenderCacheStats,
-} from "./renderers/cache/render-cache.js";
-import { createRenderDebugMonitor } from "./renderers/debug/render-debug.js";
-import { GALLERY_MAX_FPS } from "./renderers/render-config.js";
+} from "../renderers/cache/render-cache.js";
+import { createRenderDebugMonitor } from "../renderers/debug/render-debug.js";
+import { GALLERY_MAX_FPS } from "../renderers/render-config.js";
 
 const canvas = document.querySelector("#cardCanvas");
 const context = canvas.getContext("2d");
@@ -14,6 +14,7 @@ const galleryModeButton = document.querySelector("#galleryModeButton");
 const deckModeButton = document.querySelector("#deckModeButton");
 const modeMessage = document.querySelector("#modeMessage");
 const debugPanel = document.querySelector("#debugPanel");
+const cardHeading = document.querySelector("#cardHeading");
 
 const CARD_RECT = Object.freeze({
   x: 16,
@@ -24,14 +25,32 @@ const CARD_RECT = Object.freeze({
 });
 
 const FRAME_INTERVAL = 1000 / GALLERY_MAX_FPS;
-const debugEnabled = new URLSearchParams(globalThis.location?.search ?? "").get("debug") === "1";
+const urlParameters = new URLSearchParams(globalThis.location?.search ?? "");
+const debugEnabled = urlParameters.get("debug") === "1";
 const debugMonitor = createRenderDebugMonitor(debugPanel, debugEnabled);
+
+function resolveSelectedCard() {
+  const entries = Object.entries(CARDS);
+  const requestedCard = urlParameters.get("card");
+  const requestedRarity = urlParameters.get("rarity")?.toUpperCase();
+  const cardEntry = entries.find(([key, card]) => key === requestedCard || card.id === requestedCard);
+  if (cardEntry) return cardEntry[1];
+  if (requestedRarity && CARD_RARITIES[requestedRarity]) {
+    const rarityCard = entries.find(([, card]) => card.rarity === requestedRarity);
+    if (rarityCard) return rarityCard[1];
+  }
+  return entries[0]?.[1] ?? null;
+}
+
+const selectedCard = resolveSelectedCard();
 
 const state = {
   mode: CARD_DISPLAY_MODES.GALLERY,
   animationFrameId: null,
   redrawFrameId: null,
   lastGalleryDrawTime: Number.NEGATIVE_INFINITY,
+  flashStartedAt: Number.NEGATIVE_INFINITY,
+  pointer: { x: 0.5, y: 0.45 },
 };
 
 function getCurrentTime() {
@@ -39,18 +58,35 @@ function getCurrentTime() {
 }
 
 function render(time = 0) {
+  if (!selectedCard) return;
   const drawStartedAt = getCurrentTime();
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "#040711";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  drawCard(context, CARDS.legendaryUnlimitedTorchGauge, CARD_RECT, {
+  drawCard(context, selectedCard, CARD_RECT, {
     mode: state.mode,
     time,
     themeId: "default",
     glow: true,
+    pointer: state.pointer,
+    flashStartedAt: state.flashStartedAt,
   });
   const drawTime = getCurrentTime() - drawStartedAt;
   debugMonitor.recordFrame(time || drawStartedAt, drawTime, state.mode, getRenderCacheStats());
+}
+
+function updateCardInformation() {
+  if (!selectedCard) return;
+  const rarityName = CARD_RARITIES[selectedCard.rarity]?.name ?? selectedCard.rarity;
+  cardHeading.textContent = `${rarityName} / ${selectedCard.name}`;
+  canvas.setAttribute("aria-label", `レアリティ${selectedCard.rarity}、${selectedCard.name}カード`);
+  document.title = `NDE Card Gallery - ${selectedCard.name}`;
+}
+
+function updatePointer(event) {
+  const bounds = canvas.getBoundingClientRect();
+  state.pointer.x = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
+  state.pointer.y = Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height));
 }
 
 function animate(time) {
@@ -133,6 +169,16 @@ function handleVisibilityChange() {
 
 galleryModeButton.addEventListener("click", () => setMode(CARD_DISPLAY_MODES.GALLERY));
 deckModeButton.addEventListener("click", () => setMode(CARD_DISPLAY_MODES.DECK));
+canvas.addEventListener("pointermove", updatePointer);
+canvas.addEventListener("pointerdown", (event) => {
+  updatePointer(event);
+  state.flashStartedAt = getCurrentTime();
+  if (state.mode === CARD_DISPLAY_MODES.GALLERY) render(state.flashStartedAt);
+});
+canvas.addEventListener("pointerleave", () => {
+  state.pointer.x = 0.5;
+  state.pointer.y = 0.45;
+});
 document.addEventListener("visibilitychange", handleVisibilityChange);
 window.addEventListener("pagehide", () => {
   stopGalleryAnimation();
@@ -155,6 +201,7 @@ if (debugMonitor.enabled) {
   });
 }
 
+updateCardInformation();
 updateControls();
 render(0);
 document.fonts?.ready.then(() => {

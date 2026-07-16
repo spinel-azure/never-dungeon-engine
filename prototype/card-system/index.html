@@ -2,43 +2,16 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#040711">
-  <title>NDE Legendary Card Prototype</title>
-  <link rel="stylesheet" href="./style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>NDE Card System</title>
 </head>
 <body>
-  <main class="prototype-shell">
-    <header class="prototype-header">
-      <p>NEVER DUNGEON ENGINE</p>
-      <h1>LEGENDARY CARD</h1>
-    </header>
-
-    <section class="card-stage" aria-label="レジェンダリーカード表示">
-      <canvas
-        id="cardCanvas"
-        width="360"
-        height="540"
-        aria-label="レアリティL、無制限の松明ゲージカード"
-      ></canvas>
-    </section>
-
-    <section class="view-controls" aria-label="表示モード">
-      <button id="galleryModeButton" type="button" aria-pressed="true">
-        GALLERY <span>EFFECT ON</span>
-      </button>
-      <button id="deckModeButton" type="button" aria-pressed="false">
-        DECK <span>STATIC</span>
-      </button>
-    </section>
-
-    <p id="modeMessage" class="mode-message" aria-live="polite">
-      GALLERY VIEW / RAINBOW EFFECT ON
-    </p>
-
-    <pre id="debugPanel" class="debug-panel" hidden aria-label="描画デバッグ情報"></pre>
-  </main>
-
-  <script type="module" src="./main.js"></script>
+  <p>Opening card gallery...</p>
+  <script>
+    const galleryUrl = new URL("./gallery/", globalThis.location.href);
+    galleryUrl.search = globalThis.location.search;
+    globalThis.location.replace(galleryUrl);
+  </script>
 </body>
 </html>

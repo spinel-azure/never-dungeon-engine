@@ -1,4 +1,8 @@
-import { LEGENDARY_CARDS } from "../legendary-card/cards.js";
+import { COMMON_CARDS } from "../cards/common/cards.js";
+import { RARE_CARDS } from "../cards/rare/cards.js";
+import { SUPER_RARE_CARDS } from "../cards/super-rare/cards.js";
+import { LEGENDARY_CARDS } from "../cards/legendary/cards.js";
+import { ZODIAC_CARDS } from "../cards/zodiac/cards.js";
 
 export const CARD_DISPLAY_MODES = Object.freeze({
   GALLERY: "gallery",
@@ -35,5 +39,9 @@ export const CARD_RARITIES = Object.freeze({
 });
 
 export const CARDS = Object.freeze({
+  ...COMMON_CARDS,
+  ...RARE_CARDS,
+  ...SUPER_RARE_CARDS,
   ...LEGENDARY_CARDS,
+  ...ZODIAC_CARDS,
 });

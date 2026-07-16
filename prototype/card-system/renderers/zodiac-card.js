@@ -1,8 +1,3 @@
-"use strict";
-
-const CANVAS_SIZE = Object.freeze({ width: 360, height: 520 });
-const CARD_RECT = Object.freeze({ x: 18, y: 14, width: 324, height: 492, radius: 20 });
-
 const THEME = Object.freeze({
   cardTop: "#111327",
   cardBottom: "#060711",
@@ -24,36 +19,6 @@ const EFFECTS = Object.freeze({
   weakGlow: 7,
   strongGlow: 18,
 });
-
-const CARD_DATA = Object.freeze([
-  { rarity: "Z", cost: 8, zodiac: "aries", name: "ARIES" },
-  { rarity: "Z", cost: 8, zodiac: "taurus", name: "TAURUS" },
-  { rarity: "Z", cost: 8, zodiac: "gemini", name: "GEMINI" },
-  { rarity: "Z", cost: 8, zodiac: "cancer", name: "CANCER" },
-  { rarity: "Z", cost: 8, zodiac: "leo", name: "LEO" },
-  { rarity: "Z", cost: 8, zodiac: "virgo", name: "VIRGO" },
-  { rarity: "Z", cost: 8, zodiac: "libra", name: "LIBRA" },
-  { rarity: "Z", cost: 8, zodiac: "scorpio", name: "SCORPIO" },
-  { rarity: "Z", cost: 8, zodiac: "sagittarius", name: "SAGITTARIUS" },
-  { rarity: "Z", cost: 8, zodiac: "capricorn", name: "CAPRICORN" },
-  { rarity: "Z", cost: 8, zodiac: "aquarius", name: "AQUARIUS" },
-  { rarity: "Z", cost: 8, zodiac: "pisces", name: "PISCES" },
-]);
-
-const canvas = document.querySelector("#cardCanvas");
-const ctx = canvas.getContext("2d");
-const hologramButton = document.querySelector("#hologramButton");
-const glowButton = document.querySelector("#glowButton");
-const cardChangeButton = document.querySelector("#cardChangeButton");
-
-const state = {
-  hologramEnabled: true,
-  strongGlow: true,
-  currentCardIndex: 0,
-  flashStartedAt: -Infinity,
-  pointer: { x: 0.5, y: 0.45 },
-  pointerTarget: { x: 0.5, y: 0.45 },
-};
 
 const stars = createStars(64, 0x5a17c0de);
 
@@ -83,15 +48,6 @@ function createStars(count, seed) {
     speed: 0.55 + random() * 1.1,
     warm: random() > 0.7,
   }));
-}
-
-function drawSceneBackground(context) {
-  const gradient = context.createRadialGradient(180, 245, 80, 180, 260, 270);
-  gradient.addColorStop(0, "#17142b");
-  gradient.addColorStop(0.55, "#090a14");
-  gradient.addColorStop(1, "#030408");
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, CANVAS_SIZE.width, CANVAS_SIZE.height);
 }
 
 function drawCardBase(context, rect) {
@@ -745,99 +701,41 @@ function drawFrontFrame(context, rect, glowStrength, flashStrength) {
   context.restore();
 }
 
-function getFlashStrength(time) {
-  const elapsed = time - state.flashStartedAt;
+function getFlashStrength(time, flashStartedAt) {
+  const elapsed = time - flashStartedAt;
   if (elapsed < 0 || elapsed >= EFFECTS.flashDuration) return 0;
   const progress = elapsed / EFFECTS.flashDuration;
   return Math.sin(progress * Math.PI) * (1 - progress * 0.35);
 }
 
-function drawZodiacCard(context, data, rect, time) {
-  const flashStrength = getFlashStrength(time);
-  const baseGlow = state.strongGlow ? EFFECTS.strongGlow : EFFECTS.weakGlow;
-  const symbolDrawer = zodiacDrawers[data.zodiac];
+export function drawZodiacCard(context, card, cardRect, options = {}) {
+  const time = options.time ?? 0;
+  const flashStrength = getFlashStrength(time, options.flashStartedAt ?? Number.NEGATIVE_INFINITY);
+  const baseGlow = options.glow === false ? EFFECTS.weakGlow : EFFECTS.strongGlow;
+  const symbolDrawer = zodiacDrawers[card.zodiac];
+  const pointer = options.pointer ?? { x: 0.5, y: 0.45 };
 
-  drawCardBase(context, rect);
-  drawStarField(context, rect, time);
+  drawCardBase(context, cardRect);
+  drawStarField(context, cardRect, time);
 
   if (symbolDrawer) {
     symbolDrawer(
       context,
-      rect.x + rect.width / 2,
-      rect.y + rect.height * 0.5,
-      155,
+      cardRect.x + cardRect.width / 2,
+      cardRect.y + cardRect.height * 0.5,
+      Math.min(cardRect.width, cardRect.height) * 0.48,
       baseGlow + flashStrength * 24,
     );
   }
 
-  if (state.hologramEnabled) {
-    drawHologram(context, rect, time, state.pointer, flashStrength);
+  if (options.mode === "gallery" && options.hologram !== false) {
+    drawHologram(context, cardRect, time, pointer, flashStrength);
   }
 
-  drawSeriesLabel(context, rect);
-  drawRarityBadge(context, rect, data.rarity);
-  drawCostBadge(context, rect, data.cost);
-  drawNamePlate(context, rect, data.name);
-  drawFrontFrame(context, rect, baseGlow, flashStrength);
+  drawSeriesLabel(context, cardRect);
+  drawRarityBadge(context, cardRect, card.rarity);
+  drawCostBadge(context, cardRect, card.cost);
+  drawNamePlate(context, cardRect, card.footerText ?? card.name);
+  drawFrontFrame(context, cardRect, baseGlow, flashStrength);
 }
 
-function updatePointer() {
-  state.pointer.x += (state.pointerTarget.x - state.pointer.x) * EFFECTS.pointerEase;
-  state.pointer.y += (state.pointerTarget.y - state.pointer.y) * EFFECTS.pointerEase;
-}
-
-function render(time) {
-  updatePointer();
-  ctx.clearRect(0, 0, CANVAS_SIZE.width, CANVAS_SIZE.height);
-  drawSceneBackground(ctx);
-  drawZodiacCard(ctx, CARD_DATA[state.currentCardIndex], CARD_RECT, time);
-  requestAnimationFrame(render);
-}
-
-function setPointerTarget(event) {
-  const bounds = canvas.getBoundingClientRect();
-  state.pointerTarget.x = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
-  state.pointerTarget.y = Math.min(1, Math.max(0, (event.clientY - bounds.top) / bounds.height));
-}
-
-function triggerCardFlash(event) {
-  setPointerTarget(event);
-  state.flashStartedAt = performance.now();
-}
-
-function updateControls() {
-  const currentCard = CARD_DATA[state.currentCardIndex];
-  const nextCard = CARD_DATA[(state.currentCardIndex + 1) % CARD_DATA.length];
-  hologramButton.setAttribute("aria-pressed", String(state.hologramEnabled));
-  hologramButton.querySelector("span").textContent = state.hologramEnabled ? "ON" : "OFF";
-  glowButton.setAttribute("aria-pressed", String(state.strongGlow));
-  glowButton.querySelector("span").textContent = state.strongGlow ? "STRONG" : "WEAK";
-  cardChangeButton.setAttribute("aria-label", `次のカードへ切り替える: ${nextCard.name}`);
-  canvas.setAttribute("aria-label", `最高レアリティZの${currentCard.name}カード`);
-}
-
-hologramButton.addEventListener("click", () => {
-  state.hologramEnabled = !state.hologramEnabled;
-  updateControls();
-});
-
-glowButton.addEventListener("click", () => {
-  state.strongGlow = !state.strongGlow;
-  updateControls();
-});
-
-cardChangeButton.addEventListener("click", () => {
-  state.currentCardIndex = (state.currentCardIndex + 1) % CARD_DATA.length;
-  state.flashStartedAt = performance.now();
-  updateControls();
-});
-
-canvas.addEventListener("pointermove", setPointerTarget);
-canvas.addEventListener("pointerdown", triggerCardFlash);
-canvas.addEventListener("pointerleave", () => {
-  state.pointerTarget.x = 0.5;
-  state.pointerTarget.y = 0.45;
-});
-
-updateControls();
-requestAnimationFrame(render);

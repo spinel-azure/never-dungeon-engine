@@ -1,12 +1,12 @@
 @font-face {
   font-family: "NdePixel";
-  src: url("../../fonts/k8x12.woff2") format("woff2");
+  src: url("../../../fonts/k8x12.woff2") format("woff2");
   font-display: swap;
 }
 
 @font-face {
   font-family: "NdeDot";
-  src: url("../../fonts/DotGothic16-Regular.woff2") format("woff2");
+  src: url("../../../fonts/DotGothic16-Regular.woff2") format("woff2");
   font-display: swap;
 }
 
@@ -83,6 +83,14 @@ body {
   line-height: 1;
   letter-spacing: 0.08em;
   text-shadow: 0 0 14px rgba(255, 212, 89, 0.25);
+}
+
+.prototype-header .card-heading {
+  margin-top: 7px;
+  color: rgba(255, 245, 196, 0.72);
+  font-family: "NdeDot", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.08em;
 }
 
 .card-stage {
