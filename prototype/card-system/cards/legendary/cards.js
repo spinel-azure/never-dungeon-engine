@@ -9,5 +9,7 @@ export const LEGENDARY_CARDS = Object.freeze({
     category: "exploration",
     iconId: "torch",
     effectId: "unlimited_torch_gauge",
+    maxCopies: 1,
+    version: 2,
   }),
 });

@@ -32,6 +32,20 @@
     </section>
   </main>
 
-  <script src="./main.js" defer></script>
+  <section id="cardPicker" class="card-picker" aria-labelledby="cardPickerTitle" hidden>
+    <button class="picker-backdrop" type="button" data-picker-close aria-label="カード選択を閉じる"></button>
+    <div class="picker-panel" role="dialog" aria-modal="true">
+      <header class="picker-header">
+        <div>
+          <h2 id="cardPickerTitle">SELECT CARD</h2>
+          <p id="cardPickerMessage">SELECT A CARD</p>
+        </div>
+        <button id="cardPickerClose" class="picker-close" type="button" aria-label="カード選択を閉じる">×</button>
+      </header>
+      <div id="cardPickerGrid" class="picker-grid" role="list" aria-label="選択可能なカード"></div>
+    </div>
+  </section>
+
+  <script type="module" src="./main.js"></script>
 </body>
 </html>

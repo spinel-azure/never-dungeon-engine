@@ -714,28 +714,33 @@ export function drawZodiacCard(context, card, cardRect, options = {}) {
   const baseGlow = options.glow === false ? EFFECTS.weakGlow : EFFECTS.strongGlow;
   const symbolDrawer = zodiacDrawers[card.zodiac];
   const pointer = options.pointer ?? { x: 0.5, y: 0.45 };
+  const renderRect = { x: 0, y: 0, width: 328, height: 512, radius: 22 };
 
-  drawCardBase(context, cardRect);
-  drawStarField(context, cardRect, time);
+  context.save();
+  context.translate(cardRect.x, cardRect.y);
+  context.scale(cardRect.width / renderRect.width, cardRect.height / renderRect.height);
+
+  drawCardBase(context, renderRect);
+  drawStarField(context, renderRect, time);
 
   if (symbolDrawer) {
     symbolDrawer(
       context,
-      cardRect.x + cardRect.width / 2,
-      cardRect.y + cardRect.height * 0.5,
-      Math.min(cardRect.width, cardRect.height) * 0.48,
+      renderRect.width / 2,
+      renderRect.height * 0.5,
+      Math.min(renderRect.width, renderRect.height) * 0.48,
       baseGlow + flashStrength * 24,
     );
   }
 
   if (options.mode === "gallery" && options.hologram !== false) {
-    drawHologram(context, cardRect, time, pointer, flashStrength);
+    drawHologram(context, renderRect, time, pointer, flashStrength);
   }
 
-  drawSeriesLabel(context, cardRect);
-  drawRarityBadge(context, cardRect, card.rarity);
-  drawCostBadge(context, cardRect, card.cost);
-  drawNamePlate(context, cardRect, card.footerText ?? card.name);
-  drawFrontFrame(context, cardRect, baseGlow, flashStrength);
+  drawSeriesLabel(context, renderRect);
+  drawRarityBadge(context, renderRect, card.rarity);
+  drawCostBadge(context, renderRect, card.cost);
+  drawNamePlate(context, renderRect, card.footerText ?? card.name);
+  drawFrontFrame(context, renderRect, baseGlow, flashStrength);
+  context.restore();
 }
-
