@@ -18,16 +18,10 @@ export const CARDS = Object.freeze({
     rarity: "L",
     cost: 6,
     name: "UNLIMITED TORCH GAUGE",
+    footerText: "UNLIMITED TORCH GAUGE",
     nameJa: "たいまつゲージ無制限",
     category: "exploration",
-    icon: "torch",
-    effect: Object.freeze({
-      id: "unlimited_torch_gauge",
-      descriptionJa: "探索中、たいまつゲージを消費しない。",
-    }),
+    iconId: "torch",
+    effectId: "unlimited_torch_gauge",
   }),
 });
-
-export function getCardById(cardId) {
-  return Object.values(CARDS).find((card) => card.id === cardId) ?? null;
-}

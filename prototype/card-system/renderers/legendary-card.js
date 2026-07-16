@@ -1,5 +1,5 @@
 import { CARD_DISPLAY_MODES, CARD_RARITIES } from "../data/cards.js";
-import { drawTorchIcon } from "./icons/torch.js";
+import { drawCachedIcon } from "./cache/icon-cache.js";
 
 const THEME = Object.freeze({
   gold: "#e9ae25",
@@ -7,10 +7,6 @@ const THEME = Object.freeze({
   whiteGold: "#fff8c8",
   deepGold: "#6c430f",
   frameGlow: "rgba(255, 190, 42, 0.68)",
-});
-
-const legendaryIconDrawers = Object.freeze({
-  torch: drawTorchIcon,
 });
 
 function createStars(count, seed) {
@@ -30,7 +26,6 @@ function createStars(count, seed) {
 }
 
 const STARS = createStars(76, 0x1e6e4d);
-const deckArtworkCache = new Map();
 
 function roundedRectPath(context, rect, inset = 0) {
   context.beginPath();
@@ -124,19 +119,6 @@ function drawLegendaryBackground(context, rect) {
   drawIndigoFalloff(context, rect);
 }
 
-function createArtworkCanvas(width, height) {
-  if (typeof OffscreenCanvas === "function") {
-    return new OffscreenCanvas(width, height);
-  }
-  if (typeof document !== "undefined" && typeof document.createElement === "function") {
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    return canvas;
-  }
-  return null;
-}
-
 function drawCardArtwork(context, card, rect, time, mode) {
   context.save();
   roundedRectPath(context, rect);
@@ -146,36 +128,18 @@ function drawCardArtwork(context, card, rect, time, mode) {
   drawDoubleCircle(context, rect);
   context.restore();
 
-  const drawIcon = legendaryIconDrawers[card.icon];
-  if (drawIcon) {
-    drawIcon(
-      context,
-      rect.x + rect.width / 2,
-      rect.y + rect.height * 0.49,
-      250,
-    );
-  }
-}
-
-function getDeckArtwork(card, rect) {
-  const width = Math.ceil(rect.width);
-  const height = Math.ceil(rect.height);
-  const cacheKey = `${card.id}:${width}x${height}`;
-  const cached = deckArtworkCache.get(cacheKey);
-  if (cached) return cached;
-
-  const canvas = createArtworkCanvas(width, height);
-  const cacheContext = canvas?.getContext("2d");
-  if (!cacheContext) return null;
-
-  const localRect = { x: 0, y: 0, width, height, radius: rect.radius };
-  drawCardArtwork(cacheContext, card, localRect, 0, CARD_DISPLAY_MODES.DECK);
-  deckArtworkCache.set(cacheKey, canvas);
-  return canvas;
-}
-
-export function clearLegendaryCardCache() {
-  deckArtworkCache.clear();
+  drawCachedIcon(
+    context,
+    card.iconId,
+    rect.x + rect.width / 2,
+    rect.y + rect.height * 0.49,
+    250,
+    {
+      variant: "legendary",
+      themeId: "legendary-gold",
+      glow: true,
+    },
+  );
 }
 
 function drawStars(context, rect, time, mode) {
@@ -370,16 +334,7 @@ export function drawLegendaryCard(context, card, cardRect, options = {}) {
   const mode = options.mode ?? CARD_DISPLAY_MODES.DECK;
   const time = options.time ?? 0;
 
-  if (mode === CARD_DISPLAY_MODES.DECK) {
-    const cachedArtwork = getDeckArtwork(card, cardRect);
-    if (cachedArtwork) {
-      context.drawImage(cachedArtwork, cardRect.x, cardRect.y, cardRect.width, cardRect.height);
-    } else {
-      drawCardArtwork(context, card, cardRect, time, mode);
-    }
-  } else {
-    drawCardArtwork(context, card, cardRect, time, mode);
-  }
+  drawCardArtwork(context, card, cardRect, time, mode);
 
   if (mode === CARD_DISPLAY_MODES.GALLERY) {
     drawGalleryHologram(context, cardRect, time);
@@ -388,6 +343,6 @@ export function drawLegendaryCard(context, card, cardRect, options = {}) {
   drawRarityBadge(context, cardRect, card.rarity);
   drawLegendaryLabel(context, cardRect);
   drawCostBadge(context, cardRect, card.cost);
-  drawFooter(context, cardRect, card.name);
+  drawFooter(context, cardRect, card.footerText ?? card.name);
   drawFrontFrame(context, cardRect);
 }

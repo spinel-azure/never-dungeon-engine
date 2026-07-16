@@ -207,7 +207,13 @@ function drawTorchSpark(context, x, y, radius, theme) {
 }
 
 export function drawTorchIcon(context, centerX, centerY, size, options = {}) {
-  const theme = { ...DEFAULT_TORCH_THEME, ...options.theme };
+  const theme = {
+    ...DEFAULT_TORCH_THEME,
+    ...options.theme,
+    glow: options.glow === false
+      ? "rgba(0, 0, 0, 0)"
+      : (options.theme?.glow ?? DEFAULT_TORCH_THEME.glow),
+  };
   const scale = size / 360;
 
   context.save();

@@ -149,6 +149,26 @@ body {
   text-align: center;
 }
 
+.debug-panel {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 10;
+  min-width: 178px;
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid rgba(119, 240, 255, 0.55);
+  background: rgba(0, 8, 14, 0.88);
+  color: #bff9ff;
+  box-shadow: 0 0 12px rgba(83, 211, 255, 0.2);
+  font: 12px/1.35 "NdePixel", monospace;
+  pointer-events: none;
+}
+
+.debug-panel[hidden] {
+  display: none;
+}
+
 @media (max-width: 380px) {
   .prototype-shell {
     padding-top: max(11px, env(safe-area-inset-top));
