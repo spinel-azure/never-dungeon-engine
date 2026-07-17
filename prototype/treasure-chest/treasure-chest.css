@@ -66,6 +66,7 @@ input {
   left: max(24px, env(safe-area-inset-left));
   display: flex;
   gap: 16px;
+  flex-wrap: wrap;
   z-index: 2;
 }
 
@@ -81,6 +82,18 @@ input {
   font-size: clamp(22px, 2.2vw, 32px);
   line-height: 1;
   cursor: pointer;
+}
+
+.round-command output {
+  display: block;
+  margin-top: 7px;
+  font-size: 0.48em;
+  line-height: 1;
+}
+
+.slider-control output {
+  color: #fff27a;
+  font-variant-numeric: tabular-nums;
 }
 
 .round-command:active {
@@ -186,8 +199,8 @@ input[type="range"]::-moz-range-thumb {
   }
 
   .round-command {
-    width: 68px;
-    font-size: 21px;
+    width: 62px;
+    font-size: 19px;
   }
 
   .slider-control-size,
