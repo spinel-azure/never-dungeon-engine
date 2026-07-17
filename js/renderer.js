@@ -77,7 +77,8 @@ export function drawScene(now) {
     roundRect
   });
   if (renderer.minimapOverlayVisible) drawMinimapOverlay();
-  if (state.torchFuel <= 0) drawDarknessMessage();
+  if (state.overlayEvent?.type === "randomEncounter") drawEncounterMessage();
+  else if (state.torchFuel <= 0) drawDarknessMessage();
   ctx.restore();
   drawFrame();
   renderer.updateHud();
@@ -150,12 +151,28 @@ function drawDarknessMessage() {
   ctx.restore();
 }
 
+function drawEncounterMessage() {
+  const { ctx, W, H, state } = renderer;
+  const message = state.overlayEvent?.overlayMessage;
+  if (!message) return;
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,.8)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#f0eadc";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `700 ${Math.max(24, Math.floor(H * .063))}px GameFont, sans-serif`;
+  ctx.fillText(message, W / 2, H / 2);
+  ctx.restore();
+}
+
 function drawOverlayEvent() {
   const { eventOverlayCtx: ctx, W, H, state } = renderer;
   if (!ctx) return;
   ctx.clearRect(0, 0, W, H);
   const event = state.overlayEvent;
   if (!event?.showOverlay) return;
+  if (event.type === "randomEncounter") return;
   const image = event.imageId ? renderer.characterImages.get(event.imageId) : null;
 
   ctx.save();

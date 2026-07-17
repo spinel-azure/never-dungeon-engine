@@ -57,6 +57,7 @@ import {
   const eventOverlayCanvas = document.getElementById("eventOverlay");
   const eventOverlayCtx = eventOverlayCanvas.getContext("2d");
   const W = canvas.width;
+  let runStartedAt = performance.now();
 
 
   randomizeStartPosition();
@@ -73,6 +74,7 @@ import {
   const torchMeterEl = document.getElementById("torchMeter");
   const presenceMeterEl = document.getElementById("presenceMeter");
   const compassCanvas = document.getElementById("compass");
+  const stopwatchEl = document.getElementById("stopwatch");
   const forwardBtn = document.getElementById("forward");
   const backBtn = document.getElementById("back");
   const leftBtn = document.getElementById("left");
@@ -119,8 +121,9 @@ import {
   configureAutoReturn({ autoReturnBtn, say });
   configurePlayer({ say, cancelAutoReturn, continueAutoReturn, messageFor, descendFloor });
 
-  function resetDungeon(message = "", nextStart = null) {
+  function resetDungeon(message = "", nextStart = null, resetTimer = false) {
     cancelAutoReturn(false);
+    if (resetTimer) runStartedAt = performance.now();
     if (nextStart) setStartPosition(nextStart.x, nextStart.y);
     else randomizeStartPosition();
     buildBoundaryWallMap();
@@ -134,7 +137,7 @@ import {
   }
 
   function generateRandomDungeon() {
-    resetDungeon();
+    resetDungeon("", null, true);
   }
 
   function descendFloor() {
@@ -147,11 +150,20 @@ import {
     posEl.textContent = `X:${state.gridX} Y:${state.gridY}`;
     depthEl.textContent = `B${currentDepth}F`;
     brandEl.textContent = `RANDOM MAZE TEST B${currentDepth}F`;
+    stopwatchEl.textContent = formatElapsedTime(performance.now() - runStartedAt);
     drawCompass();
     torchMeterEl.style.width = `${state.torchFuel}%`;
     const presence = getPresence();
     presenceMeterEl.style.setProperty("--presence", `${presence}%`);
     presenceMeterEl.setAttribute("aria-valuenow", String(presence));
+  }
+
+  function formatElapsedTime(elapsedMs) {
+    const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return [hours, minutes, seconds].map(value => String(value).padStart(2, "0")).join(":");
   }
 
   configureInput({

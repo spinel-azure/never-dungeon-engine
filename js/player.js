@@ -256,11 +256,12 @@ export function handleOverlayEventInput(action) {
   return true;
 }
 
-export function startRandomEncounterNotice(message) {
+export function startRandomEncounterNotice() {
   startOverlayEvent({
     type: "randomEncounter",
-    showOverlay: false,
-    message: `${message}\n＊Aボタンで次へ`
+    showOverlay: true,
+    overlayMessage: "＊　なにものかと　そうぐうした！　＊",
+    message: "戦闘は未実装です。（Aボタンで次へ）"
   });
 }
 
