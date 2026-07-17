@@ -1,6 +1,6 @@
-import { COMMON_CARDS } from "../cards/common/cards.js?v=20260717-2";
-import { RARE_CARDS } from "../cards/rare/cards.js?v=20260717-2";
-import { SUPER_RARE_CARDS } from "../cards/super-rare/cards.js?v=20260717-2";
+import { COMMON_CARDS } from "../cards/common/cards.js?v=20260717-3";
+import { RARE_CARDS } from "../cards/rare/cards.js?v=20260717-3";
+import { SUPER_RARE_CARDS } from "../cards/super-rare/cards.js?v=20260717-3";
 import { LEGENDARY_CARDS } from "../cards/legendary/cards.js";
 import { ZODIAC_CARDS } from "../cards/zodiac/cards.js";
 

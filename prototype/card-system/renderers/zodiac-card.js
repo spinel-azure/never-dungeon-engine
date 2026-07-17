@@ -552,6 +552,10 @@ function drawCostBadge(context, rect, cost) {
   context.font = "30px NdePixel, monospace";
   context.textAlign = "center";
   context.textBaseline = "middle";
+  context.strokeStyle = "#050608";
+  context.lineWidth = 4;
+  context.lineJoin = "round";
+  context.strokeText(String(cost), x, y + 1);
   context.fillText(String(cost), x, y + 1);
   context.restore();
 }

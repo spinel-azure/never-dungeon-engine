@@ -1,5 +1,5 @@
-import { CARD_DISPLAY_MODES, CARD_RARITIES } from "../data/cards.js?v=20260717-2";
-import { drawCachedIcon } from "./cache/icon-cache.js?v=20260717-2";
+import { CARD_DISPLAY_MODES, CARD_RARITIES } from "../data/cards.js?v=20260717-3";
+import { drawCachedIcon } from "./cache/icon-cache.js?v=20260717-3";
 
 const THEMES = Object.freeze({
   C: Object.freeze({
@@ -196,6 +196,10 @@ function drawCostBadge(context, rect, card, theme) {
   context.font = "30px NdePixel, monospace";
   context.textAlign = "center";
   context.textBaseline = "middle";
+  context.strokeStyle = "#050608";
+  context.lineWidth = 4;
+  context.lineJoin = "round";
+  context.strokeText(String(card.cost), centerX, centerY + 1);
   context.fillText(String(card.cost), centerX, centerY + 1);
   context.restore();
 }
