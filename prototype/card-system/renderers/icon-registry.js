@@ -1,5 +1,5 @@
 import { drawQuarteredShieldIcon } from "./icons/quartered-shield.js";
-import { drawStrengthIcon } from "./icons/strength.js?v=20260717-3";
+import { drawStrengthIcon } from "./icons/strength.js?v=20260717-4";
 import { drawTorchIcon } from "./icons/torch.js";
 import { drawUnknownIcon } from "./icons/unknown.js";
 import { drawVitalHeartIcon } from "./icons/vital-heart.js";
