@@ -17,6 +17,7 @@ const renderer = {
   closedDoorOnCell: () => false,
   openDoorOnCell: () => false,
   getDoorState: () => null,
+  getDoorKind: () => null,
   inBounds: () => false,
   updateAnimation: () => {},
   updateHud: () => {},
@@ -26,7 +27,7 @@ const renderer = {
   minimapOverlayVisible: false,
   lastCanvasTouchAt: 0,
   wallTexture: null,
-  doorTexture: null,
+  doorTextures: null,
   characterImages: new Map()
 };
 
@@ -39,7 +40,11 @@ export function configureRenderer(options) {
     renderer.eventOverlayCanvas.height = renderer.H;
   }
   renderer.wallTexture = makeWallTexture();
-  renderer.doorTexture = makeDoorTexture();
+  renderer.doorTextures = {
+    normal: makeDoorTexture("normal"),
+    boss: makeDoorTexture("boss"),
+    locked: makeDoorTexture("locked")
+  };
   npcs.forEach(npc => loadCharacterImage(npc.imageId, npc.image));
   renderer.canvas.addEventListener("pointerup", handleCanvasPointerUp);
   renderer.canvas.addEventListener("touchend", handleCanvasTouchEnd, { passive: false });
@@ -215,7 +220,7 @@ export function drawFloor() {
 }
 
 export function drawBoundaryWalls() {
-  const { ctx, W, H, wallTexture, doorTexture, state } = renderer;
+  const { ctx, W, H, wallTexture, doorTextures, state } = renderer;
   const colW = W / RAYS;
   for (let i = 0; i < RAYS; i++) {
     const t = i / (RAYS - 1);
@@ -228,6 +233,7 @@ export function drawBoundaryWalls() {
     const shade = Math.max(0.18, 1 - hit.dist / MAX_DIST);
     const orientationShade = hit.side === 0 ? 0.82 : 0.68;
     const light = Math.min(1.12, shade * orientationShade + 0.13 + state.torch);
+    const doorTexture = doorTextures[hit.doorKind] || doorTextures.normal;
 
     ctx.drawImage(wallTexture, wallSampleX, 0, 1, wallTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
     ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
@@ -583,13 +589,14 @@ export function castRay(angle) {
       const dirKey = stepX > 0 ? "E" : "W";
       const dist = sideX;
       const doorState = renderer.getDoorState(cellX, cellY, dirKey);
+      const doorKind = renderer.getDoorKind(cellX, cellY, dirKey);
       const hitY = state.y + rayY * dist;
       const hitU = hitY - Math.floor(hitY);
       if (doorState === "open" && isOpenDoorFrameSample(hitU)) {
-        return makeHit(dist, hitU, dirKey, 0, angle, "door", doorState, cellX, cellY);
+        return makeHit(dist, hitU, dirKey, 0, angle, "door", doorState, doorKind, cellX, cellY);
       }
       if (renderer.wallOnCell(cellX, cellY, dirKey)) {
-        return makeHit(dist, hitU, dirKey, 0, angle, doorState ? "door" : "wall", doorState, cellX, cellY);
+        return makeHit(dist, hitU, dirKey, 0, angle, doorState ? "door" : "wall", doorState, doorKind, cellX, cellY);
       }
       cellX += stepX;
       if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 0, angle);
@@ -598,13 +605,14 @@ export function castRay(angle) {
       const dirKey = stepY > 0 ? "S" : "N";
       const dist = sideY;
       const doorState = renderer.getDoorState(cellX, cellY, dirKey);
+      const doorKind = renderer.getDoorKind(cellX, cellY, dirKey);
       const hitX = state.x + rayX * dist;
       const hitU = hitX - Math.floor(hitX);
       if (doorState === "open" && isOpenDoorFrameSample(hitU)) {
-        return makeHit(dist, hitU, dirKey, 1, angle, "door", doorState, cellX, cellY);
+        return makeHit(dist, hitU, dirKey, 1, angle, "door", doorState, doorKind, cellX, cellY);
       }
       if (renderer.wallOnCell(cellX, cellY, dirKey)) {
-        return makeHit(dist, hitU, dirKey, 1, angle, doorState ? "door" : "wall", doorState, cellX, cellY);
+        return makeHit(dist, hitU, dirKey, 1, angle, doorState ? "door" : "wall", doorState, doorKind, cellX, cellY);
       }
       cellY += stepY;
       if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 1, angle);
@@ -614,7 +622,7 @@ export function castRay(angle) {
   return makeHit(MAX_DIST, 0, "N", 1, angle);
 }
 
-export function makeHit(dist, u, dirKey, side, angle, type = "wall", doorState = null, cellX = null, cellY = null) {
+export function makeHit(dist, u, dirKey, side, angle, type = "wall", doorState = null, doorKind = null, cellX = null, cellY = null) {
   const corrected = Math.max(0.001, dist * Math.cos(angle - renderer.state.angle));
   return {
     dist,
@@ -624,6 +632,7 @@ export function makeHit(dist, u, dirKey, side, angle, type = "wall", doorState =
     dirKey,
     type,
     doorState,
+    doorKind,
     cellX,
     cellY
   };
@@ -666,15 +675,20 @@ export function makeWallTexture() {
   return tex;
 }
 
-export function makeDoorTexture() {
+export function makeDoorTexture(kind = "normal") {
   const tex = document.createElement("canvas");
   tex.width = 96;
   tex.height = 160;
   const c = tex.getContext("2d");
+  const palette = {
+    normal: { dark: "#3b2416", mid: "#7a4a28", deep: "#2f1c12", frame: "#cda14d" },
+    boss: { dark: "#4b0909", mid: "#b32626", deep: "#310505", frame: "#f2c94c" },
+    locked: { dark: "#050505", mid: "#292929", deep: "#010101", frame: "#9b9b9b" }
+  }[kind] || { dark: "#3b2416", mid: "#7a4a28", deep: "#2f1c12", frame: "#cda14d" };
   const grad = c.createLinearGradient(0, 0, tex.width, 0);
-  grad.addColorStop(0, "#3b2416");
-  grad.addColorStop(.5, "#7a4a28");
-  grad.addColorStop(1, "#2f1c12");
+  grad.addColorStop(0, palette.dark);
+  grad.addColorStop(.5, palette.mid);
+  grad.addColorStop(1, palette.deep);
   c.fillStyle = grad;
   c.fillRect(0, 0, tex.width, tex.height);
 
@@ -684,11 +698,11 @@ export function makeDoorTexture() {
   c.fillRect(0, 0, tex.width, 10);
   c.fillRect(0, tex.height - 12, tex.width, 12);
 
-  c.strokeStyle = "rgba(226,178,92,.34)";
+  c.strokeStyle = palette.frame;
   c.lineWidth = 4;
   c.strokeRect(12, 14, tex.width - 24, tex.height - 28);
 
-  c.fillStyle = "#cda14d";
+  c.fillStyle = palette.frame;
   c.beginPath();
   c.arc(tex.width * .73, tex.height * .52, 5, 0, Math.PI * 2);
   c.fill();

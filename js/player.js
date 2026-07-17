@@ -15,6 +15,7 @@ import {
   openDoorOnCell,
   openDoor,
   closeDoor,
+  getDoorKind,
   getNpcAt,
   removeNpcAt
 } from "./dungeon.js";
@@ -146,7 +147,14 @@ export function tryMove(amount, automated = false) {
   const currentDir = amount > 0 ? DIRS[state.dir] : DIRS[(state.dir + 2) % 4];
   if (closedDoorOnCell(state.gridX, state.gridY, currentDir.key)) {
     state.shake = amount > 0 ? -12 : 9;
-    hooks.say("扉がある。\n＊Aボタンで開く");
+    const doorKind = getDoorKind(state.gridX, state.gridY, currentDir.key);
+    if (doorKind === "boss") {
+      hooks.say("＊ボス部屋用扉（未実装）Aボタンで開く");
+    } else if (doorKind === "locked") {
+      hooks.say("＊施錠扉（未実装）Aボタンで開く");
+    } else {
+      hooks.say("扉がある。\n＊Aボタンで開く");
+    }
     return;
   }
   if (wallOnCell(state.gridX, state.gridY, currentDir.key)) {

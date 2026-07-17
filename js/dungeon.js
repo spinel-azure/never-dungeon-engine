@@ -6,7 +6,9 @@
   DIRS,
   DIR_BY_KEY,
   EXTRA_OPENINGS,
-  NORMAL_DOOR_COUNT
+  NORMAL_DOOR_COUNT,
+  BOSS_DOOR_COUNT,
+  LOCKED_DOOR_COUNT
 } from "./config.js";
 import { getNpcById } from "../data/npcs.js";
 
@@ -21,7 +23,8 @@ export function makeCells(w, h) {
       type: "floor",
       npc: null,
       walls: { N: true, E: true, S: true, W: true },
-      doors: { N: null, E: null, S: null, W: null }
+      doors: { N: null, E: null, S: null, W: null },
+      doorKinds: { N: null, E: null, S: null, W: null }
     }))
   );
 }
@@ -61,6 +64,7 @@ export function resetAllWalls() {
       cells[y][x].npc = null;
       cells[y][x].walls = { N: true, E: true, S: true, W: true };
       cells[y][x].doors = { N: null, E: null, S: null, W: null };
+      cells[y][x].doorKinds = { N: null, E: null, S: null, W: null };
     }
   }
 }
@@ -155,9 +159,15 @@ export function placeNormalDoors(count = NORMAL_DOOR_COUNT) {
     }
   }
 
-  shuffled(candidates).slice(0, count).forEach(door => {
+  const selected = shuffled(candidates).slice(0, count + BOSS_DOOR_COUNT + LOCKED_DOOR_COUNT);
+  selected.forEach((door, index) => {
+    const kind = index < count
+      ? "normal"
+      : index < count + BOSS_DOOR_COUNT
+        ? "boss"
+        : "locked";
     setWall(door.x, door.y, door.dir, true);
-    setDoor(door.x, door.y, door.dir, "closed");
+    setDoor(door.x, door.y, door.dir, "closed", kind);
   });
 }
 
@@ -165,6 +175,7 @@ export function resetDoors() {
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
       cells[y][x].doors = { N: null, E: null, S: null, W: null };
+      cells[y][x].doorKinds = { N: null, E: null, S: null, W: null };
     }
   }
 }
@@ -287,13 +298,17 @@ export function setWall(x, y, dirKey, value) {
   if (inBounds(nx, ny)) cells[ny][nx].walls[dir.opposite] = value;
 }
 
-export function setDoor(x, y, dirKey, value) {
+export function setDoor(x, y, dirKey, value, kind = null) {
   if (!inBounds(x, y)) return;
   const dir = DIR_BY_KEY[dirKey];
   cells[y][x].doors[dirKey] = value;
+  if (kind) cells[y][x].doorKinds[dirKey] = kind;
   const nx = x + dir.dx;
   const ny = y + dir.dy;
-  if (inBounds(nx, ny)) cells[ny][nx].doors[dir.opposite] = value;
+  if (inBounds(nx, ny)) {
+    cells[ny][nx].doors[dir.opposite] = value;
+    if (kind) cells[ny][nx].doorKinds[dir.opposite] = kind;
+  }
 }
 
 export function getDoorState(x, y, dirKey) {
@@ -301,12 +316,17 @@ export function getDoorState(x, y, dirKey) {
   return cells[y][x].doors[dirKey];
 }
 
+export function getDoorKind(x, y, dirKey) {
+  if (!inBounds(x, y)) return null;
+  return cells[y][x].doorKinds[dirKey];
+}
+
 export function closedDoorOnCell(x, y, dirKey) {
   return getDoorState(x, y, dirKey) === "closed";
 }
 
 export function lockedDoorOnCell(x, y, dirKey) {
-  return getDoorState(x, y, dirKey) === "locked";
+  return getDoorKind(x, y, dirKey) === "locked" && closedDoorOnCell(x, y, dirKey);
 }
 
 export function openDoorOnCell(x, y, dirKey) {

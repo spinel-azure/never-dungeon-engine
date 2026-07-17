@@ -8,6 +8,8 @@ export const STEP_MS = 170;
 export const TURN_MS = 150;
 export const EXTRA_OPENINGS = 14;
 export const NORMAL_DOOR_COUNT = 6;
+export const BOSS_DOOR_COUNT = 1;
+export const LOCKED_DOOR_COUNT = 1;
 export const START_X = 1;
 export const START_Y = 1;
 
