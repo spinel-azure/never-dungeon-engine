@@ -1,8 +1,14 @@
+import { drawQuarteredShieldIcon } from "./icons/quartered-shield.js";
+import { drawStrengthIcon } from "./icons/strength.js";
 import { drawTorchIcon } from "./icons/torch.js";
 import { drawUnknownIcon } from "./icons/unknown.js";
+import { drawVitalHeartIcon } from "./icons/vital-heart.js";
 
 const iconDrawers = new Map([
+  ["strength", drawStrengthIcon],
+  ["quartered-shield", drawQuarteredShieldIcon],
   ["torch", drawTorchIcon],
+  ["vital-heart", drawVitalHeartIcon],
   ["unknown", drawUnknownIcon],
 ]);
 

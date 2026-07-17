@@ -1,4 +1,19 @@
 export const CARD_EFFECTS = Object.freeze({
+  strengthUp: Object.freeze({
+    id: "strength_up",
+    nameJa: "腕力上昇",
+    descriptionJa: "STR+3",
+  }),
+  defenseUp: Object.freeze({
+    id: "defense_up",
+    nameJa: "防御力上昇",
+    descriptionJa: "DEF+5",
+  }),
+  maxHpPercentUp: Object.freeze({
+    id: "max_hp_percent_up",
+    nameJa: "最大HP割合上昇",
+    descriptionJa: "MAX HP+10%",
+  }),
   unlimitedTorchGauge: Object.freeze({
     id: "unlimited_torch_gauge",
     nameJa: "たいまつゲージ無制限",

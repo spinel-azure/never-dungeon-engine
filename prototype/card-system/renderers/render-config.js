@@ -12,7 +12,7 @@ export const RENDER_CACHE_LIMITS = Object.freeze({
   cards: 96,
 });
 
-export const RENDER_DESIGN_REVISION = "card-system-2026-07-17-a";
+export const RENDER_DESIGN_REVISION = "card-system-2026-07-17-b";
 export const GALLERY_MAX_FPS = 30;
 
 export function normalizeIconRenderSize(requestedSize) {
