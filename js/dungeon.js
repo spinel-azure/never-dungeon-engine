@@ -317,6 +317,10 @@ export function openDoor(x, y, dirKey) {
   if (closedDoorOnCell(x, y, dirKey)) setDoor(x, y, dirKey, "open");
 }
 
+export function closeDoor(x, y, dirKey) {
+  if (openDoorOnCell(x, y, dirKey)) setDoor(x, y, dirKey, "closed");
+}
+
 export function inBounds(x, y) {
   return x >= 0 && y >= 0 && x < MAP_W && y < MAP_H;
 }

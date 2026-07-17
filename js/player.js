@@ -12,7 +12,9 @@ import {
   inBounds,
   wallOnCell,
   closedDoorOnCell,
+  openDoorOnCell,
   openDoor,
+  closeDoor,
   getNpcAt,
   removeNpcAt
 } from "./dungeon.js";
@@ -121,6 +123,9 @@ export function updateAnimation(now) {
           updateNpcAwareness();
         }
       }
+      if (a.crossedDoor) {
+        closeDoor(a.crossedDoor.x, a.crossedDoor.y, a.crossedDoor.dirKey);
+      }
     } else if (a.type === "turn") {
       state.dir = a.toDir;
       state.angle = DIRS[state.dir].angle;
@@ -157,6 +162,9 @@ export function tryMove(amount, automated = false) {
     return;
   }
   state.stairsPromptDismissed = false;
+  const crossedDoor = openDoorOnCell(state.gridX, state.gridY, currentDir.key)
+    ? { x: state.gridX, y: state.gridY, dirKey: currentDir.key }
+    : null;
   state.anim = {
     type: "move",
     start: performance.now(),
@@ -169,7 +177,8 @@ export function tryMove(amount, automated = false) {
     toY: ny + .5,
     toGX: nx,
     toGY: ny,
-    cellType: getCellType(nx, ny)
+    cellType: getCellType(nx, ny),
+    crossedDoor
   };
   state.shake = amount > 0 ? 3 : -2;
 }

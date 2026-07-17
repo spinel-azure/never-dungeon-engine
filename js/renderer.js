@@ -234,7 +234,10 @@ export function drawBoundaryWalls() {
     ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
 
     if (hit.type === "door" && hit.doorState === "open") {
-      ctx.fillStyle = "rgba(197,161,77,.68)";
+      const doorU = getOpenDoorSample(hit.u);
+      const doorSampleX = Math.floor(doorU * doorTexture.width) % doorTexture.width;
+      ctx.drawImage(doorTexture, doorSampleX, 0, 1, doorTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
+      ctx.fillStyle = "rgba(0,0,0,.28)";
       ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
     } else if (hit.type === "door" && isDoorPanelSample(hit.u)) {
       const doorU = normalizeDoorSample(hit.u);
@@ -709,7 +712,7 @@ export function isEdgeSample(u) {
 }
 
 export function isDoorEdgeSample(u) {
-  return u < 0.12 || u > 0.88 || (u > .47 && u < .53);
+  return u < 0.12 || u > 0.88;
 }
 
 export function isDoorPanelSample(u) {
@@ -717,7 +720,7 @@ export function isDoorPanelSample(u) {
 }
 
 export function isDoorPanelEdgeSample(u) {
-  return (u > 0.28 && u < 0.31) || (u > 0.69 && u < 0.72) || (u > .49 && u < .51);
+  return (u > 0.28 && u < 0.31) || (u > 0.69 && u < 0.72);
 }
 
 export function normalizeDoorSample(u) {
@@ -747,5 +750,9 @@ export function getSlidingDoorSample(doorU, opening) {
 }
 
 export function isOpenDoorFrameSample(u) {
-  return (u >= .28 && u <= .31) || (u >= .69 && u <= .72);
+  return (u >= .28 && u <= .31) || u >= .69;
+}
+
+export function getOpenDoorSample(u) {
+  return Math.max(0, Math.min(1, (u - .69) / .44));
 }
