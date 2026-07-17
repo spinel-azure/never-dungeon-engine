@@ -258,7 +258,7 @@ export function handleOverlayEventInput(action) {
     else if (state.overlayEvent.type === "randomEncounter") confirmRandomEncounter();
     return true;
   }
-  return true;
+  return false;
 }
 
 export function startRandomEncounterNotice() {
