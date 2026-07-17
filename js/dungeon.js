@@ -14,6 +14,25 @@ import { getNpcById } from "../data/npcs.js";
 
 export const cells = makeCells(MAP_W, MAP_H);
 export const explored = makeExplored(MAP_W, MAP_H);
+let startPosition = { x: START_X, y: START_Y };
+
+export function getStartPosition() {
+  return { ...startPosition };
+}
+
+export function setStartPosition(x, y) {
+  if (!inBounds(x, y)) return false;
+  startPosition = { x, y };
+  return true;
+}
+
+export function randomizeStartPosition() {
+  startPosition = {
+    x: Math.floor(Math.random() * MAP_W),
+    y: Math.floor(Math.random() * MAP_H)
+  };
+  return getStartPosition();
+}
 
 export function makeCells(w, h) {
   return Array.from({ length: h }, (_, y) =>
@@ -44,10 +63,11 @@ export function resetExplored() {
 }
 
 export function buildBoundaryWallMap() {
+  const { x: startX, y: startY } = startPosition;
   resetAllWalls();
   carvePerfectMaze();
   addLoopOpenings(EXTRA_OPENINGS);
-  if (countReachableCells(START_X, START_Y) !== MAP_W * MAP_H) {
+  if (countReachableCells(startX, startY) !== MAP_W * MAP_H) {
     resetAllWalls();
     carvePerfectMaze();
     addLoopOpenings(EXTRA_OPENINGS);
@@ -70,24 +90,26 @@ export function resetAllWalls() {
 }
 
 export function placeStairs() {
+  const { x: startX, y: startY } = startPosition;
   resetCellTypes();
-  cells[START_Y][START_X].type = "stairsUp";
+  cells[startY][startX].type = "stairsUp";
   const stairsDown = findFarthestReachableCell(7);
   if (stairsDown) cells[stairsDown.y][stairsDown.x].type = "stairsDown";
 }
 
 export function placeNpc() {
+  const { x: startX, y: startY } = startPosition;
   resetNpcs();
-  const distances = makeDistanceMap(START_X, START_Y);
+  const distances = makeDistanceMap(startX, startY);
   const candidates = [];
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
-      if (x === START_X && y === START_Y) continue;
+      if (x === startX && y === startY) continue;
       if (cells[y][x].type !== "floor") continue;
       if (distances[y][x] < 4) continue;
       // NPCs currently behave as impassable cells. Reject placements that
       // would disconnect any other cell from the dungeon entrance.
-      if (countReachableCells(START_X, START_Y, { x, y }) !== MAP_W * MAP_H - 1) continue;
+      if (countReachableCells(startX, startY, { x, y }) !== MAP_W * MAP_H - 1) continue;
       candidates.push({ x, y, distance: distances[y][x] });
     }
   }
@@ -113,13 +135,14 @@ export function removeNpcAt(x, y) {
 }
 
 export function findFarthestReachableCell(minDistance = 7) {
-  const distances = makeDistanceMap(START_X, START_Y);
+  const { x: startX, y: startY } = startPosition;
+  const distances = makeDistanceMap(startX, startY);
   let farthest = null;
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
       const distance = distances[y][x];
       if (distance < minDistance) continue;
-      if (x === START_X && y === START_Y) continue;
+      if (x === startX && y === startY) continue;
       if (!farthest || distance > farthest.distance) {
         farthest = { x, y, distance };
       }
@@ -141,8 +164,9 @@ export function resetNpcs() {
 }
 
 export function placeNormalDoors(count = NORMAL_DOOR_COUNT) {
+  const { x: startX, y: startY } = startPosition;
   resetDoors();
-  const distances = makeDistanceMap(START_X, START_Y);
+  const distances = makeDistanceMap(startX, startY);
   const candidates = [];
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
@@ -206,9 +230,10 @@ export function makeDistanceMap(startX, startY) {
 }
 
 export function carvePerfectMaze() {
+  const { x: startX, y: startY } = startPosition;
   const visited = Array.from({ length: MAP_H }, () => Array.from({ length: MAP_W }, () => false));
-  const stack = [{ x: START_X, y: START_Y }];
-  visited[START_Y][START_X] = true;
+  const stack = [{ x: startX, y: startY }];
+  visited[startY][startX] = true;
 
   while (stack.length) {
     const current = stack[stack.length - 1];
@@ -282,9 +307,10 @@ export function shuffled(items) {
 }
 
 export function chooseStartDirection() {
+  const { x: startX, y: startY } = startPosition;
   for (const key of ["S", "E", "N", "W"]) {
     const dirIndex = DIRS.findIndex(dir => dir.key === key);
-    if (dirIndex >= 0 && !wallOnCell(START_X, START_Y, key)) return dirIndex;
+    if (dirIndex >= 0 && !wallOnCell(startX, startY, key)) return dirIndex;
   }
   return 2;
 }

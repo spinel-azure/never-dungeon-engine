@@ -13,7 +13,9 @@ import {
   closedDoorOnCell,
   openDoorOnCell,
   getDoorState,
-  getDoorKind
+  getDoorKind,
+  setStartPosition,
+  randomizeStartPosition
 } from "./dungeon.js";
 import {
   state,
@@ -57,6 +59,7 @@ import {
   const W = canvas.width;
 
 
+  randomizeStartPosition();
   buildBoundaryWallMap();
   let startDir = chooseStartDirection();
 
@@ -116,8 +119,10 @@ import {
   configureAutoReturn({ autoReturnBtn, say });
   configurePlayer({ say, cancelAutoReturn, continueAutoReturn, messageFor, descendFloor });
 
-  function resetDungeon(message = "") {
+  function resetDungeon(message = "", nextStart = null) {
     cancelAutoReturn(false);
+    if (nextStart) setStartPosition(nextStart.x, nextStart.y);
+    else randomizeStartPosition();
     buildBoundaryWallMap();
     startDir = chooseStartDirection();
     resetExplored();
@@ -133,8 +138,9 @@ import {
   }
 
   function descendFloor() {
+    const nextStart = { x: state.gridX, y: state.gridY };
     currentDepth += 1;
-    resetDungeon(`B${currentDepth}Fへ降りた。`);
+    resetDungeon(`B${currentDepth}Fへ降りた。`, nextStart);
   }
 
   function updateHud() {

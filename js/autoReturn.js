@@ -1,10 +1,9 @@
 ﻿import {
-  START_X,
-  START_Y,
   DIRS
 } from "./config.js";
 import {
   explored,
+  getStartPosition,
   inBounds,
   wallOnCell
 } from "./dungeon.js";
@@ -25,8 +24,9 @@ export function configureAutoReturn(config) {
 }
 
 export function startAutoReturn() {
+  const start = getStartPosition();
   if (state.anim) return;
-  if (state.gridX === START_X && state.gridY === START_Y) {
+  if (state.gridX === start.x && state.gridY === start.y) {
     options.say("すでにスタート地点にいる。");
     return;
   }
@@ -43,8 +43,9 @@ export function startAutoReturn() {
 }
 
 export function continueAutoReturn() {
+  const start = getStartPosition();
   if (!state.autoReturning || state.anim) return;
-  if (state.gridX === START_X && state.gridY === START_Y) {
+  if (state.gridX === start.x && state.gridY === start.y) {
     cancelAutoReturn(true);
     return;
   }
@@ -82,8 +83,9 @@ export function updateAutoReturnButton() {
 }
 
 export function findExploredPathToStart() {
+  const start = getStartPosition();
   const startKey = `${state.gridX},${state.gridY}`;
-  const goalKey = `${START_X},${START_Y}`;
+  const goalKey = `${start.x},${start.y}`;
   const queue = [{ x: state.gridX, y: state.gridY }];
   const prev = new Map([[startKey, null]]);
 

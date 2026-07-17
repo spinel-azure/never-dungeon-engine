@@ -2,8 +2,6 @@
   TAU,
   STEP_MS,
   TURN_MS,
-  START_X,
-  START_Y,
   DIRS
 } from "./config.js";
 import {
@@ -16,6 +14,7 @@ import {
   openDoor,
   closeDoor,
   getDoorKind,
+  getStartPosition,
   getNpcAt,
   removeNpcAt
 } from "./dungeon.js";
@@ -43,12 +42,13 @@ export function configurePlayer(callbacks) {
 }
 
 export function createPlayerState(startDir) {
+  const start = getStartPosition();
   return {
-    gridX: START_X,
-    gridY: START_Y,
+    gridX: start.x,
+    gridY: start.y,
     dir: startDir,
-    x: START_X + .5,
-    y: START_Y + .5,
+    x: start.x + .5,
+    y: start.y + .5,
     angle: DIRS[startDir].angle,
     anim: null,
     shake: 0,
@@ -64,12 +64,13 @@ export function createPlayerState(startDir) {
 }
 
 export function resetPlayer(startDir) {
+  const start = getStartPosition();
   state.anim = null;
-  state.gridX = START_X;
-  state.gridY = START_Y;
+  state.gridX = start.x;
+  state.gridY = start.y;
   state.dir = startDir;
-  state.x = START_X + .5;
-  state.y = START_Y + .5;
+  state.x = start.x + .5;
+  state.y = start.y + .5;
   state.angle = DIRS[startDir].angle;
   state.shake = 0;
   state.torchFuel = TORCH_FUEL_MAX;
@@ -77,7 +78,7 @@ export function resetPlayer(startDir) {
   state.overlayEvent = null;
   state.npcAwarenessShown = false;
   state.stairsPromptDismissed = false;
-  markExplored(START_X, START_Y);
+  markExplored(start.x, start.y);
 }
 
 export function refillTorch() {
