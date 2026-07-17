@@ -16,6 +16,7 @@
   handleMenuInput
 }) {
   window.addEventListener("keydown", (e) => {
+    if (handleOverlayInput("dismiss")) { e.preventDefault(); return; }
     if (e.key === "ArrowUp" && handleMenuInput("up")) { e.preventDefault(); return; }
     if (e.key === "ArrowDown" && handleMenuInput("down")) { e.preventDefault(); return; }
     if (e.key === "ArrowLeft" && handleMenuInput("left")) { e.preventDefault(); return; }
@@ -28,12 +29,12 @@
     if (e.key === "ArrowRight") { e.preventDefault(); manualTurn(1); }
   }, { passive: false });
 
-  bindControl(forwardBtn, () => manualMove(1));
-  bindControl(backBtn, () => manualMove(-1));
-  bindControl(leftBtn, () => manualTurn(-1));
-  bindControl(rightBtn, () => manualTurn(1));
-  bindControl(autoReturnBtn, startAutoReturn);
-  bindControl(randomGenerateBtn, generateRandomDungeon);
+  bindControl(forwardBtn, () => handleOverlayInput("dismiss") || manualMove(1));
+  bindControl(backBtn, () => handleOverlayInput("dismiss") || manualMove(-1));
+  bindControl(leftBtn, () => handleOverlayInput("dismiss") || manualTurn(-1));
+  bindControl(rightBtn, () => handleOverlayInput("dismiss") || manualTurn(1));
+  bindControl(autoReturnBtn, () => handleOverlayInput("dismiss") || startAutoReturn());
+  bindControl(randomGenerateBtn, () => handleOverlayInput("dismiss") || generateRandomDungeon());
   bindControl(buttonA, () => handleOverlayInput("confirm") || handleMenuInput("confirm") || handleDoorInput());
   bindControl(buttonB, () => handleOverlayInput("cancel") || handleMenuInput("cancel"));
   configureTouchGuards();

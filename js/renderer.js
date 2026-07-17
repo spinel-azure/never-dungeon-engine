@@ -18,6 +18,7 @@ const renderer = {
   openDoorOnCell: () => false,
   getDoorState: () => null,
   getDoorKind: () => null,
+  handleOverlayInput: () => false,
   inBounds: () => false,
   updateAnimation: () => {},
   updateHud: () => {},
@@ -38,6 +39,9 @@ export function configureRenderer(options) {
   if (renderer.eventOverlayCanvas) {
     renderer.eventOverlayCanvas.width = renderer.W;
     renderer.eventOverlayCanvas.height = renderer.H;
+    renderer.eventOverlayCanvas.addEventListener("pointerup", () => {
+      renderer.handleOverlayInput("dismiss");
+    });
   }
   renderer.wallTexture = makeWallTexture();
   renderer.doorTextures = {
@@ -77,7 +81,8 @@ export function drawScene(now) {
     roundRect
   });
   if (renderer.minimapOverlayVisible) drawMinimapOverlay();
-  if (state.overlayEvent?.type === "randomEncounter") drawEncounterMessage();
+  if (state.overlayEvent?.type === "floorLap") drawFloorLapMessage();
+  else if (state.overlayEvent?.type === "randomEncounter") drawEncounterMessage();
   else if (state.torchFuel <= 0) drawDarknessMessage();
   ctx.restore();
   drawFrame();
@@ -166,11 +171,31 @@ function drawEncounterMessage() {
   ctx.restore();
 }
 
+function drawFloorLapMessage() {
+  const { ctx, W, H, state } = renderer;
+  const lines = state.overlayEvent?.overlayMessage?.split("\n") || [];
+  if (!lines.length) return;
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,.8)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#f0eadc";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `700 ${Math.max(24, Math.floor(H * .063))}px GameFont, sans-serif`;
+  const lineHeight = Math.max(42, H * .09);
+  lines.forEach((line, index) => {
+    const offset = (index - (lines.length - 1) / 2) * lineHeight;
+    ctx.fillText(line, W / 2, H / 2 + offset);
+  });
+  ctx.restore();
+}
+
 function drawOverlayEvent() {
   const { eventOverlayCtx: ctx, W, H, state } = renderer;
   if (!ctx) return;
   ctx.clearRect(0, 0, W, H);
   const event = state.overlayEvent;
+  renderer.eventOverlayCanvas.style.pointerEvents = event?.type === "floorLap" ? "auto" : "none";
   if (!event?.showOverlay) return;
   if (event.type === "randomEncounter") return;
   const image = event.imageId ? renderer.characterImages.get(event.imageId) : null;

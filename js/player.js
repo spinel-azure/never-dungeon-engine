@@ -243,6 +243,11 @@ export function openDoorAhead() {
 
 export function handleOverlayEventInput(action) {
   if (!state.overlayEvent) return false;
+  if (state.overlayEvent.type === "floorLap") {
+    state.overlayEvent = null;
+    hooks.say("");
+    return true;
+  }
   if (action === "cancel") {
     cancelOverlayEvent();
     return true;
@@ -262,6 +267,14 @@ export function startRandomEncounterNotice() {
     showOverlay: true,
     overlayMessage: "＊　なにものかと　そうぐうした！　＊",
     message: "戦闘は未実装です。（Aボタンで次へ）"
+  });
+}
+
+export function startFloorLapNotice(depth, lapTime) {
+  startOverlayEvent({
+    type: "floorLap",
+    showOverlay: false,
+    overlayMessage: `＊　B${depth}F　＊\n＊　LAP TIME ${lapTime}　＊`
   });
 }
 

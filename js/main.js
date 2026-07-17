@@ -28,7 +28,8 @@ import {
   openDoorAhead,
   handleOverlayEventInput,
   resumeDismissedStairsPrompt,
-  startRandomEncounterNotice
+  startRandomEncounterNotice,
+  startFloorLapNotice
 } from "./player.js";
 import { configureRenderer, startRenderLoop } from "./renderer.js";
 import { drawMinimap, getMinimapBounds } from "./minimap.js";
@@ -58,6 +59,7 @@ import {
   const eventOverlayCtx = eventOverlayCanvas.getContext("2d");
   const W = canvas.width;
   let runStartedAt = performance.now();
+  let floorStartedAt = runStartedAt;
 
 
   randomizeStartPosition();
@@ -104,6 +106,7 @@ import {
     getDoorState,
     getDoorKind,
     inBounds,
+    handleOverlayInput: handleOverlayEventInput,
     updateAnimation,
     updateHud,
     drawMinimap,
@@ -123,7 +126,10 @@ import {
 
   function resetDungeon(message = "", nextStart = null, resetTimer = false) {
     cancelAutoReturn(false);
-    if (resetTimer) runStartedAt = performance.now();
+    if (resetTimer) {
+      runStartedAt = performance.now();
+      floorStartedAt = runStartedAt;
+    }
     if (nextStart) setStartPosition(nextStart.x, nextStart.y);
     else randomizeStartPosition();
     buildBoundaryWallMap();
@@ -141,9 +147,13 @@ import {
   }
 
   function descendFloor() {
+    const descendedAt = performance.now();
+    const lapTime = formatElapsedTime(descendedAt - floorStartedAt);
     const nextStart = { x: state.gridX, y: state.gridY };
     currentDepth += 1;
-    resetDungeon(`B${currentDepth}Fへ降りた。`, nextStart);
+    floorStartedAt = descendedAt;
+    resetDungeon("", nextStart);
+    startFloorLapNotice(currentDepth, lapTime);
   }
 
   function updateHud() {
