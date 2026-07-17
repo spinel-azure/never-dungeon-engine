@@ -22,6 +22,7 @@ import {
   updateAnimation,
   manualMove,
   manualTurn,
+  openDoorAhead,
   handleOverlayEventInput,
   resumeDismissedStairsPrompt,
   startRandomEncounterNotice
@@ -62,6 +63,8 @@ import {
 
 
   const posEl = document.getElementById("pos");
+  const depthEl = document.getElementById("depth");
+  const brandEl = document.querySelector(".brand");
   const msgEl = document.getElementById("message");
   const torchMeterEl = document.getElementById("torchMeter");
   const presenceMeterEl = document.getElementById("presenceMeter");
@@ -76,6 +79,7 @@ import {
   const buttonA = document.getElementById("buttonA");
   const buttonB = document.getElementById("buttonB");
   const menuScreen = document.getElementById("menuScreen");
+  let currentDepth = 1;
   configureDevice();
   configureEvents({ messageEl: msgEl });
   configurePresence({
@@ -108,9 +112,9 @@ import {
     getMinimapBounds
   });
   configureAutoReturn({ autoReturnBtn, say });
-  configurePlayer({ say, cancelAutoReturn, continueAutoReturn, messageFor });
+  configurePlayer({ say, cancelAutoReturn, continueAutoReturn, messageFor, descendFloor });
 
-  function generateRandomDungeon() {
+  function resetDungeon(message = "") {
     cancelAutoReturn(false);
     buildBoundaryWallMap();
     startDir = chooseStartDirection();
@@ -119,10 +123,22 @@ import {
     resetPresence();
     updateAutoReturnButton();
     updateHud();
+    if (message) say(message);
+  }
+
+  function generateRandomDungeon() {
+    resetDungeon();
+  }
+
+  function descendFloor() {
+    currentDepth += 1;
+    resetDungeon(`B${currentDepth}Fへ降りた。`);
   }
 
   function updateHud() {
     posEl.textContent = `X:${state.gridX} Y:${state.gridY}`;
+    depthEl.textContent = `B${currentDepth}F`;
+    brandEl.textContent = `RANDOM MAZE TEST B${currentDepth}F`;
     drawCompass();
     torchMeterEl.style.width = `${state.torchFuel}%`;
     const presence = getPresence();
@@ -144,6 +160,7 @@ import {
     buttonA,
     buttonB,
     handleOverlayInput: handleOverlayEventInput,
+    handleDoorInput: openDoorAhead,
     handleMenuInput
   });
   configureMenu({

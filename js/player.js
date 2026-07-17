@@ -23,7 +23,8 @@ const hooks = {
   say: () => {},
   cancelAutoReturn: () => {},
   continueAutoReturn: () => {},
-  messageFor: () => ""
+  messageFor: () => "",
+  descendFloor: () => {}
 };
 
 const NPC_AWARENESS_MESSAGE = "前方に何かいるようだ";
@@ -139,16 +140,8 @@ export function tryMove(amount, automated = false) {
   if (!automated) hooks.cancelAutoReturn(false);
   const currentDir = amount > 0 ? DIRS[state.dir] : DIRS[(state.dir + 2) % 4];
   if (closedDoorOnCell(state.gridX, state.gridY, currentDir.key)) {
-    state.anim = {
-      type: "door",
-      start: performance.now(),
-      duration: DOOR_OPEN_MS,
-      x: state.gridX,
-      y: state.gridY,
-      dirKey: currentDir.key
-    };
-    state.shake = amount > 0 ? -3 : 3;
-    hooks.say("ギィ……");
+    state.shake = amount > 0 ? -12 : 9;
+    hooks.say("扉がある。\n＊Aボタンで開く");
     return;
   }
   if (wallOnCell(state.gridX, state.gridY, currentDir.key)) {
@@ -214,6 +207,22 @@ export function manualTurn(amount) {
   if (!state.anim) turn(amount);
 }
 
+export function openDoorAhead() {
+  if (state.overlayEvent || state.anim || state.autoReturning) return false;
+  const dir = DIRS[state.dir];
+  if (!closedDoorOnCell(state.gridX, state.gridY, dir.key)) return false;
+  state.anim = {
+    type: "door",
+    start: performance.now(),
+    duration: DOOR_OPEN_MS,
+    x: state.gridX,
+    y: state.gridY,
+    dirKey: dir.key
+  };
+  hooks.say("ギィ……");
+  return true;
+}
+
 export function handleOverlayEventInput(action) {
   if (!state.overlayEvent) return false;
   if (action === "cancel") {
@@ -248,6 +257,7 @@ function startStairsPrompt(cellType) {
   state.stairsPromptDismissed = false;
   startOverlayEvent({
     type: "stairsPrompt",
+    cellType,
     showOverlay: false,
     message: hooks.messageFor(state.gridX, state.gridY, cellType),
     canCancel: true
@@ -255,9 +265,14 @@ function startStairsPrompt(cellType) {
 }
 
 function confirmStairsPrompt() {
+  const cellType = state.overlayEvent?.cellType;
   state.stairsPromptDismissed = false;
   state.overlayEvent = null;
-  hooks.say("まだ実装されていません。");
+  if (cellType === "stairsDown") {
+    hooks.descendFloor();
+    return;
+  }
+  hooks.say("地上への帰還はまだ実装されていません。");
 }
 
 export function resumeDismissedStairsPrompt() {

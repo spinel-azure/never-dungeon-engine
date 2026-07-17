@@ -12,6 +12,7 @@
   buttonA,
   buttonB,
   handleOverlayInput = () => false,
+  handleDoorInput = () => false,
   handleMenuInput
 }) {
   window.addEventListener("keydown", (e) => {
@@ -19,7 +20,7 @@
     if (e.key === "ArrowDown" && handleMenuInput("down")) { e.preventDefault(); return; }
     if (e.key === "ArrowLeft" && handleMenuInput("left")) { e.preventDefault(); return; }
     if (e.key === "ArrowRight" && handleMenuInput("right")) { e.preventDefault(); return; }
-    if (e.code === "KeyX" && (handleOverlayInput("confirm") || handleMenuInput("confirm"))) { e.preventDefault(); return; }
+    if (e.code === "KeyX" && (handleOverlayInput("confirm") || handleMenuInput("confirm") || handleDoorInput())) { e.preventDefault(); return; }
     if (e.code === "KeyZ" && (handleOverlayInput("cancel") || handleMenuInput("cancel"))) { e.preventDefault(); return; }
     if (e.key === "ArrowUp") { e.preventDefault(); manualMove(1); }
     if (e.key === "ArrowDown") { e.preventDefault(); manualMove(-1); }
@@ -33,7 +34,7 @@
   bindControl(rightBtn, () => manualTurn(1));
   bindControl(autoReturnBtn, startAutoReturn);
   bindControl(randomGenerateBtn, generateRandomDungeon);
-  bindControl(buttonA, () => handleOverlayInput("confirm") || handleMenuInput("confirm"));
+  bindControl(buttonA, () => handleOverlayInput("confirm") || handleMenuInput("confirm") || handleDoorInput());
   bindControl(buttonB, () => handleOverlayInput("cancel") || handleMenuInput("cancel"));
   configureTouchGuards();
 }

@@ -233,14 +233,17 @@ export function drawBoundaryWalls() {
     ctx.fillStyle = `rgba(0,0,0,${1 - light})`;
     ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
 
-    if (hit.type === "door" && isDoorPanelSample(hit.u)) {
+    if (hit.type === "door" && hit.doorState === "open") {
+      ctx.fillStyle = "rgba(197,161,77,.68)";
+      ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+    } else if (hit.type === "door" && isDoorPanelSample(hit.u)) {
       const doorU = normalizeDoorSample(hit.u);
       const opening = getDoorOpeningProgress(hit);
       if (isDoorOpeningGap(doorU, opening)) {
         ctx.fillStyle = "rgba(0,0,0,.72)";
         ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
       } else {
-        const doorSampleX = Math.floor(doorU * doorTexture.width) % doorTexture.width;
+        const doorSampleX = Math.floor(getSlidingDoorSample(doorU, opening) * doorTexture.width) % doorTexture.width;
         const doorLight = Math.min(1.12, shade * orientationShade + 0.2 + state.torch);
         ctx.drawImage(doorTexture, doorSampleX, 0, 1, doorTexture.height, x, y1, Math.ceil(colW) + 1, wallH);
         ctx.fillStyle = `rgba(0,0,0,${1 - doorLight})`;
@@ -577,9 +580,13 @@ export function castRay(angle) {
       const dirKey = stepX > 0 ? "E" : "W";
       const dist = sideX;
       const doorState = renderer.getDoorState(cellX, cellY, dirKey);
+      const hitY = state.y + rayY * dist;
+      const hitU = hitY - Math.floor(hitY);
+      if (doorState === "open" && isOpenDoorFrameSample(hitU)) {
+        return makeHit(dist, hitU, dirKey, 0, angle, "door", doorState, cellX, cellY);
+      }
       if (renderer.wallOnCell(cellX, cellY, dirKey)) {
-        const hitY = state.y + rayY * dist;
-        return makeHit(dist, hitY - Math.floor(hitY), dirKey, 0, angle, doorState ? "door" : "wall", doorState, cellX, cellY);
+        return makeHit(dist, hitU, dirKey, 0, angle, doorState ? "door" : "wall", doorState, cellX, cellY);
       }
       cellX += stepX;
       if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 0, angle);
@@ -588,9 +595,13 @@ export function castRay(angle) {
       const dirKey = stepY > 0 ? "S" : "N";
       const dist = sideY;
       const doorState = renderer.getDoorState(cellX, cellY, dirKey);
+      const hitX = state.x + rayX * dist;
+      const hitU = hitX - Math.floor(hitX);
+      if (doorState === "open" && isOpenDoorFrameSample(hitU)) {
+        return makeHit(dist, hitU, dirKey, 1, angle, "door", doorState, cellX, cellY);
+      }
       if (renderer.wallOnCell(cellX, cellY, dirKey)) {
-        const hitX = state.x + rayX * dist;
-        return makeHit(dist, hitX - Math.floor(hitX), dirKey, 1, angle, doorState ? "door" : "wall", doorState, cellX, cellY);
+        return makeHit(dist, hitU, dirKey, 1, angle, doorState ? "door" : "wall", doorState, cellX, cellY);
       }
       cellY += stepY;
       if (!renderer.inBounds(cellX, cellY)) return makeHit(dist, 0, dirKey, 1, angle);
@@ -664,15 +675,6 @@ export function makeDoorTexture() {
   c.fillStyle = grad;
   c.fillRect(0, 0, tex.width, tex.height);
 
-  c.strokeStyle = "rgba(16,9,5,.72)";
-  c.lineWidth = 3;
-  for (let x = 18; x < tex.width; x += 20) {
-    c.beginPath();
-    c.moveTo(x, 0);
-    c.lineTo(x + Math.sin(x) * 2, tex.height);
-    c.stroke();
-  }
-
   c.fillStyle = "rgba(0,0,0,.36)";
   c.fillRect(0, 0, 8, tex.height);
   c.fillRect(tex.width - 8, 0, 8, tex.height);
@@ -688,10 +690,6 @@ export function makeDoorTexture() {
   c.arc(tex.width * .73, tex.height * .52, 5, 0, Math.PI * 2);
   c.fill();
 
-  c.fillStyle = "rgba(255,225,148,.09)";
-  for (let i = 0; i < 80; i++) {
-    c.fillRect(Math.random() * tex.width, Math.random() * tex.height, Math.random() * 2 + .5, 1);
-  }
   return tex;
 }
 
@@ -736,13 +734,18 @@ export function getDoorOpeningProgress(hit) {
 
 export function isDoorOpeningGap(doorU, opening) {
   if (opening <= 0) return false;
-  const halfGap = opening * .46;
-  return Math.abs(doorU - .5) < halfGap;
+  return doorU < opening;
 }
 
 export function isDoorOpeningEdge(doorU, opening) {
   if (opening <= 0) return false;
-  const halfGap = opening * .46;
-  const distance = Math.abs(Math.abs(doorU - .5) - halfGap);
-  return distance < .035;
+  return Math.abs(doorU - opening) < .035;
+}
+
+export function getSlidingDoorSample(doorU, opening) {
+  return Math.max(0, Math.min(1, doorU - opening));
+}
+
+export function isOpenDoorFrameSample(u) {
+  return (u >= .28 && u <= .31) || (u >= .69 && u <= .72);
 }
