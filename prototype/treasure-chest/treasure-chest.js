@@ -28,17 +28,26 @@ const materials = {
 };
 
 const CHEST_TYPES = [
-  { key: "red", label: "RED", outer: 0xf52a18, inner: 0x7f211c },
-  { key: "black", label: "BLACK", outer: 0x111111, inner: 0x030303 },
-  { key: "gold", label: "GOLD", outer: 0xd7a72f, inner: 0x795510 },
+  { key: "red", label: "RED", outer: 0xf52a18, inner: 0x7f211c, glow: 0xffe27a },
+  { key: "black", label: "BLACK", outer: 0x111111, inner: 0x030303, glow: 0xb44cff },
+  { key: "gold", label: "GOLD", outer: 0xd7a72f, inner: 0x795510, glow: 0xfff4b0 },
 ];
 const MAX_LID_ANGLE = 102;
 const EVENT_SPIN_MS = 900;
 const EVENT_OPEN_MS = 460;
+const TREASURE_EFFECT_MS = 1800;
+const PARTICLE_COUNT = 52;
 
 const chest = new THREE.Group();
 scene.add(chest);
 let lidPivot;
+let effectLight;
+let effectGlow;
+let effectRays;
+let effectRayMaterial;
+let effectParticles;
+let effectParticleOrigins;
+let effectParticleVelocities;
 
 const dimensions = {
   width: 3.25,
@@ -49,6 +58,7 @@ const dimensions = {
 };
 
 buildChest();
+buildTreasureEffect();
 
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(10, 10),
@@ -77,15 +87,18 @@ let targetScale = Number(scaleSlider.value) / 100;
 let targetRotation = THREE.MathUtils.degToRad(Number(rotationSlider.value));
 let chestTypeIndex = 0;
 let eventAnimation = null;
+let treasureEffect = null;
 
 openButton.addEventListener("click", () => {
   cancelEventAnimation();
+  stopTreasureEffect();
   targetLidValue = 100;
   lidSlider.value = String(targetLidValue);
 });
 
 closeButton.addEventListener("click", () => {
   cancelEventAnimation();
+  stopTreasureEffect();
   targetLidValue = 0;
   lidSlider.value = String(targetLidValue);
 });
@@ -162,6 +175,85 @@ function addBox(parent, width, height, depth, x, y, z, material) {
   return mesh;
 }
 
+function buildTreasureEffect() {
+  const { bodyHeight } = dimensions;
+
+  effectLight = new THREE.PointLight(0xffe27a, 0, 7, 1.7);
+  effectLight.position.set(0, bodyHeight + 0.35, 0.05);
+  chest.add(effectLight);
+
+  effectGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeGlowTexture(),
+    color: 0xffe27a,
+    transparent: true,
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false,
+  }));
+  effectGlow.position.set(0, bodyHeight + 0.38, 0.08);
+  effectGlow.scale.set(1.4, 1.4, 1);
+  effectGlow.visible = false;
+  chest.add(effectGlow);
+
+  effectRayMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffe27a,
+    transparent: true,
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  effectRays = new THREE.Group();
+  effectRays.position.set(0, bodyHeight + 0.2, 0);
+  for (let index = 0; index < 7; index += 1) {
+    const ray = new THREE.Mesh(
+      new THREE.ConeGeometry(0.22 + Math.random() * 0.12, 2.5 + Math.random() * 0.8, 12, 1, true),
+      effectRayMaterial
+    );
+    ray.position.y = 1.15;
+    ray.rotation.z = THREE.MathUtils.degToRad(-24 + index * 8);
+    ray.rotation.y = THREE.MathUtils.degToRad(index * 51);
+    effectRays.add(ray);
+  }
+  effectRays.visible = false;
+  chest.add(effectRays);
+
+  const particleGeometry = new THREE.BufferGeometry();
+  particleGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(PARTICLE_COUNT * 3), 3));
+  effectParticles = new THREE.Points(
+    particleGeometry,
+    new THREE.PointsMaterial({
+      color: 0xffe27a,
+      size: 0.09,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true,
+    })
+  );
+  effectParticles.visible = false;
+  chest.add(effectParticles);
+  effectParticleOrigins = Array.from({ length: PARTICLE_COUNT }, () => new THREE.Vector3());
+  effectParticleVelocities = Array.from({ length: PARTICLE_COUNT }, () => new THREE.Vector3());
+}
+
+function makeGlowTexture() {
+  const textureCanvas = document.createElement("canvas");
+  textureCanvas.width = 128;
+  textureCanvas.height = 128;
+  const context = textureCanvas.getContext("2d");
+  const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gradient.addColorStop(0, "rgba(255,255,255,1)");
+  gradient.addColorStop(0.2, "rgba(255,255,255,.86)");
+  gradient.addColorStop(0.55, "rgba(255,255,255,.28)");
+  gradient.addColorStop(1, "rgba(255,255,255,0)");
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(textureCanvas);
+}
+
 function resize() {
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -187,12 +279,14 @@ function animate(now = performance.now()) {
 
   const currentScale = chest.scale.x + (targetScale - chest.scale.x) * 0.1;
   chest.scale.setScalar(currentScale);
+  updateTreasureEffect(now);
   updateReadouts(eventAnimation ? currentLidValue : targetLidValue);
 
   renderer.render(scene, camera);
 }
 
 function startEventAnimation() {
+  stopTreasureEffect();
   targetLidValue = 0;
   currentLidValue = 0;
   lidSlider.value = "0";
@@ -223,7 +317,76 @@ function updateEventAnimation(now) {
     currentLidValue = 100;
     lidSlider.value = "100";
     eventAnimation = null;
+    startTreasureEffect(now);
   }
+}
+
+function startTreasureEffect(now) {
+  const positions = effectParticles.geometry.attributes.position;
+  for (let index = 0; index < PARTICLE_COUNT; index += 1) {
+    const origin = effectParticleOrigins[index];
+    origin.set(
+      (Math.random() - 0.5) * 1.45,
+      dimensions.bodyHeight + 0.18 + Math.random() * 0.18,
+      (Math.random() - 0.5) * 0.65
+    );
+    effectParticleVelocities[index].set(
+      (Math.random() - 0.5) * 1.65,
+      1.25 + Math.random() * 1.65,
+      (Math.random() - 0.5) * 1.2
+    );
+    positions.setXYZ(index, origin.x, origin.y, origin.z);
+  }
+  positions.needsUpdate = true;
+  treasureEffect = { start: now };
+  effectGlow.visible = true;
+  effectRays.visible = true;
+  effectParticles.visible = true;
+  applyEffectColor();
+}
+
+function updateTreasureEffect(now) {
+  if (!treasureEffect) return;
+  const elapsed = now - treasureEffect.start;
+  const progress = Math.min(1, elapsed / TREASURE_EFFECT_MS);
+  const seconds = elapsed / 1000;
+  const fade = Math.pow(1 - progress, 1.55);
+  const burst = Math.min(1, progress * 8);
+
+  effectLight.intensity = 8.5 * fade * burst;
+  effectGlow.material.opacity = 0.92 * fade * burst;
+  const glowScale = 1.35 + progress * 3.6;
+  effectGlow.scale.set(glowScale, glowScale, 1);
+  effectRayMaterial.opacity = 0.2 * fade * burst;
+  effectRays.scale.set(0.65 + progress * 0.45, 0.45 + progress * 0.9, 0.65 + progress * 0.45);
+  effectParticles.material.opacity = fade;
+
+  const positions = effectParticles.geometry.attributes.position;
+  for (let index = 0; index < PARTICLE_COUNT; index += 1) {
+    const origin = effectParticleOrigins[index];
+    const velocity = effectParticleVelocities[index];
+    positions.setXYZ(
+      index,
+      origin.x + velocity.x * seconds,
+      origin.y + velocity.y * seconds - 0.42 * seconds * seconds,
+      origin.z + velocity.z * seconds
+    );
+  }
+  positions.needsUpdate = true;
+
+  if (progress >= 1) stopTreasureEffect();
+}
+
+function stopTreasureEffect() {
+  treasureEffect = null;
+  if (!effectLight) return;
+  effectLight.intensity = 0;
+  effectGlow.visible = false;
+  effectGlow.material.opacity = 0;
+  effectRays.visible = false;
+  effectRayMaterial.opacity = 0;
+  effectParticles.visible = false;
+  effectParticles.material.opacity = 0;
 }
 
 function cancelEventAnimation() {
@@ -239,6 +402,16 @@ function applyChestType() {
   materials.inner.color.setHex(type.inner);
   typeValue.textContent = type.label;
   typeButton.setAttribute("aria-label", `Treasure chest type: ${type.label}`);
+  applyEffectColor();
+}
+
+function applyEffectColor() {
+  if (!effectLight) return;
+  const color = CHEST_TYPES[chestTypeIndex].glow;
+  effectLight.color.setHex(color);
+  effectGlow.material.color.setHex(color);
+  effectRayMaterial.color.setHex(color);
+  effectParticles.material.color.setHex(color);
 }
 
 function updateReadouts(displayLidValue = targetLidValue) {
