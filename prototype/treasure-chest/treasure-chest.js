@@ -43,8 +43,6 @@ scene.add(chest);
 let lidPivot;
 let effectLight;
 let effectGlow;
-let effectRays;
-let effectRayMaterial;
 let effectParticles;
 let effectParticleOrigins;
 let effectParticleVelocities;
@@ -196,29 +194,6 @@ function buildTreasureEffect() {
   effectGlow.visible = false;
   chest.add(effectGlow);
 
-  effectRayMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffe27a,
-    transparent: true,
-    opacity: 0,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-  });
-  effectRays = new THREE.Group();
-  effectRays.position.set(0, bodyHeight + 0.2, 0);
-  for (let index = 0; index < 7; index += 1) {
-    const ray = new THREE.Mesh(
-      new THREE.ConeGeometry(0.22 + Math.random() * 0.12, 2.5 + Math.random() * 0.8, 12, 1, true),
-      effectRayMaterial
-    );
-    ray.position.y = 1.15;
-    ray.rotation.z = THREE.MathUtils.degToRad(-24 + index * 8);
-    ray.rotation.y = THREE.MathUtils.degToRad(index * 51);
-    effectRays.add(ray);
-  }
-  effectRays.visible = false;
-  chest.add(effectRays);
-
   const particleGeometry = new THREE.BufferGeometry();
   particleGeometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(PARTICLE_COUNT * 3), 3));
   effectParticles = new THREE.Points(
@@ -340,7 +315,6 @@ function startTreasureEffect(now) {
   positions.needsUpdate = true;
   treasureEffect = { start: now };
   effectGlow.visible = true;
-  effectRays.visible = true;
   effectParticles.visible = true;
   applyEffectColor();
 }
@@ -357,8 +331,6 @@ function updateTreasureEffect(now) {
   effectGlow.material.opacity = 0.92 * fade * burst;
   const glowScale = 1.35 + progress * 3.6;
   effectGlow.scale.set(glowScale, glowScale, 1);
-  effectRayMaterial.opacity = 0.2 * fade * burst;
-  effectRays.scale.set(0.65 + progress * 0.45, 0.45 + progress * 0.9, 0.65 + progress * 0.45);
   effectParticles.material.opacity = fade;
 
   const positions = effectParticles.geometry.attributes.position;
@@ -383,8 +355,6 @@ function stopTreasureEffect() {
   effectLight.intensity = 0;
   effectGlow.visible = false;
   effectGlow.material.opacity = 0;
-  effectRays.visible = false;
-  effectRayMaterial.opacity = 0;
   effectParticles.visible = false;
   effectParticles.material.opacity = 0;
 }
@@ -410,7 +380,6 @@ function applyEffectColor() {
   const color = CHEST_TYPES[chestTypeIndex].glow;
   effectLight.color.setHex(color);
   effectGlow.material.color.setHex(color);
-  effectRayMaterial.color.setHex(color);
   effectParticles.material.color.setHex(color);
 }
 
