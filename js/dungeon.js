@@ -42,6 +42,7 @@ export function makeCells(w, h) {
       type: "floor",
       npc: null,
       treasure: null,
+      treasureDiscovered: false,
       walls: { N: true, E: true, S: true, W: true },
       doors: { N: null, E: null, S: null, W: null },
       doorKinds: { N: null, E: null, S: null, W: null }
@@ -85,6 +86,7 @@ export function resetAllWalls() {
       cells[y][x].type = "floor";
       cells[y][x].npc = null;
       cells[y][x].treasure = null;
+      cells[y][x].treasureDiscovered = false;
       cells[y][x].walls = { N: true, E: true, S: true, W: true };
       cells[y][x].doors = { N: null, E: null, S: null, W: null };
       cells[y][x].doorKinds = { N: null, E: null, S: null, W: null };
@@ -145,6 +147,12 @@ export function getTreasureAt(x, y) {
 export function removeTreasureAt(x, y) {
   if (!inBounds(x, y) || !cells[y][x].treasure) return false;
   cells[y][x].treasure = null;
+  return true;
+}
+
+export function discoverTreasureAt(x, y) {
+  if (!inBounds(x, y) || !cells[y][x].treasure) return false;
+  cells[y][x].treasureDiscovered = true;
   return true;
 }
 
@@ -209,7 +217,10 @@ export function resetNpcs() {
 
 export function resetTreasures() {
   for (let y = 0; y < MAP_H; y++) {
-    for (let x = 0; x < MAP_W; x++) cells[y][x].treasure = null;
+    for (let x = 0; x < MAP_W; x++) {
+      cells[y][x].treasure = null;
+      cells[y][x].treasureDiscovered = false;
+    }
   }
 }
 

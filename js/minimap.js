@@ -56,6 +56,7 @@
         drawStairsMark(ctx, x1, y1, cell, c.type);
       }
       if (c.npc) drawNpcMark(ctx, x1, y1, cell);
+      if (c.treasure && c.treasureDiscovered) drawTreasureMark(ctx, x1, y1, cell, c.treasure);
     }
   }
 
@@ -112,6 +113,28 @@ export function drawNpcMark(ctx, x, y, size) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("👤", x + size / 2, y + size / 2);
+  ctx.restore();
+}
+
+export function drawTreasureMark(ctx, x, y, size, type) {
+  const color = type === "gold" ? "#f5d35c" : type === "black" ? "#d9dde2" : "#e85a45";
+  const left = x + size * .22;
+  const top = y + size * .29;
+  const width = size * .56;
+  const height = size * .46;
+  ctx.save();
+  ctx.fillStyle = "rgba(4,5,5,.86)";
+  ctx.fillRect(left - 1, top - 1, width + 2, height + 2);
+  ctx.fillStyle = color;
+  ctx.fillRect(left, top + height * .28, width, height * .72);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1.2, size * .1);
+  ctx.beginPath();
+  ctx.moveTo(left, top + height * .28);
+  ctx.lineTo(left + width * .16, top);
+  ctx.lineTo(left + width * .84, top);
+  ctx.lineTo(left + width, top + height * .28);
+  ctx.stroke();
   ctx.restore();
 }
 

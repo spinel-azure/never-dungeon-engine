@@ -18,7 +18,8 @@ import {
   getNpcAt,
   removeNpcAt,
   getTreasureAt,
-  removeTreasureAt
+  removeTreasureAt,
+  discoverTreasureAt
 } from "./dungeon.js";
 import { getNpcEncounter } from "../data/npcs.js";
 import { onPlayerStep, resetPresence } from "./presence.js";
@@ -430,7 +431,10 @@ function cancelOverlayEvent() {
   if (event.type === "stairsPrompt") state.stairsPromptDismissed = true;
   state.overlayEvent = null;
   hooks.say("");
-  if (event.type === "treasure") hooks.hideTreasure();
+  if (event.type === "treasure") {
+    discoverTreasureAt(event.treasureGX, event.treasureGY);
+    hooks.hideTreasure();
+  }
   if (event.retreatOnCancel) startNpcRetreat(event);
 }
 
