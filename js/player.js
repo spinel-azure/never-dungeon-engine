@@ -376,7 +376,13 @@ function confirmTreasureEvent() {
     removeTreasureAt(event.treasureGX, event.treasureGY);
     state.overlayEvent = null;
     hooks.hideTreasure();
-    hooks.say("中には何も入っていなかった！");
+    if (event.treasureType === "black") {
+      hooks.say("宝箱はミミックだった！（未実装）");
+    } else if (event.treasureType === "gold") {
+      hooks.say("中にはレアアイテムが…入っていなかった！");
+    } else {
+      hooks.say("中には何も入っていなかった！");
+    }
     updateNpcAwareness();
   });
 }

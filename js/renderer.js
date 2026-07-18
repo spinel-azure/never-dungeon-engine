@@ -544,7 +544,8 @@ function drawNpcEvent(ctx, event) {
 
 function drawTreasureEvent(ctx, event) {
   const image = renderer.treasureImages.get(event.treasureType);
-  const drawH = event.size * 1.08;
+  const nearScale = 1 + Math.max(0, 1.65 - event.forward) * .22;
+  const drawH = event.size * 1.32 * nearScale;
   const fallbackW = drawH * 1.45;
   const top = event.floorY - drawH;
 

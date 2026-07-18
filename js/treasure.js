@@ -2,6 +2,7 @@ const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module
 const EVENT_SPIN_MS = 900;
 const EVENT_OPEN_MS = 460;
 const TREASURE_EFFECT_MS = 1800;
+const MIMIC_LID_STEP_MS = 260;
 const MAX_LID_ANGLE = 102;
 const PARTICLE_COUNT = 52;
 
@@ -23,6 +24,7 @@ const treasure = {
   effectLight: null,
   effectGlow: null,
   effectParticles: null,
+  outlines: null,
   origins: [],
   velocities: [],
   type: "red",
@@ -106,6 +108,7 @@ function buildChest() {
     inner: new THREE.MeshStandardMaterial({ color: 0x7f211c, roughness: .72 })
   };
   treasure.chest = new THREE.Group();
+  treasure.outlines = new THREE.Group();
   treasure.scene.add(treasure.chest);
   const width = 3.25;
   const bodyHeight = 1.45;
@@ -113,6 +116,7 @@ function buildChest() {
   const lidHeight = .48;
   const wall = .12;
   const halfDepth = depth / 2;
+  treasure.chest.add(treasure.outlines);
   addBox(width, wall, depth, 0, wall / 2, 0, treasure.materials.inner, treasure.chest);
   addBox(width, bodyHeight, wall, 0, bodyHeight / 2, halfDepth - wall / 2, treasure.materials.outer, treasure.chest);
   addBox(width, bodyHeight, wall, 0, bodyHeight / 2, -halfDepth + wall / 2, treasure.materials.inner, treasure.chest);
@@ -128,11 +132,20 @@ function buildChest() {
 }
 
 function addBox(width, height, depth, x, y, z, material, parent) {
-  const mesh = new treasure.THREE.Mesh(new treasure.THREE.BoxGeometry(width, height, depth), material);
+  const geometry = new treasure.THREE.BoxGeometry(width, height, depth);
+  const mesh = new treasure.THREE.Mesh(geometry, material);
   mesh.position.set(x, y, z);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   parent.add(mesh);
+  const outline = new treasure.THREE.LineSegments(
+    new treasure.THREE.EdgesGeometry(geometry),
+    new treasure.THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: .72 })
+  );
+  outline.position.copy(mesh.position);
+  outline.visible = false;
+  parent.add(outline);
+  outline.userData.treasureOutline = true;
 }
 
 function addLights() {
@@ -206,6 +219,9 @@ function applyType() {
   treasure.effectLight.color.setHex(type.glow);
   treasure.effectGlow.material.color.setHex(type.glow);
   treasure.effectParticles.material.color.setHex(type.glow);
+  treasure.chest.traverse(object => {
+    if (object.userData?.treasureOutline) object.visible = treasure.type === "black";
+  });
 }
 
 function startLoop() {
@@ -225,8 +241,29 @@ function updateAnimation(now) {
   const animation = treasure.animation;
   if (!animation) return;
   const elapsed = now - animation.start;
+  if (treasure.type === "red") {
+    const openProgress = Math.min(1, elapsed / EVENT_OPEN_MS);
+    treasure.lidPivot.rotation.x = -treasure.THREE.MathUtils.degToRad(MAX_LID_ANGLE) * easeOutCubic(openProgress);
+    if (openProgress >= 1) finishOpening();
+    return;
+  }
   if (elapsed < EVENT_SPIN_MS) {
     treasure.chest.rotation.y = Math.PI * 4 * easeInOutCubic(elapsed / EVENT_SPIN_MS);
+    return;
+  }
+  if (treasure.type === "black") {
+    treasure.chest.rotation.y = Math.PI * 4;
+    const lidElapsed = elapsed - EVENT_SPIN_MS;
+    const segment = Math.min(4, Math.floor(lidElapsed / MIMIC_LID_STEP_MS));
+    const segmentProgress = Math.min(1, (lidElapsed % MIMIC_LID_STEP_MS) / MIMIC_LID_STEP_MS);
+    const eased = easeInOutCubic(segmentProgress);
+    const opening = segment % 2 === 0;
+    const lidRatio = opening ? eased : 1 - eased;
+    treasure.lidPivot.rotation.x = -treasure.THREE.MathUtils.degToRad(MAX_LID_ANGLE) * lidRatio;
+    if (lidElapsed >= MIMIC_LID_STEP_MS * 5) {
+      treasure.lidPivot.rotation.x = -treasure.THREE.MathUtils.degToRad(MAX_LID_ANGLE);
+      finishOpening();
+    }
     return;
   }
   const openProgress = Math.min(1, (elapsed - EVENT_SPIN_MS) / EVENT_OPEN_MS);
