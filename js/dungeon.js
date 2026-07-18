@@ -41,6 +41,7 @@ export function makeCells(w, h) {
       y,
       type: "floor",
       npc: null,
+      treasure: null,
       walls: { N: true, E: true, S: true, W: true },
       doors: { N: null, E: null, S: null, W: null },
       doorKinds: { N: null, E: null, S: null, W: null }
@@ -74,6 +75,7 @@ export function buildBoundaryWallMap() {
   }
   placeStairs();
   placeNpc();
+  placeTreasures();
   placeNormalDoors(NORMAL_DOOR_COUNT);
 }
 
@@ -82,6 +84,7 @@ export function resetAllWalls() {
     for (let x = 0; x < MAP_W; x++) {
       cells[y][x].type = "floor";
       cells[y][x].npc = null;
+      cells[y][x].treasure = null;
       cells[y][x].walls = { N: true, E: true, S: true, W: true };
       cells[y][x].doors = { N: null, E: null, S: null, W: null };
       cells[y][x].doorKinds = { N: null, E: null, S: null, W: null };
@@ -134,6 +137,47 @@ export function removeNpcAt(x, y) {
   return true;
 }
 
+export function getTreasureAt(x, y) {
+  if (!inBounds(x, y)) return null;
+  return cells[y][x].treasure;
+}
+
+export function removeTreasureAt(x, y) {
+  if (!inBounds(x, y) || !cells[y][x].treasure) return false;
+  cells[y][x].treasure = null;
+  return true;
+}
+
+export function placeTreasures() {
+  resetTreasures();
+  const { x: startX, y: startY } = startPosition;
+  const distances = makeDistanceMap(startX, startY);
+  const blocked = [];
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) {
+      if (cells[y][x].npc) blocked.push({ x, y });
+    }
+  }
+
+  for (const type of ["red", "black", "gold"]) {
+    const candidates = [];
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        if (x === startX && y === startY) continue;
+        if (cells[y][x].type !== "floor" || cells[y][x].npc || cells[y][x].treasure) continue;
+        if (distances[y][x] < 3) continue;
+        const nextBlocked = [...blocked, { x, y }];
+        if (countReachableCells(startX, startY, nextBlocked) !== MAP_W * MAP_H - nextBlocked.length) continue;
+        candidates.push({ x, y });
+      }
+    }
+    const selected = shuffled(candidates)[0];
+    if (!selected) continue;
+    cells[selected.y][selected.x].treasure = type;
+    blocked.push(selected);
+  }
+}
+
 export function findFarthestReachableCell(minDistance = 7) {
   const { x: startX, y: startY } = startPosition;
   const distances = makeDistanceMap(startX, startY);
@@ -160,6 +204,12 @@ export function resetCellTypes() {
 export function resetNpcs() {
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) cells[y][x].npc = null;
+  }
+}
+
+export function resetTreasures() {
+  for (let y = 0; y < MAP_H; y++) {
+    for (let x = 0; x < MAP_W; x++) cells[y][x].treasure = null;
   }
 }
 
@@ -276,8 +326,10 @@ export function addLoopOpenings(count) {
   });
 }
 
-export function countReachableCells(startX, startY, blockedCell = null) {
-  if (blockedCell?.x === startX && blockedCell?.y === startY) return 0;
+export function countReachableCells(startX, startY, blockedCells = null) {
+  const blockedList = Array.isArray(blockedCells) ? blockedCells : blockedCells ? [blockedCells] : [];
+  const blocked = new Set(blockedList.map(cell => `${cell.x},${cell.y}`));
+  if (blocked.has(`${startX},${startY}`)) return 0;
   const queue = [{ x: startX, y: startY }];
   const seen = new Set([`${startX},${startY}`]);
   for (let i = 0; i < queue.length; i++) {
@@ -287,7 +339,7 @@ export function countReachableCells(startX, startY, blockedCell = null) {
       const ny = cur.y + dir.dy;
       const key = `${nx},${ny}`;
       if (!inBounds(nx, ny)) continue;
-      if (blockedCell?.x === nx && blockedCell?.y === ny) continue;
+      if (blocked.has(key)) continue;
       if (wallOnCell(cur.x, cur.y, dir.key)) continue;
       if (seen.has(key)) continue;
       seen.add(key);

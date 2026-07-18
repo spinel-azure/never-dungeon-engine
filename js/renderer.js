@@ -29,7 +29,8 @@ const renderer = {
   lastCanvasTouchAt: 0,
   wallTexture: null,
   doorTextures: null,
-  characterImages: new Map()
+  characterImages: new Map(),
+  treasureImages: new Map()
 };
 
 export function configureRenderer(options) {
@@ -50,6 +51,7 @@ export function configureRenderer(options) {
     locked: makeDoorTexture("locked")
   };
   npcs.forEach(npc => loadCharacterImage(npc.imageId, npc.image));
+  ["red", "black", "gold"].forEach(type => loadTreasureImage(type, `images/treasure/treasure-${type}.png`));
   renderer.canvas.addEventListener("pointerup", handleCanvasPointerUp);
   renderer.canvas.addEventListener("touchend", handleCanvasTouchEnd, { passive: false });
 }
@@ -359,6 +361,14 @@ export function drawCellEvents(layer = "all") {
           npc
         });
       }
+      if (cell.treasure) {
+        if (layer === "floor") continue;
+        events.push({
+          ...projected,
+          eventKind: "treasure",
+          treasureType: cell.treasure
+        });
+      }
     }
   }
 
@@ -367,7 +377,15 @@ export function drawCellEvents(layer = "all") {
     .forEach(event => {
       if (event.eventKind === "stairs") drawStairsEventMarker(ctx, W, H, event);
       if (event.eventKind === "npc") drawNpcEvent(ctx, event);
+      if (event.eventKind === "treasure") drawTreasureEvent(ctx, event);
     });
+}
+
+function loadTreasureImage(type, src) {
+  if (renderer.treasureImages.has(type)) return;
+  const image = new Image();
+  image.src = src;
+  renderer.treasureImages.set(type, image);
 }
 
 function loadCharacterImage(id, src) {
@@ -520,6 +538,26 @@ function drawNpcEvent(ctx, event) {
     ctx.strokeStyle = "rgba(65,38,20,.9)";
     ctx.lineWidth = Math.max(2, event.size * .04);
     ctx.strokeRect(event.x - fallbackW / 2, top, fallbackW, spriteH);
+  }
+  ctx.restore();
+}
+
+function drawTreasureEvent(ctx, event) {
+  const image = renderer.treasureImages.get(event.treasureType);
+  const drawH = event.size * 1.08;
+  const fallbackW = drawH * 1.45;
+  const top = event.floorY - drawH;
+
+  ctx.save();
+  ctx.globalAlpha = event.alpha;
+  ctx.shadowColor = event.treasureType === "gold" ? "rgba(255,222,104,.42)" : "rgba(0,0,0,.55)";
+  ctx.shadowBlur = event.size * .12;
+  if (image && image.complete && image.naturalWidth > 0) {
+    const drawW = drawH * (image.naturalWidth / image.naturalHeight);
+    ctx.drawImage(image, event.x - drawW / 2, top, drawW, drawH);
+  } else {
+    ctx.fillStyle = event.treasureType === "red" ? "#f52a18" : event.treasureType === "gold" ? "#d7a72f" : "#111";
+    ctx.fillRect(event.x - fallbackW / 2, top + drawH * .22, fallbackW, drawH * .78);
   }
   ctx.restore();
 }

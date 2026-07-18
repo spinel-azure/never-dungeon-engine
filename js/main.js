@@ -51,12 +51,14 @@ import {
   getPresence,
   resetPresence
 } from "./presence.js";
+import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } from "./treasure.js";
 
 (() => {
   const canvas = document.getElementById("screen");
   const ctx = canvas.getContext("2d", { alpha: false });
   const eventOverlayCanvas = document.getElementById("eventOverlay");
   const eventOverlayCtx = eventOverlayCanvas.getContext("2d");
+  const treasureCanvas = document.getElementById("treasureCanvas");
   const W = canvas.width;
   let runStartedAt = performance.now();
   let floorStartedAt = runStartedAt;
@@ -93,6 +95,7 @@ import {
   configurePresence({
     onEncounter: startRandomEncounterNotice
   });
+  configureTreasure({ canvas: treasureCanvas });
   configureCompass({ canvas: compassCanvas, state });
   configureRenderer({
     canvas,
@@ -122,7 +125,16 @@ import {
     getMinimapBounds
   });
   configureAutoReturn({ autoReturnBtn, say });
-  configurePlayer({ say, cancelAutoReturn, continueAutoReturn, messageFor, descendFloor });
+  configurePlayer({
+    say,
+    cancelAutoReturn,
+    continueAutoReturn,
+    messageFor,
+    descendFloor,
+    showTreasure,
+    playTreasureOpening,
+    hideTreasure
+  });
 
   function resetDungeon(message = "", nextStart = null, resetTimer = false) {
     cancelAutoReturn(false);

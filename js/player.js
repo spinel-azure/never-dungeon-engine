@@ -16,7 +16,9 @@ import {
   getDoorKind,
   getStartPosition,
   getNpcAt,
-  removeNpcAt
+  removeNpcAt,
+  getTreasureAt,
+  removeTreasureAt
 } from "./dungeon.js";
 import { getNpcEncounter } from "../data/npcs.js";
 import { onPlayerStep, resetPresence } from "./presence.js";
@@ -26,7 +28,10 @@ const hooks = {
   cancelAutoReturn: () => {},
   continueAutoReturn: () => {},
   messageFor: () => "",
-  descendFloor: () => {}
+  descendFloor: () => {},
+  showTreasure: () => {},
+  playTreasureOpening: (_type, onComplete) => onComplete(),
+  hideTreasure: () => {}
 };
 
 const NPC_AWARENESS_MESSAGE = "前方に何かいるようだ";
@@ -110,12 +115,15 @@ export function updateAnimation(now) {
         const movedInDarkness = state.torchFuel <= 0;
         state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
         const npc = getNpcAt(state.gridX, state.gridY);
+        const treasure = getTreasureAt(state.gridX, state.gridY);
         const isStairs = a.cellType === "stairsUp" || a.cellType === "stairsDown";
-        const isSpecialEventCell = Boolean(npc) || isStairs;
+        const isSpecialEventCell = Boolean(npc) || Boolean(treasure) || isStairs;
         const encounterTriggered = !isSpecialEventCell && onPlayerStep({ inDarkness: movedInDarkness });
         if (encounterTriggered) hooks.cancelAutoReturn(false);
         if (npc) {
           startNpcTalkEvent(npc, a.fromGX, a.fromGY);
+        } else if (treasure) {
+          startTreasureEvent(treasure, a.fromGX, a.fromGY);
         } else if (isStairs) {
           startStairsPrompt(a.cellType);
         } else if (encounterTriggered) {
@@ -256,6 +264,7 @@ export function handleOverlayEventInput(action) {
     if (state.overlayEvent.type === "npcTalk") advanceNpcTalkEvent();
     else if (state.overlayEvent.type === "stairsPrompt") confirmStairsPrompt();
     else if (state.overlayEvent.type === "randomEncounter") confirmRandomEncounter();
+    else if (state.overlayEvent.type === "treasure") confirmTreasureEvent();
     return true;
   }
   return false;
@@ -340,6 +349,38 @@ function startNpcTalkEvent(npc, fromGX, fromGY) {
   });
 }
 
+function startTreasureEvent(treasureType, fromGX, fromGY) {
+  startOverlayEvent({
+    type: "treasure",
+    treasureType,
+    phase: "prompt",
+    fromGX,
+    fromGY,
+    treasureGX: state.gridX,
+    treasureGY: state.gridY,
+    message: "宝箱がある。開けますか？\n＊Aボタンで開ける　Bボタンで開けずに立ち去る",
+    canCancel: true,
+    retreatOnCancel: true
+  });
+  hooks.showTreasure(treasureType);
+}
+
+function confirmTreasureEvent() {
+  const event = state.overlayEvent;
+  if (!event || event.phase !== "prompt") return;
+  event.phase = "opening";
+  event.canCancel = false;
+  hooks.say("");
+  hooks.playTreasureOpening(event.treasureType, () => {
+    if (state.overlayEvent !== event) return;
+    removeTreasureAt(event.treasureGX, event.treasureGY);
+    state.overlayEvent = null;
+    hooks.hideTreasure();
+    hooks.say("中には何も入っていなかった！");
+    updateNpcAwareness();
+  });
+}
+
 function advanceNpcTalkEvent() {
   const event = state.overlayEvent;
   const nextIndex = event.dialogueIndex + 1;
@@ -383,6 +424,7 @@ function cancelOverlayEvent() {
   if (event.type === "stairsPrompt") state.stairsPromptDismissed = true;
   state.overlayEvent = null;
   hooks.say("");
+  if (event.type === "treasure") hooks.hideTreasure();
   if (event.retreatOnCancel) startNpcRetreat(event);
 }
 
