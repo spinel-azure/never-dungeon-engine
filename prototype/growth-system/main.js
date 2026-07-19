@@ -1,5 +1,5 @@
 import { JOBS, STAT_CAP, STAT_KEYS, calculateStats, getExperienceForLevel, getLevelGrowth, previewStatChange } from "./growth-model.js";
-const desktopStyles = document.createElement("link"); desktopStyles.rel = "stylesheet"; desktopStyles.href = "./desktop-layout.css?v=20260719-1"; document.head.append(desktopStyles);
+for (const href of ["./typography.css?v=20260719-1", "./desktop-layout.css?v=20260719-1"]) { const stylesheet = document.createElement("link"); stylesheet.rel = "stylesheet"; stylesheet.href = href; document.head.append(stylesheet); }
 const LABELS = Object.freeze({ str: "STR", int: "INT", agi: "AGI", dex: "DEX", luc: "LUC" }); const state = { jobId: "warrior", level: 1, equipment: {}, cards: {} }; const $ = (selector) => document.querySelector(selector); const pad = (value, length) => String(value).padStart(length, "0");
 function buildControls() {
   $("#jobSelect").replaceChildren(...Object.entries(JOBS).map(([id, job]) => { const option = document.createElement("option"); option.value = id; option.textContent = `${job.name} / ${job.nameJa}`; return option; }));
