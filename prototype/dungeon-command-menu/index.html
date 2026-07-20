@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#080906">
   <title>NDE Dungeon Command Menu Prototype</title>
   <link rel="stylesheet" href="./style.css?v=20260720-2">
+  <link rel="stylesheet" href="./quick-status.css?v=20260720-1">
   <link rel="stylesheet" href="./menu/command-menu.css?v=20260720-3">
   <link rel="stylesheet" href="./controls/virtual-controls.css?v=20260720-1">
 </head>
@@ -13,6 +14,13 @@
   <main class="prototype-shell">
     <section class="game-frame" aria-label="ダンジョンコマンドメニュー検証">
       <div class="dungeon-overlay" aria-label="ダンジョン表示省略中"><span>DUNGEON VIEW</span><small>BLACK OVERLAY / PREVIEW</small></div>
+      <div class="quick-status" aria-label="レベル1 戦士 HP30/30 SP15/15 コンディション GOOD">
+        <span>Lv:<output id="quickLevel">001</output></span>
+        <span>[W]</span>
+        <span>HP <output id="quickHpCurrent" class="quick-value">030</output> / <output id="quickHpMax" class="quick-value">030</output></span>
+        <span>SP <output id="quickSpCurrent" class="quick-value">015</output> / <output id="quickSpMax" class="quick-value">015</output></span>
+        <span>Cond:<output id="quickCondition">GOOD</output></span>
+      </div>
       <p id="message" class="message-frame" aria-live="polite">10×10の床空間を、薄い境界壁が区切っている。</p>
       <section id="commandRegion" class="command-region" aria-label="コマンド一覧"></section>
     </section>
