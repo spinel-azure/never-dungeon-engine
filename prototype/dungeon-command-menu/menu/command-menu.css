@@ -3,5 +3,5 @@
 .command-region.is-active .command-button{opacity:1}
 .command-button.is-selected{border-color:#b0f4ff;background:#14313a;box-shadow:0 0 12px #78e6ffcc,inset 0 0 8px #78e6ff44}
 .command-region:not(.is-active) .command-button{color:transparent;text-shadow:none}
-.command-region::after{content:"※Bボタンでメニュー表示";grid-column:1/-1;text-align:right;color:#ddd;font:14px NDEPixel,monospace}
+.command-region::after{content:"＊ Bボタンでメニュー表示";grid-column:1/-1;text-align:right;color:#ddd;font:14px NDEPixel,monospace}
 @media(max-width:420px){.command-button{font-size:17px;min-height:42px}}

@@ -525,3 +525,11 @@ button {
     animation-duration: 1ms;
   }
 }
+
+.touch-controls { display: none; }
+@media (pointer: coarse), (max-width: 900px) {
+  .prototype-shell { padding-bottom: calc(190px + env(safe-area-inset-bottom)); }
+  .touch-controls { display: block; }
+  .virtual-stick { position: fixed; left: max(18px, env(safe-area-inset-left)); bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 40; }
+  .action-buttons { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 40; }
+}

@@ -2,6 +2,7 @@ import { CARD_DISPLAY_MODES } from "../data/cards.js?v=20260717-3";
 import { getAllCards, getCardById, getCardViewData } from "../data/card-registry.js?v=20260717-3";
 import { drawCard } from "../renderers/card-renderer.js?v=20260717-4";
 import { clearCardCache } from "../renderers/cache/render-cache.js";
+import { bindVirtualControls } from "../../dungeon-command-menu/controls/virtual-controls.js";
 import {
   calculateDeckCost,
   normalizeDeckSlots,
@@ -404,6 +405,37 @@ function handleAction(action) {
   }
 }
 
+function moveDeckCursor(direction) {
+  if (!elements.picker.hidden) {
+    const cards = [...elements.pickerGrid.querySelectorAll(".picker-card:not(:disabled)")];
+    if (!cards.length) return;
+    const current = Math.max(0, cards.indexOf(document.activeElement));
+    const columnCount = 3;
+    const amount = direction === "left" ? -1 : direction === "right" ? 1 : direction === "up" ? -columnCount : columnCount;
+    cards[(current + amount + cards.length) % cards.length].focus();
+    return;
+  }
+  const row = Math.floor(state.cursorIndex / 3);
+  const column = state.cursorIndex % 3;
+  if (direction === "left") state.cursorIndex = row * 3 + (column + 2) % 3;
+  if (direction === "right") state.cursorIndex = row * 3 + (column + 1) % 3;
+  if (direction === "up" || direction === "down") state.cursorIndex = ((row + 1) % 2) * 3 + column;
+  state.confirmedIndex = null;
+  state.revealedSlots.clear();
+  setStatus(deckSlots[state.cursorIndex] ? getCardById(deckSlots[state.cursorIndex]).name : "EMPTY SLOT");
+  drawCards();
+  updateCursor();
+}
+
+function confirmDeckSelection() {
+  if (!elements.picker.hidden) {
+    const focusedCard = document.activeElement?.closest?.(".picker-card:not(:disabled)");
+    if (focusedCard) focusedCard.click();
+    return;
+  }
+  handleSlotPress(state.cursorIndex);
+}
+
 function initialize() {
   renderDeck();
   elements.actions.forEach((button) => {
@@ -414,8 +446,12 @@ function initialize() {
   elements.rarityFilters.forEach((button) => {
     button.addEventListener("click", () => setRarityFilter(button.dataset.rarityFilter));
   });
+  bindVirtualControls({ stick: document.querySelector("#virtualStick"), buttonA: document.querySelector("#buttonA"), buttonB: document.querySelector("#buttonB"), onDirection: moveDeckCursor, onConfirm: confirmDeckSelection, onCancel: () => handleAction("back") });
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !elements.picker.hidden) closePicker();
+    const directions = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
+    if (directions[event.key]) { event.preventDefault(); moveDeckCursor(directions[event.key]); }
+    if (["Enter", "x", "X"].includes(event.key)) { event.preventDefault(); confirmDeckSelection(); }
+    if (["Escape", "z", "Z"].includes(event.key)) { event.preventDefault(); handleAction("back"); }
   });
   document.fonts?.ready.then(() => {
     clearCardCache();

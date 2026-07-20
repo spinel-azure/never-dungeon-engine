@@ -6,7 +6,8 @@
   <meta name="theme-color" content="#030504">
   <title>NDE Card Deck Prototype</title>
   <!-- Update this version whenever the card deck CSS or JavaScript changes. -->
-  <link rel="stylesheet" href="./style.css?v=20260717-4">
+  <link rel="stylesheet" href="./style.css?v=20260720-2">
+  <link rel="stylesheet" href="../../dungeon-command-menu/controls/virtual-controls.css?v=20260720-2">
 </head>
 <body>
   <main class="prototype-shell">
@@ -33,6 +34,11 @@
     </section>
   </main>
 
+  <section class="touch-controls" aria-label="タッチ操作">
+    <div class="virtual-stick" id="virtualStick" aria-label="デッキ枠移動用バーチャルパッド"><div class="virtual-stick-base"><div class="virtual-stick-knob"></div></div></div>
+    <div class="action-buttons"><button id="buttonB" type="button" class="action-button action-button-b" aria-label="B 戻る">B</button><button id="buttonA" type="button" class="action-button action-button-a" aria-label="A 決定">A</button></div>
+  </section>
+
   <section id="cardPicker" class="card-picker" aria-labelledby="cardPickerTitle" hidden>
     <button class="picker-backdrop" type="button" data-picker-close aria-label="カード選択を閉じる"></button>
     <div class="picker-panel" role="dialog" aria-modal="true">
@@ -56,6 +62,6 @@
     </div>
   </section>
 
-  <script type="module" src="./main.js?v=20260720-1"></script>
+  <script type="module" src="./main.js?v=20260720-2"></script>
 </body>
 </html>
