@@ -89,6 +89,7 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
   const buttonA = document.getElementById("buttonA");
   const buttonB = document.getElementById("buttonB");
   const menuScreen = document.getElementById("menuScreen");
+  const dungeonCommands = document.getElementById("dungeonCommands");
   let currentDepth = 1;
   configureDevice();
   configureEvents({ messageEl: msgEl });
@@ -207,6 +208,7 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
   });
   configureMenu({
     root: menuScreen,
+    commandRoot: dungeonCommands,
     generateRandomDungeon,
     startAutoReturn,
     refillTorch,
