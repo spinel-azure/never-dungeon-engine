@@ -390,15 +390,17 @@ function handleSlotPress(index) {
 }
 
 function handleAction(action) {
-  if (action === "add") {
+  if (action === "back" && !elements.picker.hidden) {
+    closePicker();
+    setStatus("CARD SELECTION CLOSED");
+  } else if (action === "back") {
+    const returnTarget = new URLSearchParams(location.search).get("return");
+    if (returnTarget) location.href = returnTarget;
+    else setStatus("BACK / NOT CONNECTED");
+  } else if (action === "add") {
     openPicker();
   } else if (action === "remove") {
     removeSelectedCard();
-  } else if (!elements.picker.hidden) {
-    closePicker();
-    setStatus("CARD SELECTION CLOSED");
-  } else {
-    setStatus("BACK / NOT CONNECTED");
   }
 }
 

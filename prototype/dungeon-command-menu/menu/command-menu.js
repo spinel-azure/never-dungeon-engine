@@ -29,11 +29,13 @@ export function createCommandMenu({ root, onCommand, onStateChange = () => {} })
   function toggle() { active ? close() : open(); }
   function move(direction) {
     if (!active) return false;
-    const row = Math.floor(cursor / 3); const column = cursor % 3;
+    const row = Math.floor(cursor / 3);
+    const column = cursor % 3;
     if (direction === "left") cursor = row * 3 + (column + 2) % 3;
     if (direction === "right") cursor = row * 3 + (column + 1) % 3;
     if (direction === "up" || direction === "down") cursor = ((row + 1) % 2) * 3 + column;
-    render(); return true;
+    render();
+    return true;
   }
   function execute() { if (!active) return false; onCommand(COMMANDS[cursor]); return true; }
   function isActive() { return active; }
