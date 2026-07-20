@@ -5,28 +5,53 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#080906">
   <title>NDE Options Screen Preview</title>
-  <link rel="stylesheet" href="./style.css?v=20260720-1">
+  <link rel="stylesheet" href="./style.css?v=20260720-2">
   <link rel="stylesheet" href="../dungeon-command-menu/controls/virtual-controls.css?v=20260720-1">
 </head>
 <body>
   <main class="prototype-shell">
-    <section class="options-frame" aria-label="オプション画面">
-      <h1>× OPTIONS ×</h1>
-      <div id="optionList" class="option-list">
-        <button type="button" data-option="language"><span>LANGUAGE</span><output>日本語</output></button>
-        <button type="button" data-option="bgm"><span>BGM</span><output>ON</output></button>
-        <button type="button" data-option="se"><span>SE</span><output>ON</output></button>
-        <button type="button" data-option="compass"><span>COMPASS</span><output>ON</output></button>
-        <button type="button" data-option="location"><span>COORDINATE / FLOOR</span><output>ON</output></button>
-        <button type="button" data-option="autoReturn"><span>AUTO RETURN</span><output>ON</output></button>
+    <section class="menu-screen" aria-label="オプション画面">
+      <div class="menu-panel menu-panel-options">
+        <h1 class="menu-title">◆オプション◆</h1>
+
+        <div class="option-page" data-option-page="0">
+          <button type="button" class="option-item option-language" data-option="language">
+            <span>・言語選択/LANGUAGE（未実装）</span>
+            <span>日本語/JAPANESE 🔘　英語/ENGLISH ⚫</span>
+          </button>
+          <div class="option-section">
+            <div class="option-label">・BGM（未実装）</div>
+            <div class="toggle-row is-muted"><span>ON ⚫</span><span>OFF ⚫</span></div>
+            <label class="volume-row option-control" data-option="bgmVolume">Volume <input id="bgmVolume" type="range" min="0" max="100" step="10" value="0"> <span>0%</span></label>
+          </div>
+          <div class="option-section">
+            <div class="option-label">・SE（未実装）</div>
+            <div class="toggle-row is-muted"><span>ON ⚫</span><span>OFF ⚫</span></div>
+            <label class="volume-row option-control" data-option="seVolume">Volume <input id="seVolume" type="range" min="0" max="100" step="10" value="0"> <span>0%</span></label>
+          </div>
+        </div>
+
+        <div class="option-page" data-option-page="1" hidden>
+          <button type="button" class="option-item" data-option="random">・ランダム生成 <span data-action-state="random">ON ⚫</span></button>
+          <button type="button" class="option-item" data-option="compass">・コンパス表示 <span data-option-state="compass">ON 🔘　OFF ⚫</span></button>
+          <button type="button" class="option-item" data-option="readout">・座標/階層表示 <span data-option-state="readout">ON ⚫　OFF 🔘</span></button>
+          <button type="button" class="option-item" data-option="autoReturn">・オート帰還 <span data-action-state="autoReturn">ON ⚫</span></button>
+          <button type="button" class="option-item" data-option="torchFull">・たいまつゲージ満タン <span data-action-state="torchFull">ON ⚫</span></button>
+        </div>
+
+        <p id="feedback" class="feedback" aria-live="polite"></p>
+        <div class="option-pager">
+          <button type="button" class="menu-footer" data-option-nav="back">BACK</button>
+          <span class="page-indicator" data-page-indicator>1/2</span>
+          <button type="button" class="menu-footer" data-option-nav="next">NEXT</button>
+        </div>
       </div>
-      <button id="backButton" type="button" class="back-button">BACK</button>
     </section>
     <section class="touch-controls" aria-label="タッチ操作">
       <div class="virtual-stick" id="virtualStick" aria-label="オプション移動用バーチャルパッド"><div class="virtual-stick-base"><div class="virtual-stick-knob"></div></div></div>
       <div class="action-buttons"><button id="buttonB" type="button" class="action-button action-button-b" aria-label="B 戻る">B</button><button id="buttonA" type="button" class="action-button action-button-a" aria-label="A 決定">A</button></div>
     </section>
   </main>
-  <script type="module" src="./main.js?v=20260720-1"></script>
+  <script type="module" src="./main.js?v=20260720-2"></script>
 </body>
 </html>
