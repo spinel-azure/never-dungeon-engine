@@ -12,7 +12,7 @@ const menu = {
   compassVisible: true, readoutVisible: false, screenShakeEnabled: true,
   torchFlickerEnabled: true, presenceDisabled: false, stopwatchVisible: true,
   stairsDownVisible: false, npcsVisible: false,
-  mistEnabled: true, mistIntensity: .8, mistDistance: 2.2,
+  mistEnabled: true, mistIntensity: 1, mistDistance: 9,
   npcTypewriterEnabled: true, npcTypewriterSpeed: "normal",
   actionActive: { random: false, autoReturn: false, torchFull: false, stopwatchReset: false },
   generateRandomDungeon: () => {}, startAutoReturn: () => {}, refillTorch: () => {},
@@ -125,8 +125,8 @@ function executeDebug(key, amount = 1) {
   if (key === "stairsDownVisible") { menu.stairsDownVisible = !menu.stairsDownVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "npcsVisible") { menu.npcsVisible = !menu.npcsVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "mistEnabled") { menu.mistEnabled = !menu.mistEnabled; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
-  if (key === "mistIntensity" && menu.mistEnabled) { menu.mistIntensity = Math.max(.2, Math.min(1, Math.round((menu.mistIntensity + amount * .2) * 10) / 10)); applyMistOptions(); updateDebugStates(); persistSettings(); return; }
-  if (key === "mistDistance" && menu.mistEnabled) { const values = [1.5, 2.2, 3, 4, 5]; const index = values.indexOf(menu.mistDistance); menu.mistDistance = values[(Math.max(0, index) + amount + values.length) % values.length]; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "mistIntensity" && menu.mistEnabled) { const values = [.25, .5, 1, 1.5, 2]; const index = values.indexOf(menu.mistIntensity); menu.mistIntensity = values[(Math.max(0, index) + amount + values.length) % values.length]; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "mistDistance" && menu.mistEnabled) { const values = [3, 5, 7, 9]; const index = values.indexOf(menu.mistDistance); menu.mistDistance = values[(Math.max(0, index) + amount + values.length) % values.length]; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchOn") { menu.stopwatchVisible = true; menu.setStopwatchVisible(true); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchOff") { menu.stopwatchVisible = false; menu.setStopwatchVisible(false); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchReset") { triggerAction("stopwatchReset", () => { menu.resetStopwatch(); updateDebugStates(); }); return; }
@@ -215,8 +215,10 @@ function restoreSettings() {
     const booleanKeys = ["compassVisible", "readoutVisible", "screenShakeEnabled", "torchFlickerEnabled", "presenceDisabled", "stopwatchVisible", "stairsDownVisible", "npcsVisible", "npcTypewriterEnabled", "mistEnabled"];
     booleanKeys.forEach(key => { if (typeof saved[key] === "boolean") menu[key] = saved[key]; });
     if (["slow", "normal", "fast"].includes(saved.npcTypewriterSpeed)) menu.npcTypewriterSpeed = saved.npcTypewriterSpeed;
-    if (Number.isFinite(saved.mistIntensity)) menu.mistIntensity = Math.max(.2, Math.min(1, saved.mistIntensity));
-    if ([1.5, 2.2, 3, 4, 5].includes(saved.mistDistance)) menu.mistDistance = saved.mistDistance;
+    if ([.25, .5, 1, 1.5, 2].includes(saved.mistIntensity)) menu.mistIntensity = saved.mistIntensity;
+    else if (Number.isFinite(saved.mistIntensity)) menu.mistIntensity = 1;
+    if ([3, 5, 7, 9].includes(saved.mistDistance)) menu.mistDistance = saved.mistDistance;
+    else if (Number.isFinite(saved.mistDistance)) menu.mistDistance = 9;
     ["bgmVolume", "seVolume"].forEach(id => {
       const slider = menu.root.querySelector(`#${id}`);
       const value = Number(saved[id]);
