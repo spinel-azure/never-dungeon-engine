@@ -125,7 +125,6 @@ export function drawScene(now) {
   if (renderer.minimapOverlayVisible) drawMinimapOverlay();
   if (state.overlayEvent?.type === "floorLap") drawFloorLapMessage();
   else if (state.overlayEvent?.type === "randomEncounter") drawEncounterMessage();
-  else if (state.torchFuel <= 0) drawDarknessMessage();
   ctx.restore();
   drawFrame();
   renderer.updateHud();
@@ -182,19 +181,6 @@ function drawMinimapOverlay() {
     oy,
     alpha: .96
   });
-  ctx.restore();
-}
-
-function drawDarknessMessage() {
-  const { ctx, W, H } = renderer;
-  ctx.save();
-  ctx.fillStyle = "rgba(0,0,0,.8)";
-  ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "#f0eadc";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = "700 34px GameFont, sans-serif";
-  ctx.fillText("あたりはくらやみに　つつまれた…。", W / 2, H / 2);
   ctx.restore();
 }
 
@@ -362,7 +348,7 @@ export function drawMist(now = 0) {
   if (!renderer.mistEnabled) return;
   const { ctx, W, H, mistLayers } = renderer;
   if (!mistLayers) return;
-  const strength = renderer.mistIntensity;
+  const strength = getEffectiveMistIntensity();
   const palette = MIST_PALETTES[renderer.mistColor];
 
   ctx.save();
@@ -396,10 +382,24 @@ export function drawMist(now = 0) {
 
 function getDistanceMistAlpha(distance) {
   if (!renderer.mistEnabled) return 0;
-  const mistStart = renderer.mistDistance * .25;
-  const progress = Math.max(0, Math.min(1, (distance - mistStart) / (renderer.mistDistance - mistStart)));
+  const mistDistance = getEffectiveMistDistance();
+  const mistStart = mistDistance * .25;
+  const progress = Math.max(0, Math.min(1, (distance - mistStart) / (mistDistance - mistStart)));
   const smooth = progress * progress * (3 - 2 * progress);
-  return Math.min(.98, smooth * DISTANCE_MIST_BASE_ALPHA * renderer.mistIntensity);
+  return Math.min(.98, smooth * DISTANCE_MIST_BASE_ALPHA * getEffectiveMistIntensity());
+}
+
+function getTorchDarkness() {
+  const fuel = Number.isFinite(renderer.state?.torchFuel) ? renderer.state.torchFuel : 100;
+  return 1 - Math.max(0, Math.min(100, fuel)) / 100;
+}
+
+function getEffectiveMistIntensity() {
+  return renderer.mistIntensity * (.25 + getTorchDarkness() * 1.75);
+}
+
+function getEffectiveMistDistance() {
+  return renderer.mistDistance + (3 - renderer.mistDistance) * getTorchDarkness();
 }
 
 function makeMistLayers(ctx, W, H) {

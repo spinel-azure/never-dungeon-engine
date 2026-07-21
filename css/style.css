@@ -316,6 +316,16 @@
       width: min(30vw, 180px);
       pointer-events: none;
     }
+    .status .torch-meter.is-critical {
+      animation: torch-critical-pulse 1.35s ease-in-out infinite;
+    }
+    @keyframes torch-critical-pulse {
+      0%, 100% { border-color: rgba(219, 184, 112, .28); box-shadow: 0 0 0 rgba(255, 116, 57, 0); }
+      50% { border-color: rgba(255, 150, 76, .9); box-shadow: 0 0 12px rgba(255, 91, 45, .8); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .status .torch-meter.is-critical { animation: none; border-color: rgba(255, 150, 76, .9); box-shadow: 0 0 8px rgba(255, 91, 45, .65); }
+    }
     .status .presence-meter {
       --presence: 0%;
       position: absolute;

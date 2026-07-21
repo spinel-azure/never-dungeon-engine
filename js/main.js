@@ -32,7 +32,7 @@ import {
   startFloorLapNotice,
   setNpcTypewriterOptions
 } from "./player.js";
-import { configureRenderer, startRenderLoop, setScreenShakeEnabled, setTorchFlickerEnabled, setMistOptions } from "./renderer.js?v=20260722-3";
+import { configureRenderer, startRenderLoop, setScreenShakeEnabled, setTorchFlickerEnabled, setMistOptions } from "./renderer.js?v=20260722-4";
 import { drawMinimap, getMinimapBounds, setMinimapRevealOptions } from "./minimap.js";
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
@@ -178,6 +178,7 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
     stopwatchEl.textContent = formatElapsedTime(performance.now() - runStartedAt);
     drawCompass();
     torchMeterEl.style.width = `${state.torchFuel}%`;
+    torchMeterEl.parentElement.classList.toggle("is-critical", state.torchFuel <= 20);
     const presence = getPresence();
     presenceMeterEl.style.setProperty("--presence", `${presence}%`);
     presenceMeterEl.setAttribute("aria-valuenow", String(presence));
