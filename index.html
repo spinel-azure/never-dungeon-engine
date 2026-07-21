@@ -6,8 +6,15 @@
   <title>3DダンジョンRPG プロトタイプ</title>
   <link rel="stylesheet" href="css/style.css?v=20260720-1">
   <link rel="stylesheet" href="css/game-menu.css?v=20260721-5">
+  <link rel="stylesheet" href="css/title-screen.css?v=20260721-1">
 </head>
-<body>
+<body class="title-active">
+<section id="titleScreen" class="title-screen" role="button" tabindex="0" aria-label="NEVER DUNGEON ENGINEを開始">
+  <h1 class="title-logo">NEVER DUNGEON ENGINE</h1>
+  <p class="title-description">EXPLORE A RANDOMLY GENERATED<br>10 × 10 DUNGEON</p>
+  <p class="title-prompt">PRESS ANY KEY / TAP</p>
+  <p class="title-updated">LAST UPDATED : 2026-07-21</p>
+</section>
 <main class="shell">
   <section class="game" aria-label="3Dダンジョン">
     <div class="viewport">
@@ -97,13 +104,14 @@
           <button type="button" class="option-item" data-debug="autoReturn">・オート帰還 <span data-debug-action="autoReturn">ON ⚫</span></button>
           <button type="button" class="option-item" data-debug="torchFull">・たいまつゲージ満タン <span data-debug-action="torchFull">ON ⚫</span></button>
           <button type="button" class="option-item" data-debug="presenceDisabled">・気配ゲージ無効 <span data-debug-state="presenceDisabled">ON ⚫　OFF 🔘</span></button>
-          <div class="debug-stopwatch-row"><span>・ストップウォッチ</span><span class="debug-stopwatch-actions"><button type="button" data-debug="stopwatchOn">ON <i data-stopwatch-state="on">🔘</i></button><button type="button" data-debug="stopwatchOff">OFF <i data-stopwatch-state="off">⚫</i></button><button type="button" data-debug="stopwatchReset">RESET <i data-stopwatch-state="reset">⚫</i></button></span></div>
+          <div class="debug-stopwatch-row"><span>・プレイ時間</span><span class="debug-stopwatch-actions"><button type="button" data-debug="stopwatchOn">ON <i data-stopwatch-state="on">🔘</i></button><button type="button" data-debug="stopwatchOff">OFF <i data-stopwatch-state="off">⚫</i></button><button type="button" data-debug="stopwatchReset">RESET <i data-stopwatch-state="reset">⚫</i></button></span></div>
         </div>
         <button type="button" class="menu-footer debug-back" data-debug-back>BACK</button>
       </div>
     </section>
   </section>
 </main>
+  <script type="module" src="js/title-screen.js?v=20260721-1"></script>
   <script type="module" src="js/main.js?v=20260721-2"></script>
 </body>
 </html>
