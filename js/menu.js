@@ -1,5 +1,6 @@
 const ACTION_FEEDBACK_MS = 260;
 const DEBUG_SEQUENCE_MS = 1000;
+const SETTINGS_KEY = "nde-settings-v1";
 const ON_MARK = "🔘";
 const OFF_MARK = "⚫";
 
@@ -10,9 +11,11 @@ const menu = {
   debugItems: [], debugCursor: 0, recentConfirms: [], debugArmed: false, view: "dungeon",
   compassVisible: true, readoutVisible: false, screenShakeEnabled: true,
   torchFlickerEnabled: true, presenceDisabled: false, stopwatchVisible: true,
+  stairsDownVisible: false, npcsVisible: false,
   actionActive: { random: false, autoReturn: false, torchFull: false, stopwatchReset: false },
   generateRandomDungeon: () => {}, startAutoReturn: () => {}, refillTorch: () => {},
   setScreenShakeEnabled: () => {}, setTorchFlickerEnabled: () => {}, setPresenceDisabled: () => {},
+  setMinimapRevealOptions: () => {},
   setStopwatchVisible: () => {}, resetStopwatch: () => {},
   onReturnToDungeon: () => {}
 };
@@ -27,8 +30,9 @@ export function configureMenu(options) {
   menu.optionPages = [...menu.optionsPanel.querySelectorAll("[data-option-page]")];
   menu.optionNavButtons = [...menu.optionsPanel.querySelectorAll("[data-option-nav]")];
   menu.debugItems = [...menu.debugPanel.querySelectorAll("[data-debug]")];
+  restoreSettings();
   renderEmptyStats(); bindCommands(); bindStatus(); bindOptions(); bindDebug();
-  updateOptionItems(); applyDisplayOptions(); applyRenderOptions(); updateView();
+  updateOptionItems(); applyAllSettings(); updateView();
 }
 
 export function isMenuOpen() { return menu.view !== "dungeon"; }
@@ -83,8 +87,8 @@ function updateOptionItems() { menu.optionPages.forEach((page, index) => { page.
 function executeOptionNav(key) { if (key === "back") { if (menu.optionPage === 0) { menu.view = "commands"; updateView(); } else setOptionPage(0); } else if (menu.optionPage === 0) setOptionPage(1); else { menu.view = "commands"; updateView(); } }
 function executeOption(key) {
   if (key === "language" || key === "bgmVolume" || key === "seVolume") return;
-  if (key === "screenShake") { menu.screenShakeEnabled = !menu.screenShakeEnabled; applyRenderOptions(); updateOptionStates(); }
-  if (key === "torchFlicker") { menu.torchFlickerEnabled = !menu.torchFlickerEnabled; applyRenderOptions(); updateOptionStates(); }
+  if (key === "screenShake") { menu.screenShakeEnabled = !menu.screenShakeEnabled; applyRenderOptions(); updateOptionStates(); persistSettings(); }
+  if (key === "torchFlicker") { menu.torchFlickerEnabled = !menu.torchFlickerEnabled; applyRenderOptions(); updateOptionStates(); persistSettings(); }
 }
 function adjustSelectedOption(amount) { if (menu.optionCursor >= menu.optionItems.length) return; const key = menu.optionItems[menu.optionCursor].dataset.option; if (key === "bgmVolume" || key === "seVolume") { const slider = menu.root.querySelector(`#${key}`); slider.value = String(Math.max(0, Math.min(100, Number(slider.value) + amount * 10))); slider.dispatchEvent(new Event("input", { bubbles: true })); } else if (key === "screenShake" || key === "torchFlicker") executeOption(key); }
 
@@ -95,11 +99,13 @@ function handleDebug(action) {
   if (action === "left" || action === "right" || action === "confirm") { if (menu.debugCursor === menu.debugItems.length) closeCampMenu("back"); else executeDebug(menu.debugItems[menu.debugCursor].dataset.debug); }
 }
 function executeDebug(key) {
-  if (key === "compass") { menu.compassVisible = !menu.compassVisible; applyDisplayOptions(); updateDebugStates(); return; }
-  if (key === "readout") { menu.readoutVisible = !menu.readoutVisible; applyDisplayOptions(); updateDebugStates(); return; }
-  if (key === "presenceDisabled") { menu.presenceDisabled = !menu.presenceDisabled; menu.setPresenceDisabled(menu.presenceDisabled); updateDebugStates(); return; }
-  if (key === "stopwatchOn") { menu.stopwatchVisible = true; menu.setStopwatchVisible(true); updateDebugStates(); return; }
-  if (key === "stopwatchOff") { menu.stopwatchVisible = false; menu.setStopwatchVisible(false); updateDebugStates(); return; }
+  if (key === "compass") { menu.compassVisible = !menu.compassVisible; applyDisplayOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "readout") { menu.readoutVisible = !menu.readoutVisible; applyDisplayOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "presenceDisabled") { menu.presenceDisabled = !menu.presenceDisabled; menu.setPresenceDisabled(menu.presenceDisabled); updateDebugStates(); persistSettings(); return; }
+  if (key === "stairsDownVisible") { menu.stairsDownVisible = !menu.stairsDownVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "npcsVisible") { menu.npcsVisible = !menu.npcsVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "stopwatchOn") { menu.stopwatchVisible = true; menu.setStopwatchVisible(true); updateDebugStates(); persistSettings(); return; }
+  if (key === "stopwatchOff") { menu.stopwatchVisible = false; menu.setStopwatchVisible(false); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchReset") { triggerAction("stopwatchReset", () => { menu.resetStopwatch(); updateDebugStates(); }); return; }
   const actions = { random: menu.generateRandomDungeon, autoReturn: menu.startAutoReturn, torchFull: menu.refillTorch };
   if (actions[key]) triggerAction(key, () => { closeCampMenu(); actions[key](); });
@@ -108,7 +114,7 @@ function triggerAction(key, action) { menu.actionActive[key] = true; updateDebug
 
 function bindCommands() { menu.commands.forEach(button => button.addEventListener("click", () => { if (button.disabled) return; menu.commandIndex = menu.enabledCommands.indexOf(button); updateSelection(); openCommand(button.dataset.command); })); }
 function bindStatus() { menu.statusPanel.querySelectorAll("[data-status-nav]").forEach(button => button.addEventListener("click", () => statusNavigate(button.dataset.statusNav))); }
-function bindOptions() { menu.optionPages.forEach(page => page.querySelectorAll("[data-option]").forEach(item => item.addEventListener("click", event => { if (item.matches(".volume-row") && event.target.matches("input")) return; menu.optionCursor = menu.optionItems.indexOf(item); updateSelection(); executeOption(item.dataset.option); }))); menu.optionNavButtons.forEach(button => button.addEventListener("click", () => executeOptionNav(button.dataset.optionNav))); menu.root.querySelectorAll(".volume-row input").forEach(slider => slider.addEventListener("input", () => { slider.parentElement.querySelector("span").textContent = `${slider.value}%`; })); }
+function bindOptions() { menu.optionPages.forEach(page => page.querySelectorAll("[data-option]").forEach(item => item.addEventListener("click", event => { if (item.matches(".volume-row") && event.target.matches("input")) return; menu.optionCursor = menu.optionItems.indexOf(item); updateSelection(); executeOption(item.dataset.option); }))); menu.optionNavButtons.forEach(button => button.addEventListener("click", () => executeOptionNav(button.dataset.optionNav))); menu.root.querySelectorAll(".volume-row input").forEach(slider => slider.addEventListener("input", () => { slider.parentElement.querySelector("span").textContent = `${slider.value}%`; persistSettings(); })); }
 function bindDebug() { menu.debugItems.forEach((item, index) => item.addEventListener("click", () => { menu.debugCursor = index; updateSelection(); executeDebug(item.dataset.debug); })); menu.debugPanel.querySelector("[data-debug-back]").addEventListener("click", () => closeCampMenu("back")); }
 function renderEmptyStats() { const rows = ["STR", "INT", "AGI", "DEX", "LUC", "DEF"].map(label => { const row = document.createElement("div"); row.className = "nde-stat-row"; const name = document.createElement("strong"); name.textContent = label; const gauge = document.createElement("span"); gauge.className = "nde-empty-gauge"; for (let index = 0; index < 30; index += 1) gauge.append(document.createElement("i")); const value = document.createElement("output"); value.textContent = "--"; row.append(name, gauge, value); return row; }); menu.root.querySelector("#ndeStatRows").replaceChildren(...rows); }
 
@@ -125,7 +131,7 @@ function updatePager() { menu.optionsPanel.querySelector("[data-page-indicator]"
 function updateSelection() { menu.commands.forEach(button => button.classList.toggle("is-selected", menu.view === "commands" && button === menu.enabledCommands[menu.commandIndex])); menu.optionItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "options" && index === menu.optionCursor)); menu.optionNavButtons.forEach((button, index) => button.classList.toggle("is-selected", menu.view === "options" && menu.optionCursor === menu.optionItems.length + index)); menu.debugItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "debug" && index === menu.debugCursor)); menu.debugPanel.querySelector("[data-debug-back]").classList.toggle("is-selected", menu.view === "debug" && menu.debugCursor === menu.debugItems.length); updateOptionStates(); updateDebugStates(); }
 function updateOptionStates() { const shake = menu.root.querySelector('[data-option-state="screenShake"]'); const torch = menu.root.querySelector('[data-option-state="torchFlicker"]'); if (shake) shake.textContent = toggleText(menu.screenShakeEnabled); if (torch) torch.textContent = toggleText(menu.torchFlickerEnabled); }
 function updateDebugStates() {
-  const values = { compass: menu.compassVisible, readout: menu.readoutVisible, presenceDisabled: menu.presenceDisabled };
+  const values = { compass: menu.compassVisible, readout: menu.readoutVisible, presenceDisabled: menu.presenceDisabled, stairsDownVisible: menu.stairsDownVisible, npcsVisible: menu.npcsVisible };
   Object.entries(values).forEach(([key, enabled]) => {
     const state = menu.root.querySelector(`[data-debug-state="${key}"]`);
     if (state) state.textContent = toggleText(enabled);
@@ -144,3 +150,52 @@ function updateDebugStates() {
 function toggleText(enabled) { return enabled ? `ON ${ON_MARK}　OFF ${OFF_MARK}` : `ON ${OFF_MARK}　OFF ${ON_MARK}`; }
 function applyDisplayOptions() { document.body.classList.toggle("hide-compass", !menu.compassVisible); document.body.classList.toggle("show-readout", menu.readoutVisible); }
 function applyRenderOptions() { menu.setScreenShakeEnabled(menu.screenShakeEnabled); menu.setTorchFlickerEnabled(menu.torchFlickerEnabled); }
+function applyMinimapRevealOptions() { menu.setMinimapRevealOptions({ stairsDown: menu.stairsDownVisible, npcs: menu.npcsVisible }); }
+
+function applyAllSettings() {
+  applyDisplayOptions();
+  applyRenderOptions();
+  applyMinimapRevealOptions();
+  menu.setPresenceDisabled(menu.presenceDisabled);
+  menu.setStopwatchVisible(menu.stopwatchVisible);
+  ["bgmVolume", "seVolume"].forEach(id => {
+    const slider = menu.root.querySelector(`#${id}`);
+    if (slider) slider.parentElement.querySelector("span").textContent = `${slider.value}%`;
+  });
+}
+
+function restoreSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
+    if (!saved || typeof saved !== "object") return;
+    const booleanKeys = ["compassVisible", "readoutVisible", "screenShakeEnabled", "torchFlickerEnabled", "presenceDisabled", "stopwatchVisible", "stairsDownVisible", "npcsVisible"];
+    booleanKeys.forEach(key => { if (typeof saved[key] === "boolean") menu[key] = saved[key]; });
+    ["bgmVolume", "seVolume"].forEach(id => {
+      const slider = menu.root.querySelector(`#${id}`);
+      const value = Number(saved[id]);
+      if (slider && Number.isFinite(value)) slider.value = String(Math.max(0, Math.min(100, value)));
+    });
+  } catch (error) {
+    console.warn("NDE settings could not be restored.", error);
+  }
+}
+
+function persistSettings() {
+  try {
+    const settings = {
+      compassVisible: menu.compassVisible,
+      readoutVisible: menu.readoutVisible,
+      screenShakeEnabled: menu.screenShakeEnabled,
+      torchFlickerEnabled: menu.torchFlickerEnabled,
+      presenceDisabled: menu.presenceDisabled,
+      stopwatchVisible: menu.stopwatchVisible,
+      stairsDownVisible: menu.stairsDownVisible,
+      npcsVisible: menu.npcsVisible,
+      bgmVolume: Number(menu.root.querySelector("#bgmVolume")?.value || 0),
+      seVolume: Number(menu.root.querySelector("#seVolume")?.value || 0)
+    };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch (error) {
+    console.warn("NDE settings could not be saved.", error);
+  }
+}

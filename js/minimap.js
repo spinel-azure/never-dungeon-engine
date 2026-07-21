@@ -42,21 +42,23 @@
   ctx.lineCap = "square";
   for (let y = 0; y < MAP_H; y++) {
     for (let x = 0; x < MAP_W; x++) {
-      if (!explored[y][x]) continue;
+      const isExplored = explored[y][x];
       const c = cells[y][x];
       const x1 = ox + x * cell;
       const y1 = oy + y * cell;
       const x2 = x1 + cell;
       const y2 = y1 + cell;
-      if (c.walls.N) line(ctx, x1, y1, x2, y1);
-      if (c.walls.W) line(ctx, x1, y1, x1, y2);
-      if (c.walls.E) line(ctx, x2, y1, x2, y2);
-      if (c.walls.S) line(ctx, x1, y2, x2, y2);
-      if (c.type === "stairsUp" || c.type === "stairsDown") {
+      if (isExplored) {
+        if (c.walls.N) line(ctx, x1, y1, x2, y1);
+        if (c.walls.W) line(ctx, x1, y1, x1, y2);
+        if (c.walls.E) line(ctx, x2, y1, x2, y2);
+        if (c.walls.S) line(ctx, x1, y2, x2, y2);
+      }
+      if ((isExplored && c.type === "stairsUp") || (c.type === "stairsDown" && (isExplored || revealOptions.stairsDown))) {
         drawStairsMark(ctx, x1, y1, cell, c.type);
       }
-      if (c.npc) drawNpcMark(ctx, x1, y1, cell);
-      if (c.treasure && c.treasureDiscovered) drawTreasureMark(ctx, x1, y1, cell, c.treasure);
+      if (c.npc && (isExplored || revealOptions.npcs)) drawNpcMark(ctx, x1, y1, cell);
+      if (isExplored && c.treasure && c.treasureDiscovered) drawTreasureMark(ctx, x1, y1, cell, c.treasure);
     }
   }
 
@@ -93,6 +95,17 @@
   ctx.lineWidth = 1;
   ctx.strokeRect(ox - 5, oy - 5, size + 10, size + 10);
   ctx.restore();
+}
+
+const revealOptions = { stairsDown: false, npcs: false };
+
+export function setMinimapRevealOptions(options = {}) {
+  if ("stairsDown" in options) revealOptions.stairsDown = Boolean(options.stairsDown);
+  if ("npcs" in options) revealOptions.npcs = Boolean(options.npcs);
+}
+
+export function getMinimapRevealOptions() {
+  return { ...revealOptions };
 }
 
 export function drawStairsMark(ctx, x, y, size, type) {
