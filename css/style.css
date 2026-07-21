@@ -440,6 +440,9 @@
       margin: 10px 0 16px;
       padding-left: 12px;
     }
+    .stopwatch[hidden] {
+      display: none;
+    }
     .option-page[hidden] {
       display: none;
     }

@@ -125,8 +125,8 @@ function executeDebug(key, amount = 1) {
   if (key === "stairsDownVisible") { menu.stairsDownVisible = !menu.stairsDownVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "npcsVisible") { menu.npcsVisible = !menu.npcsVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "mistEnabled") { menu.mistEnabled = !menu.mistEnabled; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
-  if (key === "mistIntensity" && menu.mistEnabled) { const values = [.25, .5, 1, 1.5, 2]; const index = values.indexOf(menu.mistIntensity); menu.mistIntensity = values[(Math.max(0, index) + amount + values.length) % values.length]; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
-  if (key === "mistDistance" && menu.mistEnabled) { const values = [3, 5, 7, 9]; const index = values.indexOf(menu.mistDistance); menu.mistDistance = values[(Math.max(0, index) + amount + values.length) % values.length]; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "mistIntensity" && menu.mistEnabled) { menu.mistIntensity = Math.max(.25, Math.min(2, menu.mistIntensity + amount * .25)); applyMistOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "mistDistance" && menu.mistEnabled) { menu.mistDistance = Math.max(3, Math.min(9, menu.mistDistance + amount)); applyMistOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchOn") { menu.stopwatchVisible = true; menu.setStopwatchVisible(true); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchOff") { menu.stopwatchVisible = false; menu.setStopwatchVisible(false); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchReset") { triggerAction("stopwatchReset", () => { menu.resetStopwatch(); updateDebugStates(); }); return; }
@@ -138,7 +138,19 @@ function triggerAction(key, action) { menu.actionActive[key] = true; updateDebug
 function bindCommands() { menu.commands.forEach(button => button.addEventListener("click", () => { if (button.disabled) return; menu.commandIndex = menu.enabledCommands.indexOf(button); updateSelection(); openCommand(button.dataset.command); })); }
 function bindStatus() { menu.statusPanel.querySelectorAll("[data-status-nav]").forEach(button => button.addEventListener("click", () => statusNavigate(button.dataset.statusNav))); }
 function bindOptions() { menu.optionPages.forEach(page => page.querySelectorAll("[data-option]").forEach(item => item.addEventListener("click", event => { if (item.matches(".volume-row") && event.target.matches("input")) return; menu.optionCursor = menu.optionItems.indexOf(item); updateSelection(); executeOption(item.dataset.option); }))); menu.optionNavButtons.forEach(button => button.addEventListener("click", () => executeOptionNav(button.dataset.optionNav))); menu.root.querySelectorAll(".volume-row input").forEach(slider => slider.addEventListener("input", () => { slider.parentElement.querySelector("span").textContent = `${slider.value}%`; persistSettings(); })); }
-function bindDebug() { menu.debugPages.forEach(page => page.querySelectorAll("[data-debug]").forEach(item => item.addEventListener("click", event => { menu.debugCursor = menu.debugItems.indexOf(item); updateSelection(); const adjustable = item.matches('[data-debug="mistIntensity"],[data-debug="mistDistance"]'); const amount = adjustable && event.clientX < item.getBoundingClientRect().left + item.offsetWidth / 2 ? -1 : 1; executeDebug(item.dataset.debug, amount); }))); menu.debugNavButtons.forEach(button => button.addEventListener("click", () => executeDebugNav(button.dataset.debugNav))); }
+function bindDebug() {
+  menu.debugPages.forEach(page => page.querySelectorAll("[data-debug]").forEach(item => item.addEventListener("click", event => {
+    menu.debugCursor = menu.debugItems.indexOf(item); updateSelection();
+    if (event.target.matches('input[type="range"]')) return;
+    executeDebug(item.dataset.debug, 1);
+  })));
+  menu.debugPanel.querySelectorAll('.debug-slider-row input').forEach(slider => slider.addEventListener("input", () => {
+    if (slider.id === "mistIntensity") menu.mistIntensity = Number(slider.value) / 100;
+    if (slider.id === "mistDistance") menu.mistDistance = Number(slider.value);
+    applyMistOptions(); updateDebugStates(); persistSettings();
+  }));
+  menu.debugNavButtons.forEach(button => button.addEventListener("click", () => executeDebugNav(button.dataset.debugNav)));
+}
 function renderEmptyStats() { const rows = ["STR", "INT", "AGI", "DEX", "LUC", "DEF"].map(label => { const row = document.createElement("div"); row.className = "nde-stat-row"; const name = document.createElement("strong"); name.textContent = label; const gauge = document.createElement("span"); gauge.className = "nde-empty-gauge"; for (let index = 0; index < 30; index += 1) gauge.append(document.createElement("i")); const value = document.createElement("output"); value.textContent = "--"; row.append(name, gauge, value); return row; }); menu.root.querySelector("#ndeStatRows").replaceChildren(...rows); }
 
 function updateView() {
@@ -183,9 +195,13 @@ function updateDebugStates() {
   if (stopwatchReset) stopwatchReset.textContent = menu.actionActive.stopwatchReset ? ON_MARK : OFF_MARK;
   const mistIntensity = menu.root.querySelector('[data-debug-value="mistIntensity"]');
   const mistDistance = menu.root.querySelector('[data-debug-value="mistDistance"]');
-  if (mistIntensity) mistIntensity.textContent = `－　${Math.round(menu.mistIntensity * 100)}%　＋`;
-  if (mistDistance) mistDistance.textContent = `－　${menu.mistDistance}マス　＋`;
-  menu.debugPanel.querySelectorAll('[data-debug="mistIntensity"],[data-debug="mistDistance"]').forEach(item => { item.disabled = !menu.mistEnabled; });
+  const mistIntensitySlider = menu.root.querySelector('#mistIntensity');
+  const mistDistanceSlider = menu.root.querySelector('#mistDistance');
+  if (mistIntensity) mistIntensity.textContent = `${Math.round(menu.mistIntensity * 100)}%`;
+  if (mistDistance) mistDistance.textContent = `${menu.mistDistance}マス`;
+  if (mistIntensitySlider) mistIntensitySlider.value = String(Math.round(menu.mistIntensity * 100));
+  if (mistDistanceSlider) mistDistanceSlider.value = String(menu.mistDistance);
+  menu.debugPanel.querySelectorAll('.debug-slider-row').forEach(item => { item.classList.toggle("is-disabled", !menu.mistEnabled); item.querySelector("input").disabled = !menu.mistEnabled; });
 }
 function toggleText(enabled) { return enabled ? `ON ${ON_MARK}　OFF ${OFF_MARK}` : `ON ${OFF_MARK}　OFF ${ON_MARK}`; }
 function applyDisplayOptions() { document.body.classList.toggle("hide-compass", !menu.compassVisible); document.body.classList.toggle("show-readout", menu.readoutVisible); }
@@ -215,9 +231,9 @@ function restoreSettings() {
     const booleanKeys = ["compassVisible", "readoutVisible", "screenShakeEnabled", "torchFlickerEnabled", "presenceDisabled", "stopwatchVisible", "stairsDownVisible", "npcsVisible", "npcTypewriterEnabled", "mistEnabled"];
     booleanKeys.forEach(key => { if (typeof saved[key] === "boolean") menu[key] = saved[key]; });
     if (["slow", "normal", "fast"].includes(saved.npcTypewriterSpeed)) menu.npcTypewriterSpeed = saved.npcTypewriterSpeed;
-    if ([.25, .5, 1, 1.5, 2].includes(saved.mistIntensity)) menu.mistIntensity = saved.mistIntensity;
+    if (Number.isFinite(saved.mistIntensity) && saved.mistIntensity >= .25 && saved.mistIntensity <= 2) menu.mistIntensity = saved.mistIntensity;
     else if (Number.isFinite(saved.mistIntensity)) menu.mistIntensity = 1;
-    if ([3, 5, 7, 9].includes(saved.mistDistance)) menu.mistDistance = saved.mistDistance;
+    if (Number.isFinite(saved.mistDistance) && saved.mistDistance >= 3 && saved.mistDistance <= 9) menu.mistDistance = saved.mistDistance;
     else if (Number.isFinite(saved.mistDistance)) menu.mistDistance = 9;
     ["bgmVolume", "seVolume"].forEach(id => {
       const slider = menu.root.querySelector(`#${id}`);
