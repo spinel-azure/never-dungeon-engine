@@ -36,10 +36,16 @@ const renderer = {
   mistEnabled: true,
   mistIntensity: 1,
   mistDistance: 9,
+  mistColor: "green",
   mistLayers: null
 };
 
-const MIST_COLOR = { r: 66, g: 77, b: 75 };
+const MIST_PALETTES = {
+  green: { main: [66, 77, 75], veil: [63, 75, 72], haze: [93, 108, 104], bloom: [193, 164, 111] },
+  frost: { main: [112, 145, 164], veil: [92, 126, 145], haze: [151, 187, 205], bloom: [150, 203, 229] },
+  poison: { main: [93, 62, 111], veil: [82, 48, 101], haze: [139, 91, 160], bloom: [174, 112, 199] },
+  dark: { main: [7, 9, 14], veil: [0, 0, 0], haze: [23, 26, 36], bloom: [48, 55, 74] }
+};
 const DISTANCE_MIST_BASE_ALPHA = .8;
 
 export function setScreenShakeEnabled(enabled) {
@@ -56,10 +62,14 @@ export function setMistEnabled(enabled) {
   renderer.mistEnabled = Boolean(enabled);
 }
 
-export function setMistOptions({ enabled, intensity, distance } = {}) {
+export function setMistOptions({ enabled, intensity, distance, color } = {}) {
   if (typeof enabled === "boolean") renderer.mistEnabled = enabled;
   if (Number.isFinite(intensity)) renderer.mistIntensity = Math.max(.25, Math.min(2, intensity));
   if (Number.isFinite(distance)) renderer.mistDistance = Math.max(3, Math.min(9, distance));
+  if (MIST_PALETTES[color] && color !== renderer.mistColor) {
+    renderer.mistColor = color;
+    if (renderer.ctx && renderer.W && renderer.H) renderer.mistLayers = makeMistLayers(renderer.ctx, renderer.W, renderer.H);
+  }
 }
 
 export function configureRenderer(options) {
@@ -342,7 +352,7 @@ export function drawBoundaryWalls() {
     }
     const distanceMistAlpha = getDistanceMistAlpha(hit.dist);
     if (distanceMistAlpha > 0) {
-      ctx.fillStyle = `rgba(${MIST_COLOR.r},${MIST_COLOR.g},${MIST_COLOR.b},${distanceMistAlpha})`;
+      ctx.fillStyle = rgba(MIST_PALETTES[renderer.mistColor].main, distanceMistAlpha);
       ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
     }
   }
@@ -353,18 +363,19 @@ export function drawMist(now = 0) {
   const { ctx, W, H, mistLayers } = renderer;
   if (!mistLayers) return;
   const strength = renderer.mistIntensity;
+  const palette = MIST_PALETTES[renderer.mistColor];
 
   ctx.save();
   ctx.globalAlpha = Math.min(1, strength);
   ctx.fillStyle = mistLayers.vignette;
   ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = "rgba(49,59,57,.075)";
+  ctx.fillStyle = rgba(palette.veil, .075);
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
 
   if (strength > 1) {
-    ctx.fillStyle = `rgba(63,75,72,${Math.min(.24, (strength - 1) * .24)})`;
+    ctx.fillStyle = rgba(palette.veil, Math.min(.24, (strength - 1) * .24));
     ctx.fillRect(0, 0, W, H);
   }
 
@@ -392,15 +403,16 @@ function getDistanceMistAlpha(distance) {
 }
 
 function makeMistLayers(ctx, W, H) {
+  const palette = MIST_PALETTES[renderer.mistColor];
   const vignette = ctx.createRadialGradient(W / 2, H * .5, W * .08, W / 2, H * .5, W * .62);
-  vignette.addColorStop(0, "rgba(33,43,41,.02)");
-  vignette.addColorStop(.42, "rgba(20,27,26,.08)");
+  vignette.addColorStop(0, rgba(palette.veil, .02));
+  vignette.addColorStop(.42, rgba(palette.veil, .08));
   vignette.addColorStop(.75, "rgba(4,7,7,.38)");
   vignette.addColorStop(1, "rgba(0,0,0,.76)");
 
   const torchBloom = ctx.createRadialGradient(W / 2, H * .53, 8, W / 2, H * .53, W * .34);
-  torchBloom.addColorStop(0, "rgba(193,164,111,.095)");
-  torchBloom.addColorStop(.34, "rgba(126,126,99,.052)");
+  torchBloom.addColorStop(0, rgba(palette.bloom, .095));
+  torchBloom.addColorStop(.34, rgba(palette.bloom, .052));
   torchBloom.addColorStop(1, "rgba(0,0,0,0)");
 
   const lowMist = document.createElement("canvas");
@@ -408,24 +420,28 @@ function makeMistLayers(ctx, W, H) {
   lowMist.height = Math.ceil(H * .4);
   const lowCtx = lowMist.getContext("2d");
   const vertical = lowCtx.createLinearGradient(0, 0, 0, lowMist.height);
-  vertical.addColorStop(0, "rgba(69,82,79,0)");
-  vertical.addColorStop(.28, "rgba(69,82,79,.1)");
-  vertical.addColorStop(.62, "rgba(62,75,72,.2)");
-  vertical.addColorStop(1, "rgba(26,34,32,0)");
+  vertical.addColorStop(0, rgba(palette.main, 0));
+  vertical.addColorStop(.28, rgba(palette.main, .1));
+  vertical.addColorStop(.62, rgba(palette.main, .2));
+  vertical.addColorStop(1, rgba(palette.veil, 0));
   lowCtx.fillStyle = vertical;
   lowCtx.fillRect(0, 0, lowMist.width, lowMist.height);
 
   lowCtx.save();
   lowCtx.scale(1, .32);
   const haze = lowCtx.createRadialGradient(lowMist.width * .48, lowMist.height * 1.55, 10, lowMist.width * .48, lowMist.height * 1.55, lowMist.width * .6);
-  haze.addColorStop(0, "rgba(93,108,104,.2)");
-  haze.addColorStop(.56, "rgba(70,84,80,.1)");
+  haze.addColorStop(0, rgba(palette.haze, .2));
+  haze.addColorStop(.56, rgba(palette.main, .1));
   haze.addColorStop(1, "rgba(0,0,0,0)");
   lowCtx.fillStyle = haze;
   lowCtx.fillRect(0, 0, lowMist.width, lowMist.height * 3.2);
   lowCtx.restore();
 
   return { vignette, torchBloom, lowMist };
+}
+
+function rgba([r, g, b], alpha) {
+  return `rgba(${r},${g},${b},${alpha})`;
 }
 
 export function drawCellEvents(layer = "all") {
