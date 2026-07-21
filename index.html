@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>3DダンジョンRPG プロトタイプ</title>
   <link rel="stylesheet" href="css/style.css?v=20260720-1">
-  <link rel="stylesheet" href="css/game-menu.css?v=20260721-1">
+  <link rel="stylesheet" href="css/game-menu.css?v=20260721-2">
 </head>
 <body>
 <main class="shell">
@@ -38,7 +38,7 @@
       <button type="button" data-command="save" disabled>セーブ</button>
       <button type="button" data-command="options">オプション</button>
     </section>
-    <p class="command-hint">＊ Bボタンでメニュー表示</p>
+    <p id="commandHint" class="command-hint">＊ Bボタンでメニュー表示</p>
 
     <div class="controls">
       <div class="brand">RANDOM MAZE TEST B1F</div>
@@ -53,20 +53,20 @@
     <section class="menu-screen" id="menuScreen" aria-label="メニュー画面" hidden>
       <div class="menu-panel status-panel" data-menu-view="status" hidden>
         <article class="nde-status-page" data-status-page="0">
-          <h1 class="menu-title">◆ STATUS ◆</h1>
+          <h1 class="menu-title">＊ STATUS ＊</h1>
           <div class="nde-status-identity"><strong>NO_NAME</strong><strong>UNKNOWN</strong><strong>LV ---</strong></div>
           <div class="nde-status-vitals"><span>HP ---- / ----</span><span>SP ---- / ----</span></div>
           <section id="ndeStatRows" class="nde-stat-rows" aria-label="能力値未接続"></section>
           <p class="nde-stat-note">能力値上限 30 / 装備・カード超過不可</p>
-          <h2 class="nde-section-title">◆ EQUIPMENT ◆</h2>
+          <h2 class="nde-section-title">＊ EQUIPMENT ＊</h2>
           <div class="nde-equipment">
             <span>RIGHT ARM</span><strong>----</strong><span>LEFT ARM</span><strong>----</strong><span>HEAD</span><strong>----</strong><span>BODY</span><strong>----</strong><span>FOOT</span><strong>----</strong><span>ACCESSORY</span><strong>----</strong>
           </div>
-          <h2 class="nde-experience-title">EXPERIENCE</h2><div class="nde-experience">------- / -------</div>
+          <h2 class="nde-experience-title">EXPERIENCE</h2><div class="nde-experience"><span>------- / -------</span><span>NEXT LEVEL -------</span></div>
           <div class="nde-condition"><span>CONDITION</span><strong>----</strong></div>
         </article>
         <article class="nde-status-page" data-status-page="1" hidden>
-          <h1 class="menu-title">◆ DETAIL STATUS ◆</h1>
+          <h1 class="menu-title">＊ DETAIL STATUS ＊</h1>
           <div class="nde-detail-list">
             <div><span>物理ダメージ</span><strong>---%</strong></div><div><span>呪文ダメージ</span><strong>---%</strong></div><div><span>呪文耐性</span><strong>---%</strong></div><div><span>会心率</span><strong>---%</strong></div><div><span>回避率</span><strong>---%</strong></div><div><span>命中率</span><strong>---%</strong></div><div><span>先制率</span><strong>---%</strong></div><div><span>罠解除率</span><strong>---%</strong></div><div><span>状態異常耐性</span><strong>---%</strong></div><div><span>たいまつ消費軽減</span><strong>---%</strong></div><div><span>気配上昇軽減</span><strong>---%</strong></div>
           </div>
@@ -82,13 +82,27 @@
           <div class="option-section"><div class="option-label">・SE（未実装）</div><div class="toggle-row is-muted"><span>ON ⚫</span><span>OFF ⚫</span></div><label class="volume-row option-control" data-option="seVolume">Volume <input id="seVolume" type="range" min="0" max="100" value="0"> <span>0%</span></label></div>
         </div>
         <div class="option-page" data-option-page="1" hidden>
-          <button type="button" class="option-item" data-option="random">・ランダム生成 <span data-action-state="random">ON ⚫</span></button><button type="button" class="option-item" data-option="compass">・コンパス表示 <span data-option-state="compass">ON 🔘　OFF ⚫</span></button><button type="button" class="option-item" data-option="readout">・座標/階層表示 <span data-option-state="readout">ON ⚫　OFF 🔘</span></button><button type="button" class="option-item" data-option="autoReturn">・オート帰還 <span data-action-state="autoReturn">ON ⚫</span></button><button type="button" class="option-item" data-option="torchFull">・たいまつゲージ満タン <span data-action-state="torchFull">ON ⚫</span></button>
+          <button type="button" class="option-item option-with-description" data-option="screenShake"><span class="option-heading">・画面の揺れ <b data-option-state="screenShake">ON 🔘　OFF ⚫</b></span><small>ダンジョン画面のゆらぎ演出を切り替えます。画面酔いしやすい場合はOFFにしてください。</small></button>
+          <button type="button" class="option-item option-with-description" data-option="torchFlicker"><span class="option-heading">・たいまつの揺らぎ <b data-option-state="torchFlicker">ON 🔘　OFF ⚫</b></span><small>たいまつの灯りによる画面の明暗変化を切り替えます。チカチカが気になる場合はOFFにしてください。</small></button>
         </div>
         <div class="option-pager"><button type="button" class="menu-footer" data-option-nav="back">BACK</button><span class="page-indicator" data-page-indicator>1/2</span><button type="button" class="menu-footer" data-option-nav="next">NEXT</button></div>
+      </div>
+
+      <div class="menu-panel debug-panel" data-menu-view="debug" hidden>
+        <h1 class="menu-title">＊ DEBUG MODE ＊</h1>
+        <div class="debug-list">
+          <button type="button" class="option-item" data-debug="random">・ランダム生成 <span data-debug-action="random">ON ⚫</span></button>
+          <button type="button" class="option-item" data-debug="compass">・コンパス表示 <span data-debug-state="compass">ON 🔘　OFF ⚫</span></button>
+          <button type="button" class="option-item" data-debug="readout">・座標/階層表示 <span data-debug-state="readout">ON ⚫　OFF 🔘</span></button>
+          <button type="button" class="option-item" data-debug="autoReturn">・オート帰還 <span data-debug-action="autoReturn">ON ⚫</span></button>
+          <button type="button" class="option-item" data-debug="torchFull">・たいまつゲージ満タン <span data-debug-action="torchFull">ON ⚫</span></button>
+          <button type="button" class="option-item" data-debug="presenceDisabled">・気配ゲージ無効 <span data-debug-state="presenceDisabled">ON ⚫　OFF 🔘</span></button>
+        </div>
+        <button type="button" class="menu-footer debug-back" data-debug-back>BACK</button>
       </div>
     </section>
   </section>
 </main>
-<script type="module" src="js/main.js?v=20260720-1"></script>
+  <script type="module" src="js/main.js?v=20260721-1"></script>
 </body>
 </html>

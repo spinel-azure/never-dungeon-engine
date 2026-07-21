@@ -1,34 +1,126 @@
-const ACTION_FEEDBACK_MS=260,ON_MARK="🔘",OFF_MARK="⚫";
-const menu={root:null,commandRoot:null,statusPanel:null,optionsPanel:null,commands:[],enabledCommands:[],commandIndex:0,statusPage:0,optionPages:[],optionItems:[],optionNavButtons:[],optionCursor:0,optionPage:0,view:"dungeon",compassVisible:true,readoutVisible:false,actionActive:{random:false,autoReturn:false,torchFull:false},generateRandomDungeon:()=>{},startAutoReturn:()=>{},refillTorch:()=>{},onReturnToDungeon:()=>{}};
+const ACTION_FEEDBACK_MS = 260;
+const DEBUG_SEQUENCE_MS = 1000;
+const ON_MARK = "🔘";
+const OFF_MARK = "⚫";
 
-export function configureMenu(options){Object.assign(menu,options);menu.statusPanel=menu.root?.querySelector('[data-menu-view="status"]');menu.optionsPanel=menu.root?.querySelector('[data-menu-view="options"]');menu.commands=[...menu.commandRoot.querySelectorAll("[data-command]")];menu.enabledCommands=menu.commands.filter(button=>!button.disabled);menu.optionPages=[...menu.optionsPanel.querySelectorAll("[data-option-page]")];menu.optionNavButtons=[...menu.optionsPanel.querySelectorAll("[data-option-nav]")];renderEmptyStats();bindCommands();bindStatus();bindOptions();updateOptionItems();applyDisplayOptions();updateView()}
-export function isMenuOpen(){return menu.view!=="dungeon"}
-export function openCampMenu(){menu.view="commands";menu.commandIndex=0;updateView()}
-export function closeCampMenu(reason="back"){menu.view="dungeon";updateView();if(reason==="back"||reason==="main")menu.onReturnToDungeon(reason)}
-export function handleMenuInput(action){if(menu.view==="dungeon"){if(action==="cancel"){openCampMenu();return true}return false}if(menu.view==="commands")handleCommands(action);else if(menu.view==="status")handleStatus(action);else if(menu.view==="options")handleOptions(action);return true}
+const menu = {
+  root: null, commandRoot: null, statusPanel: null, optionsPanel: null, debugPanel: null,
+  commands: [], enabledCommands: [], commandIndex: 0, statusPage: 0,
+  optionPages: [], optionItems: [], optionNavButtons: [], optionCursor: 0, optionPage: 0,
+  debugItems: [], debugCursor: 0, recentConfirms: [], debugArmed: false, view: "dungeon",
+  compassVisible: true, readoutVisible: false, screenShakeEnabled: true,
+  torchFlickerEnabled: true, presenceDisabled: false,
+  actionActive: { random: false, autoReturn: false, torchFull: false },
+  generateRandomDungeon: () => {}, startAutoReturn: () => {}, refillTorch: () => {},
+  setScreenShakeEnabled: () => {}, setTorchFlickerEnabled: () => {}, setPresenceDisabled: () => {},
+  onReturnToDungeon: () => {}
+};
 
-function handleCommands(action){if(action==="cancel"){closeCampMenu("back");return}if(["up","down","left","right"].includes(action)){menu.commandIndex=(menu.commandIndex+1)%menu.enabledCommands.length;updateSelection();return}if(action==="confirm")openCommand(menu.enabledCommands[menu.commandIndex].dataset.command)}
-function openCommand(key){if(key==="status"){menu.view="status";menu.statusPage=0}else if(key==="options"){menu.view="options";setOptionPage(0);return}updateView()}
-function handleStatus(action){if(action==="cancel"){menu.view="commands";updateView();return}if(action==="left"){menu.statusPage=0;updateStatus()}if(action==="right"){menu.statusPage=1;updateStatus()}if(action==="confirm"){if(menu.statusPage===0){menu.view="commands";updateView()}else{menu.view="commands";updateView()}}}
-function statusNavigate(key){if(key==="back"){if(menu.statusPage===0){menu.view="commands";updateView()}else{menu.statusPage=0;updateStatus()}}else if(menu.statusPage===0){menu.statusPage=1;updateStatus()}else{menu.view="commands";updateView()}}
+export function configureMenu(options) {
+  Object.assign(menu, options);
+  menu.statusPanel = menu.root.querySelector('[data-menu-view="status"]');
+  menu.optionsPanel = menu.root.querySelector('[data-menu-view="options"]');
+  menu.debugPanel = menu.root.querySelector('[data-menu-view="debug"]');
+  menu.commands = [...menu.commandRoot.querySelectorAll("[data-command]")];
+  menu.enabledCommands = menu.commands.filter(button => !button.disabled);
+  menu.optionPages = [...menu.optionsPanel.querySelectorAll("[data-option-page]")];
+  menu.optionNavButtons = [...menu.optionsPanel.querySelectorAll("[data-option-nav]")];
+  menu.debugItems = [...menu.debugPanel.querySelectorAll("[data-debug]")];
+  renderEmptyStats(); bindCommands(); bindStatus(); bindOptions(); bindDebug();
+  updateOptionItems(); applyDisplayOptions(); applyRenderOptions(); updateView();
+}
 
-function handleOptions(action){if(action==="cancel"){menu.view="commands";updateView();return}const count=menu.optionItems.length+menu.optionNavButtons.length;if(action==="up"){menu.optionCursor=(menu.optionCursor+count-1)%count;updateSelection();return}if(action==="down"){menu.optionCursor=(menu.optionCursor+1)%count;updateSelection();return}if(action==="left"||action==="right"){adjustSelectedOption(action==="right"?1:-1);return}if(action==="confirm"){if(menu.optionCursor>=menu.optionItems.length)executeOptionNav(menu.optionNavButtons[menu.optionCursor-menu.optionItems.length]?.dataset.optionNav);else executeOption(menu.optionItems[menu.optionCursor]?.dataset.option)}}
-function setOptionPage(page){menu.optionPage=Math.max(0,Math.min(1,page));menu.optionCursor=0;updateOptionItems();updateView()}
-function updateOptionItems(){menu.optionPages.forEach((page,index)=>page.hidden=index!==menu.optionPage);menu.optionItems=[...menu.optionPages[menu.optionPage]?.querySelectorAll("[data-option]")||[]]}
-function executeOptionNav(key){if(key==="back"){if(menu.optionPage===0){menu.view="commands";updateView()}else setOptionPage(0)}else if(menu.optionPage===0)setOptionPage(1);else{menu.view="commands";updateView()}}
-function executeOption(key){if(key==="language"||key==="bgmVolume"||key==="seVolume")return;if(key==="compass"){menu.compassVisible=!menu.compassVisible;applyDisplayOptions();updateOptionStates();return}if(key==="readout"){menu.readoutVisible=!menu.readoutVisible;applyDisplayOptions();updateOptionStates();return}const actions={random:()=>menu.generateRandomDungeon(),autoReturn:()=>menu.startAutoReturn(),torchFull:()=>menu.refillTorch()};if(actions[key])triggerAction(key,()=>{menu.view="dungeon";updateView();actions[key]()})}
-function adjustSelectedOption(amount){if(menu.optionCursor>=menu.optionItems.length)return;const key=menu.optionItems[menu.optionCursor]?.dataset.option;if(key==="bgmVolume"||key==="seVolume"){const slider=menu.root.querySelector(`#${key}`);slider.value=String(Math.max(0,Math.min(100,Number(slider.value)+amount*10)));slider.dispatchEvent(new Event("input",{bubbles:true}))}else if(key==="compass"||key==="readout")executeOption(key)}
-function triggerAction(key,action){menu.actionActive[key]=true;updateActionStates();setTimeout(()=>{menu.actionActive[key]=false;updateActionStates();action()},ACTION_FEEDBACK_MS)}
+export function isMenuOpen() { return menu.view !== "dungeon"; }
+export function openCampMenu() { menu.view = "commands"; menu.commandIndex = 0; updateView(); }
+export function closeCampMenu(reason = "back") { menu.view = "dungeon"; updateView(); if (reason === "back" || reason === "main") menu.onReturnToDungeon(reason); }
 
-function bindCommands(){menu.commands.forEach(button=>button.addEventListener("click",()=>{if(button.disabled)return;menu.commandIndex=menu.enabledCommands.indexOf(button);updateSelection();openCommand(button.dataset.command)}))}
-function bindStatus(){menu.statusPanel.querySelectorAll("[data-status-nav]").forEach(button=>button.addEventListener("click",()=>statusNavigate(button.dataset.statusNav)))}
-function bindOptions(){menu.optionPages.forEach(page=>page.querySelectorAll("[data-option]").forEach(item=>item.addEventListener("click",event=>{if(item.matches(".volume-row")&&event.target.matches("input"))return;menu.optionCursor=menu.optionItems.indexOf(item);updateSelection();executeOption(item.dataset.option)})));menu.optionNavButtons.forEach(button=>button.addEventListener("click",()=>executeOptionNav(button.dataset.optionNav)));menu.root.querySelectorAll(".volume-row input").forEach(slider=>slider.addEventListener("input",()=>{slider.parentElement.querySelector("span").textContent=`${slider.value}%`}))}
-function renderEmptyStats(){const labels=["STR","INT","AGI","DEX","LUC","DEF"];const rows=labels.map(label=>{const row=document.createElement("div");row.className="nde-stat-row";const name=document.createElement("strong");name.textContent=label;const gauge=document.createElement("span");gauge.className="nde-empty-gauge";for(let i=0;i<30;i+=1)gauge.append(document.createElement("i"));const value=document.createElement("output");value.textContent="--";row.append(name,gauge,value);return row});menu.root.querySelector("#ndeStatRows").replaceChildren(...rows)}
+export function handleMenuInput(action) {
+  if (menu.view === "dungeon") {
+    const now = performance.now();
+    if (action === "confirm") {
+      menu.recentConfirms = [...menu.recentConfirms.filter(time => now - time <= DEBUG_SEQUENCE_MS), now];
+      const lastThree = menu.recentConfirms.slice(-3);
+      menu.debugArmed = lastThree.length === 3 && lastThree[2] - lastThree[0] <= DEBUG_SEQUENCE_MS;
+      return false;
+    }
+    if (action === "cancel") {
+      menu.recentConfirms = [];
+      if (menu.debugArmed) {
+        menu.debugArmed = false;
+        menu.view = "debug"; menu.debugCursor = 0; updateView(); return true;
+      }
+      openCampMenu(); return true;
+    }
+    menu.recentConfirms = []; menu.debugArmed = false;
+    return false;
+  }
+  if (menu.view === "commands") handleCommands(action);
+  else if (menu.view === "status") handleStatus(action);
+  else if (menu.view === "options") handleOptions(action);
+  else if (menu.view === "debug") handleDebug(action);
+  return true;
+}
 
-function updateView(){const screenOpen=menu.view==="status"||menu.view==="options";document.body.classList.toggle("menu-open",screenOpen);document.body.classList.toggle("command-open",menu.view==="commands");menu.root.hidden=!screenOpen;menu.statusPanel.hidden=menu.view!=="status";menu.optionsPanel.hidden=menu.view!=="options";menu.commandRoot.dataset.active=String(menu.view==="commands");updateStatus();updatePager();updateSelection()}
-function updateStatus(){menu.statusPanel.querySelectorAll("[data-status-page]").forEach((page,index)=>page.hidden=index!==menu.statusPage);menu.statusPanel.querySelector("[data-status-indicator]").textContent=`${menu.statusPage+1}/2`;const next=menu.statusPanel.querySelector('[data-status-nav="next"]');next.textContent=menu.statusPage===0?"NEXT":"MAIN";menu.statusPanel.querySelector('[data-status-nav="back"]').classList.toggle("is-selected",menu.statusPage===0);next.classList.toggle("is-selected",menu.statusPage===1)}
-function updatePager(){if(!menu.optionsPanel)return;menu.optionsPanel.querySelector("[data-page-indicator]").textContent=`${menu.optionPage+1}/2`;menu.optionNavButtons.find(button=>button.dataset.optionNav==="next").textContent=menu.optionPage===0?"NEXT":"MAIN"}
-function updateSelection(){menu.commands.forEach(button=>button.classList.toggle("is-selected",menu.view==="commands"&&button===menu.enabledCommands[menu.commandIndex]));menu.optionItems.forEach((item,index)=>item.classList.toggle("is-selected",menu.view==="options"&&index===menu.optionCursor));menu.optionNavButtons.forEach((button,index)=>button.classList.toggle("is-selected",menu.view==="options"&&menu.optionCursor===menu.optionItems.length+index));updateOptionStates()}
-function updateOptionStates(){const compass=menu.root.querySelector('[data-option-state="compass"]'),readout=menu.root.querySelector('[data-option-state="readout"]');if(compass)compass.textContent=menu.compassVisible?`ON ${ON_MARK}　OFF ${OFF_MARK}`:`ON ${OFF_MARK}　OFF ${ON_MARK}`;if(readout)readout.textContent=menu.readoutVisible?`ON ${ON_MARK}　OFF ${OFF_MARK}`:`ON ${OFF_MARK}　OFF ${ON_MARK}`;updateActionStates()}
-function updateActionStates(){Object.keys(menu.actionActive).forEach(key=>{const state=menu.root.querySelector(`[data-action-state="${key}"]`);if(state)state.textContent=`ON ${menu.actionActive[key]?ON_MARK:OFF_MARK}`})}
-function applyDisplayOptions(){document.body.classList.toggle("hide-compass",!menu.compassVisible);document.body.classList.toggle("show-readout",menu.readoutVisible)}
+function handleCommands(action) {
+  if (action === "cancel") { closeCampMenu("back"); return; }
+  if (["up", "down", "left", "right"].includes(action)) { menu.commandIndex = (menu.commandIndex + 1) % menu.enabledCommands.length; updateSelection(); return; }
+  if (action === "confirm") openCommand(menu.enabledCommands[menu.commandIndex].dataset.command);
+}
+function openCommand(key) { if (key === "status") { menu.view = "status"; menu.statusPage = 0; updateView(); } else if (key === "options") setOptionPage(0); }
+function handleStatus(action) { if (action === "cancel") { menu.view = "commands"; updateView(); } else if (action === "left") { menu.statusPage = 0; updateStatus(); } else if (action === "right") { menu.statusPage = 1; updateStatus(); } else if (action === "confirm") { menu.view = "commands"; updateView(); } }
+function statusNavigate(key) { if (key === "back") { if (menu.statusPage === 0) { menu.view = "commands"; updateView(); } else { menu.statusPage = 0; updateStatus(); } } else if (menu.statusPage === 0) { menu.statusPage = 1; updateStatus(); } else { menu.view = "commands"; updateView(); } }
+
+function handleOptions(action) {
+  if (action === "cancel") { menu.view = "commands"; updateView(); return; }
+  const count = menu.optionItems.length + menu.optionNavButtons.length;
+  if (action === "up" || action === "down") { menu.optionCursor = (menu.optionCursor + (action === "down" ? 1 : count - 1)) % count; updateSelection(); return; }
+  if (action === "left" || action === "right") { adjustSelectedOption(action === "right" ? 1 : -1); return; }
+  if (action === "confirm") { if (menu.optionCursor >= menu.optionItems.length) executeOptionNav(menu.optionNavButtons[menu.optionCursor - menu.optionItems.length]?.dataset.optionNav); else executeOption(menu.optionItems[menu.optionCursor]?.dataset.option); }
+}
+function setOptionPage(page) { menu.view = "options"; menu.optionPage = Math.max(0, Math.min(1, page)); menu.optionCursor = 0; updateOptionItems(); updateView(); }
+function updateOptionItems() { menu.optionPages.forEach((page, index) => { page.hidden = index !== menu.optionPage; }); menu.optionItems = [...menu.optionPages[menu.optionPage].querySelectorAll("[data-option]")]; }
+function executeOptionNav(key) { if (key === "back") { if (menu.optionPage === 0) { menu.view = "commands"; updateView(); } else setOptionPage(0); } else if (menu.optionPage === 0) setOptionPage(1); else { menu.view = "commands"; updateView(); } }
+function executeOption(key) {
+  if (key === "language" || key === "bgmVolume" || key === "seVolume") return;
+  if (key === "screenShake") { menu.screenShakeEnabled = !menu.screenShakeEnabled; applyRenderOptions(); updateOptionStates(); }
+  if (key === "torchFlicker") { menu.torchFlickerEnabled = !menu.torchFlickerEnabled; applyRenderOptions(); updateOptionStates(); }
+}
+function adjustSelectedOption(amount) { if (menu.optionCursor >= menu.optionItems.length) return; const key = menu.optionItems[menu.optionCursor].dataset.option; if (key === "bgmVolume" || key === "seVolume") { const slider = menu.root.querySelector(`#${key}`); slider.value = String(Math.max(0, Math.min(100, Number(slider.value) + amount * 10))); slider.dispatchEvent(new Event("input", { bubbles: true })); } else if (key === "screenShake" || key === "torchFlicker") executeOption(key); }
+
+function handleDebug(action) {
+  if (action === "cancel") { closeCampMenu("back"); return; }
+  const count = menu.debugItems.length + 1;
+  if (action === "up" || action === "down") { menu.debugCursor = (menu.debugCursor + (action === "down" ? 1 : count - 1)) % count; updateSelection(); return; }
+  if (action === "left" || action === "right" || action === "confirm") { if (menu.debugCursor === menu.debugItems.length) closeCampMenu("back"); else executeDebug(menu.debugItems[menu.debugCursor].dataset.debug); }
+}
+function executeDebug(key) {
+  if (key === "compass") { menu.compassVisible = !menu.compassVisible; applyDisplayOptions(); updateDebugStates(); return; }
+  if (key === "readout") { menu.readoutVisible = !menu.readoutVisible; applyDisplayOptions(); updateDebugStates(); return; }
+  if (key === "presenceDisabled") { menu.presenceDisabled = !menu.presenceDisabled; menu.setPresenceDisabled(menu.presenceDisabled); updateDebugStates(); return; }
+  const actions = { random: menu.generateRandomDungeon, autoReturn: menu.startAutoReturn, torchFull: menu.refillTorch };
+  if (actions[key]) triggerAction(key, () => { closeCampMenu(); actions[key](); });
+}
+function triggerAction(key, action) { menu.actionActive[key] = true; updateDebugStates(); setTimeout(() => { menu.actionActive[key] = false; updateDebugStates(); action(); }, ACTION_FEEDBACK_MS); }
+
+function bindCommands() { menu.commands.forEach(button => button.addEventListener("click", () => { if (button.disabled) return; menu.commandIndex = menu.enabledCommands.indexOf(button); updateSelection(); openCommand(button.dataset.command); })); }
+function bindStatus() { menu.statusPanel.querySelectorAll("[data-status-nav]").forEach(button => button.addEventListener("click", () => statusNavigate(button.dataset.statusNav))); }
+function bindOptions() { menu.optionPages.forEach(page => page.querySelectorAll("[data-option]").forEach(item => item.addEventListener("click", event => { if (item.matches(".volume-row") && event.target.matches("input")) return; menu.optionCursor = menu.optionItems.indexOf(item); updateSelection(); executeOption(item.dataset.option); }))); menu.optionNavButtons.forEach(button => button.addEventListener("click", () => executeOptionNav(button.dataset.optionNav))); menu.root.querySelectorAll(".volume-row input").forEach(slider => slider.addEventListener("input", () => { slider.parentElement.querySelector("span").textContent = `${slider.value}%`; })); }
+function bindDebug() { menu.debugItems.forEach((item, index) => item.addEventListener("click", () => { menu.debugCursor = index; updateSelection(); executeDebug(item.dataset.debug); })); menu.debugPanel.querySelector("[data-debug-back]").addEventListener("click", () => closeCampMenu("back")); }
+function renderEmptyStats() { const rows = ["STR", "INT", "AGI", "DEX", "LUC", "DEF"].map(label => { const row = document.createElement("div"); row.className = "nde-stat-row"; const name = document.createElement("strong"); name.textContent = label; const gauge = document.createElement("span"); gauge.className = "nde-empty-gauge"; for (let index = 0; index < 30; index += 1) gauge.append(document.createElement("i")); const value = document.createElement("output"); value.textContent = "--"; row.append(name, gauge, value); return row; }); menu.root.querySelector("#ndeStatRows").replaceChildren(...rows); }
+
+function updateView() {
+  const screenOpen = ["status", "options", "debug"].includes(menu.view);
+  document.body.classList.toggle("menu-open", screenOpen); document.body.classList.toggle("command-open", menu.view === "commands");
+  menu.root.hidden = !screenOpen; menu.statusPanel.hidden = menu.view !== "status"; menu.optionsPanel.hidden = menu.view !== "options"; menu.debugPanel.hidden = menu.view !== "debug";
+  menu.commandRoot.dataset.active = String(menu.view === "commands");
+  const hint = document.querySelector("#commandHint"); if (hint) hint.textContent = menu.view === "commands" ? "＊ Bボタンでメニュー非表示" : "＊ Bボタンでメニュー表示";
+  updateStatus(); updatePager(); updateSelection();
+}
+function updateStatus() { menu.statusPanel.querySelectorAll("[data-status-page]").forEach((page, index) => { page.hidden = index !== menu.statusPage; }); menu.statusPanel.querySelector("[data-status-indicator]").textContent = `${menu.statusPage + 1}/2`; const next = menu.statusPanel.querySelector('[data-status-nav="next"]'); next.textContent = menu.statusPage === 0 ? "NEXT" : "MAIN"; menu.statusPanel.querySelector('[data-status-nav="back"]').classList.toggle("is-selected", menu.statusPage === 0); next.classList.toggle("is-selected", menu.statusPage === 1); }
+function updatePager() { menu.optionsPanel.querySelector("[data-page-indicator]").textContent = `${menu.optionPage + 1}/2`; menu.optionNavButtons.find(button => button.dataset.optionNav === "next").textContent = menu.optionPage === 0 ? "NEXT" : "MAIN"; }
+function updateSelection() { menu.commands.forEach(button => button.classList.toggle("is-selected", menu.view === "commands" && button === menu.enabledCommands[menu.commandIndex])); menu.optionItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "options" && index === menu.optionCursor)); menu.optionNavButtons.forEach((button, index) => button.classList.toggle("is-selected", menu.view === "options" && menu.optionCursor === menu.optionItems.length + index)); menu.debugItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "debug" && index === menu.debugCursor)); menu.debugPanel.querySelector("[data-debug-back]").classList.toggle("is-selected", menu.view === "debug" && menu.debugCursor === menu.debugItems.length); updateOptionStates(); updateDebugStates(); }
+function updateOptionStates() { const shake = menu.root.querySelector('[data-option-state="screenShake"]'); const torch = menu.root.querySelector('[data-option-state="torchFlicker"]'); if (shake) shake.textContent = toggleText(menu.screenShakeEnabled); if (torch) torch.textContent = toggleText(menu.torchFlickerEnabled); }
+function updateDebugStates() { const values = { compass: menu.compassVisible, readout: menu.readoutVisible, presenceDisabled: menu.presenceDisabled }; Object.entries(values).forEach(([key, enabled]) => { const state = menu.root.querySelector(`[data-debug-state="${key}"]`); if (state) state.textContent = toggleText(enabled); }); Object.keys(menu.actionActive).forEach(key => { const state = menu.root.querySelector(`[data-debug-action="${key}"]`); if (state) state.textContent = `ON ${menu.actionActive[key] ? ON_MARK : OFF_MARK}`; }); }
+function toggleText(enabled) { return enabled ? `ON ${ON_MARK}　OFF ${OFF_MARK}` : `ON ${OFF_MARK}　OFF ${ON_MARK}`; }
+function applyDisplayOptions() { document.body.classList.toggle("hide-compass", !menu.compassVisible); document.body.classList.toggle("show-readout", menu.readoutVisible); }
+function applyRenderOptions() { menu.setScreenShakeEnabled(menu.screenShakeEnabled); menu.setTorchFlickerEnabled(menu.torchFlickerEnabled); }

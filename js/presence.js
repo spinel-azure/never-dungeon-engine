@@ -7,6 +7,7 @@ const ENCOUNTER_MESSAGE = "＊　何者かと遭遇した！　＊（戦闘は�
 
 let presence = 0;
 let encounterActive = false;
+let presenceDisabled = false;
 const hooks = {
   onChange: () => {},
   onEncounter: () => {}
@@ -22,12 +23,22 @@ export function getPresence() {
 }
 
 export function addPresence(amount) {
+  if (presenceDisabled) return false;
   if (encounterActive) return false;
   const increase = Math.max(0, Math.floor(Number(amount) || 0));
   presence = Math.min(PRESENCE_MAX, presence + increase);
   hooks.onChange(presence);
   if (presence < PRESENCE_MAX) return false;
   return triggerEncounter();
+}
+
+export function setPresenceDisabled(disabled) {
+  presenceDisabled = Boolean(disabled);
+  if (presenceDisabled) resetPresence();
+}
+
+export function isPresenceDisabled() {
+  return presenceDisabled;
 }
 
 export function resetPresence() {

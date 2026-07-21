@@ -30,8 +30,20 @@ const renderer = {
   wallTexture: null,
   doorTextures: null,
   characterImages: new Map(),
-  treasureImages: new Map()
+  treasureImages: new Map(),
+  screenShakeEnabled: true,
+  torchFlickerEnabled: true
 };
+
+export function setScreenShakeEnabled(enabled) {
+  renderer.screenShakeEnabled = Boolean(enabled);
+  if (!renderer.screenShakeEnabled && renderer.state) renderer.state.shake = 0;
+}
+
+export function setTorchFlickerEnabled(enabled) {
+  renderer.torchFlickerEnabled = Boolean(enabled);
+  if (!renderer.torchFlickerEnabled && renderer.state) renderer.state.torch = 0;
+}
 
 export function configureRenderer(options) {
   Object.assign(renderer, options);
@@ -67,9 +79,9 @@ export function drawScene(now) {
   ctx.fillStyle = "#070909";
   ctx.fillRect(0, 0, W, H);
 
-  const sway = Math.sin(now * 0.005) * 2 + state.shake;
+  const sway = renderer.screenShakeEnabled ? Math.sin(now * 0.005) * 2 + state.shake : 0;
   state.shake *= 0.86;
-  state.torch = Math.sin(now * 0.007) * 0.035 + Math.sin(now * 0.013) * 0.02;
+  state.torch = renderer.torchFlickerEnabled ? Math.sin(now * 0.007) * 0.035 + Math.sin(now * 0.013) * 0.02 : 0;
   ctx.translate(0, sway);
 
   drawCeiling();

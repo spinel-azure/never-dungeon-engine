@@ -31,7 +31,7 @@ import {
   startRandomEncounterNotice,
   startFloorLapNotice
 } from "./player.js";
-import { configureRenderer, startRenderLoop } from "./renderer.js";
+import { configureRenderer, startRenderLoop, setScreenShakeEnabled, setTorchFlickerEnabled } from "./renderer.js";
 import { drawMinimap, getMinimapBounds } from "./minimap.js";
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
@@ -49,7 +49,8 @@ import { configureDevice } from "./device.js";
 import {
   configurePresence,
   getPresence,
-  resetPresence
+  resetPresence,
+  setPresenceDisabled
 } from "./presence.js";
 import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } from "./treasure.js";
 
@@ -212,6 +213,9 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
     generateRandomDungeon,
     startAutoReturn,
     refillTorch,
+    setScreenShakeEnabled,
+    setTorchFlickerEnabled,
+    setPresenceDisabled,
     onReturnToDungeon: resumeDismissedStairsPrompt
   });
   configureVirtualStick({
