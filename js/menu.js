@@ -8,14 +8,16 @@ const menu = {
   root: null, commandRoot: null, statusPanel: null, optionsPanel: null, debugPanel: null,
   commands: [], enabledCommands: [], commandIndex: 0, statusPage: 0,
   optionPages: [], optionItems: [], optionNavButtons: [], optionCursor: 0, optionPage: 0,
-  debugItems: [], debugCursor: 0, recentConfirms: [], debugArmed: false, view: "dungeon",
+  debugPages: [], debugItems: [], debugNavButtons: [], debugCursor: 0, debugPage: 0, recentConfirms: [], debugArmed: false, view: "dungeon",
   compassVisible: true, readoutVisible: false, screenShakeEnabled: true,
   torchFlickerEnabled: true, presenceDisabled: false, stopwatchVisible: true,
   stairsDownVisible: false, npcsVisible: false,
+  mistEnabled: true, mistIntensity: .8, mistDistance: 2.2,
   npcTypewriterEnabled: true, npcTypewriterSpeed: "normal",
   actionActive: { random: false, autoReturn: false, torchFull: false, stopwatchReset: false },
   generateRandomDungeon: () => {}, startAutoReturn: () => {}, refillTorch: () => {},
   setScreenShakeEnabled: () => {}, setTorchFlickerEnabled: () => {}, setPresenceDisabled: () => {},
+  setMistOptions: () => {},
   setMinimapRevealOptions: () => {},
   setNpcTypewriterOptions: () => {},
   setStopwatchVisible: () => {}, resetStopwatch: () => {},
@@ -31,10 +33,11 @@ export function configureMenu(options) {
   menu.enabledCommands = menu.commands.filter(button => !button.disabled);
   menu.optionPages = [...menu.optionsPanel.querySelectorAll("[data-option-page]")];
   menu.optionNavButtons = [...menu.optionsPanel.querySelectorAll("[data-option-nav]")];
-  menu.debugItems = [...menu.debugPanel.querySelectorAll("[data-debug]")];
+  menu.debugPages = [...menu.debugPanel.querySelectorAll("[data-debug-page]")];
+  menu.debugNavButtons = [...menu.debugPanel.querySelectorAll("[data-debug-nav]")];
   restoreSettings();
   renderEmptyStats(); bindCommands(); bindStatus(); bindOptions(); bindDebug();
-  updateOptionItems(); applyAllSettings(); updateView();
+  updateOptionItems(); updateDebugItems(); applyAllSettings(); updateView();
 }
 
 export function isMenuOpen() { return menu.view !== "dungeon"; }
@@ -54,7 +57,7 @@ export function handleMenuInput(action) {
       menu.recentConfirms = [];
       if (menu.debugArmed) {
         menu.debugArmed = false;
-        menu.view = "debug"; menu.debugCursor = 0; updateView(); return true;
+        setDebugPage(0); return true;
       }
       openCampMenu(); return true;
     }
@@ -105,16 +108,25 @@ function cycleNpcTypewriterSpeed(amount) {
 
 function handleDebug(action) {
   if (action === "cancel") { closeCampMenu("back"); return; }
-  const count = menu.debugItems.length + 1;
+  const count = menu.debugItems.length + menu.debugNavButtons.length;
   if (action === "up" || action === "down") { menu.debugCursor = (menu.debugCursor + (action === "down" ? 1 : count - 1)) % count; updateSelection(); return; }
-  if (action === "left" || action === "right" || action === "confirm") { if (menu.debugCursor === menu.debugItems.length) closeCampMenu("back"); else executeDebug(menu.debugItems[menu.debugCursor].dataset.debug); }
+  if (action === "left" || action === "right" || action === "confirm") {
+    if (menu.debugCursor >= menu.debugItems.length) executeDebugNav(menu.debugNavButtons[menu.debugCursor - menu.debugItems.length]?.dataset.debugNav);
+    else executeDebug(menu.debugItems[menu.debugCursor].dataset.debug, action === "left" ? -1 : 1);
+  }
 }
-function executeDebug(key) {
+function setDebugPage(page) { menu.view = "debug"; menu.debugPage = Math.max(0, Math.min(1, page)); menu.debugCursor = 0; updateDebugItems(); updateView(); }
+function updateDebugItems() { menu.debugPages.forEach((page, index) => { page.hidden = index !== menu.debugPage; }); menu.debugItems = [...menu.debugPages[menu.debugPage].querySelectorAll("[data-debug]")]; }
+function executeDebugNav(key) { if (key === "back") { if (menu.debugPage === 0) closeCampMenu("back"); else setDebugPage(0); } else if (menu.debugPage === 0) setDebugPage(1); else closeCampMenu("main"); }
+function executeDebug(key, amount = 1) {
   if (key === "compass") { menu.compassVisible = !menu.compassVisible; applyDisplayOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "readout") { menu.readoutVisible = !menu.readoutVisible; applyDisplayOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "presenceDisabled") { menu.presenceDisabled = !menu.presenceDisabled; menu.setPresenceDisabled(menu.presenceDisabled); updateDebugStates(); persistSettings(); return; }
   if (key === "stairsDownVisible") { menu.stairsDownVisible = !menu.stairsDownVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "npcsVisible") { menu.npcsVisible = !menu.npcsVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "mistEnabled") { menu.mistEnabled = !menu.mistEnabled; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "mistIntensity" && menu.mistEnabled) { menu.mistIntensity = Math.max(.2, Math.min(1, Math.round((menu.mistIntensity + amount * .2) * 10) / 10)); applyMistOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "mistDistance" && menu.mistEnabled) { const values = [1.5, 2.2, 3, 4, 5]; const index = values.indexOf(menu.mistDistance); menu.mistDistance = values[(Math.max(0, index) + amount + values.length) % values.length]; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchOn") { menu.stopwatchVisible = true; menu.setStopwatchVisible(true); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchOff") { menu.stopwatchVisible = false; menu.setStopwatchVisible(false); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchReset") { triggerAction("stopwatchReset", () => { menu.resetStopwatch(); updateDebugStates(); }); return; }
@@ -126,7 +138,7 @@ function triggerAction(key, action) { menu.actionActive[key] = true; updateDebug
 function bindCommands() { menu.commands.forEach(button => button.addEventListener("click", () => { if (button.disabled) return; menu.commandIndex = menu.enabledCommands.indexOf(button); updateSelection(); openCommand(button.dataset.command); })); }
 function bindStatus() { menu.statusPanel.querySelectorAll("[data-status-nav]").forEach(button => button.addEventListener("click", () => statusNavigate(button.dataset.statusNav))); }
 function bindOptions() { menu.optionPages.forEach(page => page.querySelectorAll("[data-option]").forEach(item => item.addEventListener("click", event => { if (item.matches(".volume-row") && event.target.matches("input")) return; menu.optionCursor = menu.optionItems.indexOf(item); updateSelection(); executeOption(item.dataset.option); }))); menu.optionNavButtons.forEach(button => button.addEventListener("click", () => executeOptionNav(button.dataset.optionNav))); menu.root.querySelectorAll(".volume-row input").forEach(slider => slider.addEventListener("input", () => { slider.parentElement.querySelector("span").textContent = `${slider.value}%`; persistSettings(); })); }
-function bindDebug() { menu.debugItems.forEach((item, index) => item.addEventListener("click", () => { menu.debugCursor = index; updateSelection(); executeDebug(item.dataset.debug); })); menu.debugPanel.querySelector("[data-debug-back]").addEventListener("click", () => closeCampMenu("back")); }
+function bindDebug() { menu.debugPages.forEach(page => page.querySelectorAll("[data-debug]").forEach(item => item.addEventListener("click", event => { menu.debugCursor = menu.debugItems.indexOf(item); updateSelection(); const adjustable = item.matches('[data-debug="mistIntensity"],[data-debug="mistDistance"]'); const amount = adjustable && event.clientX < item.getBoundingClientRect().left + item.offsetWidth / 2 ? -1 : 1; executeDebug(item.dataset.debug, amount); }))); menu.debugNavButtons.forEach(button => button.addEventListener("click", () => executeDebugNav(button.dataset.debugNav))); }
 function renderEmptyStats() { const rows = ["STR", "INT", "AGI", "DEX", "LUC", "DEF"].map(label => { const row = document.createElement("div"); row.className = "nde-stat-row"; const name = document.createElement("strong"); name.textContent = label; const gauge = document.createElement("span"); gauge.className = "nde-empty-gauge"; for (let index = 0; index < 30; index += 1) gauge.append(document.createElement("i")); const value = document.createElement("output"); value.textContent = "--"; row.append(name, gauge, value); return row; }); menu.root.querySelector("#ndeStatRows").replaceChildren(...rows); }
 
 function updateView() {
@@ -135,11 +147,12 @@ function updateView() {
   menu.root.hidden = !screenOpen; menu.statusPanel.hidden = menu.view !== "status"; menu.optionsPanel.hidden = menu.view !== "options"; menu.debugPanel.hidden = menu.view !== "debug";
   menu.commandRoot.dataset.active = String(menu.view === "commands");
   const hint = document.querySelector("#commandHint"); if (hint) hint.textContent = menu.view === "commands" ? "＊ Bボタンでメニュー非表示" : "＊ Bボタンでメニュー表示";
-  updateStatus(); updatePager(); updateSelection();
+  updateStatus(); updatePager(); updateDebugPager(); updateSelection();
 }
 function updateStatus() { menu.statusPanel.querySelectorAll("[data-status-page]").forEach((page, index) => { page.hidden = index !== menu.statusPage; }); menu.statusPanel.querySelector("[data-status-indicator]").textContent = `${menu.statusPage + 1}/2`; const next = menu.statusPanel.querySelector('[data-status-nav="next"]'); next.textContent = menu.statusPage === 0 ? "NEXT" : "MAIN"; menu.statusPanel.querySelector('[data-status-nav="back"]').classList.toggle("is-selected", menu.statusPage === 0); next.classList.toggle("is-selected", menu.statusPage === 1); }
 function updatePager() { menu.optionsPanel.querySelector("[data-page-indicator]").textContent = `${menu.optionPage + 1}/2`; menu.optionNavButtons.find(button => button.dataset.optionNav === "next").textContent = menu.optionPage === 0 ? "NEXT" : "MAIN"; }
-function updateSelection() { menu.commands.forEach(button => button.classList.toggle("is-selected", menu.view === "commands" && button === menu.enabledCommands[menu.commandIndex])); menu.optionItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "options" && index === menu.optionCursor)); menu.optionNavButtons.forEach((button, index) => button.classList.toggle("is-selected", menu.view === "options" && menu.optionCursor === menu.optionItems.length + index)); menu.debugItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "debug" && index === menu.debugCursor)); menu.debugPanel.querySelector("[data-debug-back]").classList.toggle("is-selected", menu.view === "debug" && menu.debugCursor === menu.debugItems.length); updateOptionStates(); updateDebugStates(); }
+function updateDebugPager() { menu.debugPanel.querySelector("[data-debug-indicator]").textContent = `${menu.debugPage + 1}/2`; menu.debugNavButtons.find(button => button.dataset.debugNav === "next").textContent = menu.debugPage === 0 ? "NEXT" : "MAIN"; }
+function updateSelection() { menu.commands.forEach(button => button.classList.toggle("is-selected", menu.view === "commands" && button === menu.enabledCommands[menu.commandIndex])); menu.optionItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "options" && index === menu.optionCursor)); menu.optionNavButtons.forEach((button, index) => button.classList.toggle("is-selected", menu.view === "options" && menu.optionCursor === menu.optionItems.length + index)); menu.debugItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "debug" && index === menu.debugCursor)); menu.debugNavButtons.forEach((button, index) => button.classList.toggle("is-selected", menu.view === "debug" && menu.debugCursor === menu.debugItems.length + index)); updateOptionStates(); updateDebugStates(); }
 function updateOptionStates() {
   const shake = menu.root.querySelector('[data-option-state="screenShake"]');
   const torch = menu.root.querySelector('[data-option-state="torchFlicker"]');
@@ -153,7 +166,7 @@ function updateOptionStates() {
   if (speedButton) speedButton.disabled = !menu.npcTypewriterEnabled;
 }
 function updateDebugStates() {
-  const values = { compass: menu.compassVisible, readout: menu.readoutVisible, presenceDisabled: menu.presenceDisabled, stairsDownVisible: menu.stairsDownVisible, npcsVisible: menu.npcsVisible };
+  const values = { compass: menu.compassVisible, readout: menu.readoutVisible, presenceDisabled: menu.presenceDisabled, stairsDownVisible: menu.stairsDownVisible, npcsVisible: menu.npcsVisible, mistEnabled: menu.mistEnabled };
   Object.entries(values).forEach(([key, enabled]) => {
     const state = menu.root.querySelector(`[data-debug-state="${key}"]`);
     if (state) state.textContent = toggleText(enabled);
@@ -168,18 +181,25 @@ function updateDebugStates() {
   if (stopwatchOn) stopwatchOn.textContent = menu.stopwatchVisible ? ON_MARK : OFF_MARK;
   if (stopwatchOff) stopwatchOff.textContent = menu.stopwatchVisible ? OFF_MARK : ON_MARK;
   if (stopwatchReset) stopwatchReset.textContent = menu.actionActive.stopwatchReset ? ON_MARK : OFF_MARK;
+  const mistIntensity = menu.root.querySelector('[data-debug-value="mistIntensity"]');
+  const mistDistance = menu.root.querySelector('[data-debug-value="mistDistance"]');
+  if (mistIntensity) mistIntensity.textContent = `－　${Math.round(menu.mistIntensity * 100)}%　＋`;
+  if (mistDistance) mistDistance.textContent = `－　${menu.mistDistance}マス　＋`;
+  menu.debugPanel.querySelectorAll('[data-debug="mistIntensity"],[data-debug="mistDistance"]').forEach(item => { item.disabled = !menu.mistEnabled; });
 }
 function toggleText(enabled) { return enabled ? `ON ${ON_MARK}　OFF ${OFF_MARK}` : `ON ${OFF_MARK}　OFF ${ON_MARK}`; }
 function applyDisplayOptions() { document.body.classList.toggle("hide-compass", !menu.compassVisible); document.body.classList.toggle("show-readout", menu.readoutVisible); }
 function applyRenderOptions() { menu.setScreenShakeEnabled(menu.screenShakeEnabled); menu.setTorchFlickerEnabled(menu.torchFlickerEnabled); }
 function applyMinimapRevealOptions() { menu.setMinimapRevealOptions({ stairsDown: menu.stairsDownVisible, npcs: menu.npcsVisible }); }
 function applyNpcTypewriterOptions() { menu.setNpcTypewriterOptions({ enabled: menu.npcTypewriterEnabled, speed: menu.npcTypewriterSpeed }); }
+function applyMistOptions() { menu.setMistOptions({ enabled: menu.mistEnabled, intensity: menu.mistIntensity, distance: menu.mistDistance }); }
 
 function applyAllSettings() {
   applyDisplayOptions();
   applyRenderOptions();
   applyMinimapRevealOptions();
   applyNpcTypewriterOptions();
+  applyMistOptions();
   menu.setPresenceDisabled(menu.presenceDisabled);
   menu.setStopwatchVisible(menu.stopwatchVisible);
   ["bgmVolume", "seVolume"].forEach(id => {
@@ -192,9 +212,11 @@ function restoreSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
     if (!saved || typeof saved !== "object") return;
-    const booleanKeys = ["compassVisible", "readoutVisible", "screenShakeEnabled", "torchFlickerEnabled", "presenceDisabled", "stopwatchVisible", "stairsDownVisible", "npcsVisible", "npcTypewriterEnabled"];
+    const booleanKeys = ["compassVisible", "readoutVisible", "screenShakeEnabled", "torchFlickerEnabled", "presenceDisabled", "stopwatchVisible", "stairsDownVisible", "npcsVisible", "npcTypewriterEnabled", "mistEnabled"];
     booleanKeys.forEach(key => { if (typeof saved[key] === "boolean") menu[key] = saved[key]; });
     if (["slow", "normal", "fast"].includes(saved.npcTypewriterSpeed)) menu.npcTypewriterSpeed = saved.npcTypewriterSpeed;
+    if (Number.isFinite(saved.mistIntensity)) menu.mistIntensity = Math.max(.2, Math.min(1, saved.mistIntensity));
+    if ([1.5, 2.2, 3, 4, 5].includes(saved.mistDistance)) menu.mistDistance = saved.mistDistance;
     ["bgmVolume", "seVolume"].forEach(id => {
       const slider = menu.root.querySelector(`#${id}`);
       const value = Number(saved[id]);
@@ -218,6 +240,9 @@ function persistSettings() {
       npcsVisible: menu.npcsVisible,
       npcTypewriterEnabled: menu.npcTypewriterEnabled,
       npcTypewriterSpeed: menu.npcTypewriterSpeed,
+      mistEnabled: menu.mistEnabled,
+      mistIntensity: menu.mistIntensity,
+      mistDistance: menu.mistDistance,
       bgmVolume: Number(menu.root.querySelector("#bgmVolume")?.value || 0),
       seVolume: Number(menu.root.querySelector("#seVolume")?.value || 0)
     };

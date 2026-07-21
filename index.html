@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
   <link rel="stylesheet" href="css/style.css?v=20260720-1">
-  <link rel="stylesheet" href="css/game-menu.css?v=20260721-6">
+  <link rel="stylesheet" href="css/game-menu.css?v=20260722-1">
   <link rel="stylesheet" href="css/title-screen.css?v=20260721-1">
 </head>
 <body class="title-active">
@@ -105,7 +105,7 @@
 
       <div class="menu-panel debug-panel" data-menu-view="debug" hidden>
         <h1 class="menu-title">＊ DEBUG MODE ＊</h1>
-        <div class="debug-list">
+        <div class="debug-list" data-debug-page="0">
           <button type="button" class="option-item" data-debug="random">・ランダム生成 <span data-debug-action="random">ON ⚫</span></button>
           <button type="button" class="option-item" data-debug="compass">・コンパス表示 <span data-debug-state="compass">ON 🔘　OFF ⚫</span></button>
           <button type="button" class="option-item" data-debug="readout">・座標/階層表示 <span data-debug-state="readout">ON ⚫　OFF 🔘</span></button>
@@ -116,12 +116,18 @@
           <button type="button" class="option-item" data-debug="npcsVisible">・NPC表示 <span data-debug-state="npcsVisible">ON ⚫　OFF 🔘</span></button>
           <div class="debug-stopwatch-row"><span>・プレイ時間</span><span class="debug-stopwatch-actions"><button type="button" data-debug="stopwatchOn">ON <i data-stopwatch-state="on">🔘</i></button><button type="button" data-debug="stopwatchOff">OFF <i data-stopwatch-state="off">⚫</i></button><button type="button" data-debug="stopwatchReset">RESET <i data-stopwatch-state="reset">⚫</i></button></span></div>
         </div>
-        <button type="button" class="menu-footer debug-back" data-debug-back>BACK</button>
+        <div class="debug-list debug-mist-list" data-debug-page="1" hidden>
+          <button type="button" class="option-item" data-debug="mistEnabled">・霧 <span data-debug-state="mistEnabled">ON 🔘　OFF ⚫</span></button>
+          <button type="button" class="option-item debug-value-item" data-debug="mistIntensity">・霧の濃さ <span data-debug-value="mistIntensity">－　80%　＋</span></button>
+          <button type="button" class="option-item debug-value-item" data-debug="mistDistance">・霧の距離 <span data-debug-value="mistDistance">－　2.2マス　＋</span></button>
+          <p class="debug-mist-note">霧の距離は、遠景が霞み始める位置です。数値を大きくすると遠くまで見通せます。</p>
+        </div>
+        <div class="debug-pager"><button type="button" class="menu-footer" data-debug-nav="back">BACK</button><span class="page-indicator" data-debug-indicator>1/2</span><button type="button" class="menu-footer" data-debug-nav="next">NEXT</button></div>
       </div>
     </section>
   </section>
 </main>
   <script type="module" src="js/title-screen.js?v=20260721-1"></script>
-  <script type="module" src="js/main.js?v=20260722-1"></script>
+  <script type="module" src="js/main.js?v=20260722-2"></script>
 </body>
 </html>

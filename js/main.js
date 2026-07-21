@@ -32,7 +32,7 @@ import {
   startFloorLapNotice,
   setNpcTypewriterOptions
 } from "./player.js";
-import { configureRenderer, startRenderLoop, setScreenShakeEnabled, setTorchFlickerEnabled } from "./renderer.js";
+import { configureRenderer, startRenderLoop, setScreenShakeEnabled, setTorchFlickerEnabled, setMistOptions } from "./renderer.js";
 import { drawMinimap, getMinimapBounds, setMinimapRevealOptions } from "./minimap.js";
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
@@ -225,6 +225,7 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
     refillTorch,
     setScreenShakeEnabled,
     setTorchFlickerEnabled,
+    setMistOptions,
     setPresenceDisabled,
     setMinimapRevealOptions,
     setNpcTypewriterOptions,

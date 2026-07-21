@@ -34,13 +34,13 @@ const renderer = {
   screenShakeEnabled: true,
   torchFlickerEnabled: true,
   mistEnabled: true,
+  mistIntensity: .8,
+  mistDistance: 2.2,
   mistLayers: null
 };
 
 const MIST_COLOR = { r: 66, g: 77, b: 75 };
-const DISTANCE_MIST_START = 2.2;
 const DISTANCE_MIST_END = 9;
-const DISTANCE_MIST_MAX_ALPHA = .8;
 
 export function setScreenShakeEnabled(enabled) {
   renderer.screenShakeEnabled = Boolean(enabled);
@@ -54,6 +54,12 @@ export function setTorchFlickerEnabled(enabled) {
 
 export function setMistEnabled(enabled) {
   renderer.mistEnabled = Boolean(enabled);
+}
+
+export function setMistOptions({ enabled, intensity, distance } = {}) {
+  if (typeof enabled === "boolean") renderer.mistEnabled = enabled;
+  if (Number.isFinite(intensity)) renderer.mistIntensity = Math.max(.2, Math.min(1, intensity));
+  if (Number.isFinite(distance)) renderer.mistDistance = Math.max(1.5, Math.min(5, distance));
 }
 
 export function configureRenderer(options) {
@@ -346,22 +352,27 @@ export function drawMist(now = 0) {
   if (!renderer.mistEnabled) return;
   const { ctx, W, H, mistLayers } = renderer;
   if (!mistLayers) return;
+  const strength = renderer.mistIntensity / .8;
 
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, strength);
   ctx.fillStyle = mistLayers.vignette;
   ctx.fillRect(0, 0, W, H);
 
   ctx.fillStyle = "rgba(49,59,57,.075)";
   ctx.fillRect(0, 0, W, H);
+  ctx.restore();
 
   const driftX = Math.sin(now * .00011) * W * .025;
   const driftY = Math.sin(now * .000073 + 1.4) * H * .008;
   ctx.save();
-  ctx.globalAlpha = .34;
+  ctx.globalAlpha = Math.min(.5, .34 * strength);
   ctx.drawImage(mistLayers.lowMist, -W * .1 + driftX, H * .47 + driftY);
   ctx.restore();
 
   ctx.save();
   ctx.globalCompositeOperation = "screen";
+  ctx.globalAlpha = Math.min(1, strength);
   ctx.fillStyle = mistLayers.torchBloom;
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
@@ -369,9 +380,9 @@ export function drawMist(now = 0) {
 
 function getDistanceMistAlpha(distance) {
   if (!renderer.mistEnabled) return 0;
-  const progress = Math.max(0, Math.min(1, (distance - DISTANCE_MIST_START) / (DISTANCE_MIST_END - DISTANCE_MIST_START)));
+  const progress = Math.max(0, Math.min(1, (distance - renderer.mistDistance) / (DISTANCE_MIST_END - renderer.mistDistance)));
   const smooth = progress * progress * (3 - 2 * progress);
-  return smooth * DISTANCE_MIST_MAX_ALPHA;
+  return smooth * renderer.mistIntensity;
 }
 
 function makeMistLayers(ctx, W, H) {
