@@ -29,7 +29,8 @@ import {
   handleOverlayEventInput,
   resumeDismissedStairsPrompt,
   startRandomEncounterNotice,
-  startFloorLapNotice
+  startFloorLapNotice,
+  setNpcTypewriterOptions
 } from "./player.js";
 import { configureRenderer, startRenderLoop, setScreenShakeEnabled, setTorchFlickerEnabled } from "./renderer.js";
 import { drawMinimap, getMinimapBounds, setMinimapRevealOptions } from "./minimap.js";
@@ -226,6 +227,7 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
     setTorchFlickerEnabled,
     setPresenceDisabled,
     setMinimapRevealOptions,
+    setNpcTypewriterOptions,
     setStopwatchVisible,
     resetStopwatch,
     onReturnToDungeon: resumeDismissedStairsPrompt

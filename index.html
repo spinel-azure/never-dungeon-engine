@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>3DダンジョンRPG プロトタイプ</title>
   <link rel="stylesheet" href="css/style.css?v=20260720-1">
-  <link rel="stylesheet" href="css/game-menu.css?v=20260721-5">
+  <link rel="stylesheet" href="css/game-menu.css?v=20260721-6">
   <link rel="stylesheet" href="css/title-screen.css?v=20260721-1">
 </head>
 <body class="title-active">
@@ -91,6 +91,11 @@
         <div class="option-page" data-option-page="1" hidden>
           <button type="button" class="option-item option-with-description" data-option="screenShake"><span class="option-heading">・画面の揺れ <b data-option-state="screenShake">ON 🔘　OFF ⚫</b></span><small>ダンジョン画面のゆらぎ演出を切り替えます。画面酔いしやすい場合はOFFにしてください。</small></button>
           <button type="button" class="option-item option-with-description" data-option="torchFlicker"><span class="option-heading">・たいまつの揺らぎ <b data-option-state="torchFlicker">ON 🔘　OFF ⚫</b></span><small>たいまつの灯りによる画面の明暗変化を切り替えます。チカチカが気になる場合はOFFにしてください。</small></button>
+          <div class="npc-typewriter-option">
+            <button type="button" class="option-item" data-option="npcTypewriterEnabled"><span>・NPCタイプライター表示</span><b data-option-state="npcTypewriterEnabled">ON 🔘　OFF ⚫</b></button>
+            <button type="button" class="option-item npc-typewriter-speed" data-option="npcTypewriterSpeed"><span data-option-state="npcTypewriterSpeed">SLOW ⚫　NORMAL 🔘　FAST ⚫</span></button>
+            <small>NPCの台詞をタイプライターの様に一文字ずつ表示します。ONの場合は表示速度も変更できます。</small>
+          </div>
         </div>
         <div class="option-pager"><button type="button" class="menu-footer" data-option-nav="back">BACK</button><span class="page-indicator" data-page-indicator>1/2</span><button type="button" class="menu-footer" data-option-nav="next">NEXT</button></div>
       </div>
@@ -114,6 +119,6 @@
   </section>
 </main>
   <script type="module" src="js/title-screen.js?v=20260721-1"></script>
-  <script type="module" src="js/main.js?v=20260721-3"></script>
+  <script type="module" src="js/main.js?v=20260721-4"></script>
 </body>
 </html>

@@ -40,11 +40,20 @@ const NPC_AWARENESS_MESSAGE = "前方に何かいるようだ";
 const TORCH_FUEL_MAX = 100;
 const TORCH_FUEL_STEP = 1;
 const DOOR_OPEN_MS = 520;
+const NPC_TYPEWRITER_DELAYS = { slow: 75, normal: 42, fast: 20 };
+const npcTypewriter = { enabled: true, speed: "normal", timer: 0 };
 
 export const state = createPlayerState(2);
 
 export function configurePlayer(callbacks) {
   Object.assign(hooks, callbacks);
+}
+
+export function setNpcTypewriterOptions({ enabled, speed } = {}) {
+  if (typeof enabled === "boolean") npcTypewriter.enabled = enabled;
+  if (speed in NPC_TYPEWRITER_DELAYS) npcTypewriter.speed = speed;
+  const event = state.overlayEvent;
+  if (!npcTypewriter.enabled && event?.type === "npcTalk" && event.typing?.active) completeNpcTypewriter(event);
 }
 
 export function createPlayerState(startDir) {
@@ -70,6 +79,7 @@ export function createPlayerState(startDir) {
 }
 
 export function resetPlayer(startDir) {
+  stopNpcTypewriter();
   const start = getStartPosition();
   state.anim = null;
   state.gridX = start.x;
@@ -390,13 +400,18 @@ function confirmTreasureEvent() {
 
 function advanceNpcTalkEvent() {
   const event = state.overlayEvent;
+  if (event.typing?.active) {
+    completeNpcTypewriter(event);
+    return;
+  }
   const nextIndex = event.dialogueIndex + 1;
   if (nextIndex < event.dialogue.length) {
     event.dialogueIndex = nextIndex;
-    hooks.say(`${event.npc.name}「${event.dialogue[nextIndex]}」\n＊Aボタンで次へ`);
+    startNpcTypewriter(event, event.dialogue[nextIndex]);
     return;
   }
 
+  stopNpcTypewriter();
   state.npcEncounterCounts[event.npc.id] = event.encounterCount + 1;
   state.overlayEvent = null;
   if (event.leaveAfterTalk) {
@@ -414,6 +429,7 @@ export function getNpcEncounterCount(npcId) {
 }
 
 export function startOverlayEvent(event) {
+  stopNpcTypewriter();
   state.overlayEvent = {
     canCancel: false,
     retreatOnCancel: false,
@@ -428,6 +444,7 @@ export function startOverlayEvent(event) {
 function cancelOverlayEvent() {
   const event = state.overlayEvent;
   if (!event?.canCancel) return;
+  stopNpcTypewriter();
   if (event.type === "stairsPrompt") state.stairsPromptDismissed = true;
   state.overlayEvent = null;
   hooks.say("");
@@ -436,6 +453,45 @@ function cancelOverlayEvent() {
     hooks.hideTreasure();
   }
   if (event.retreatOnCancel) startNpcRetreat(event);
+}
+
+function startNpcTypewriter(event, dialogue) {
+  stopNpcTypewriter();
+  const characters = Array.from(dialogue);
+  event.typing = { active: npcTypewriter.enabled && characters.length > 0, characters, visibleLength: npcTypewriter.enabled ? 0 : characters.length };
+  renderNpcTypewriter(event);
+  if (event.typing.active) scheduleNpcTypewriter(event);
+}
+
+function scheduleNpcTypewriter(event) {
+  npcTypewriter.timer = window.setTimeout(() => {
+    if (state.overlayEvent !== event || !event.typing?.active) return;
+    event.typing.visibleLength += 1;
+    if (event.typing.visibleLength >= event.typing.characters.length) event.typing.active = false;
+    renderNpcTypewriter(event);
+    if (event.typing.active) scheduleNpcTypewriter(event);
+    else npcTypewriter.timer = 0;
+  }, NPC_TYPEWRITER_DELAYS[npcTypewriter.speed]);
+}
+
+function renderNpcTypewriter(event) {
+  const typing = event.typing;
+  const dialogue = typing.characters.slice(0, typing.visibleLength).join("");
+  const closingQuote = typing.active ? "" : "」";
+  hooks.say(`${event.npc.name}「${dialogue}${closingQuote}\n＊Aボタンで次へ`);
+}
+
+function completeNpcTypewriter(event) {
+  if (!event.typing) return;
+  stopNpcTypewriter();
+  event.typing.visibleLength = event.typing.characters.length;
+  event.typing.active = false;
+  renderNpcTypewriter(event);
+}
+
+function stopNpcTypewriter() {
+  if (npcTypewriter.timer) window.clearTimeout(npcTypewriter.timer);
+  npcTypewriter.timer = 0;
 }
 
 function startNpcRetreat(event) {

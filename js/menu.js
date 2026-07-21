@@ -12,10 +12,12 @@ const menu = {
   compassVisible: true, readoutVisible: false, screenShakeEnabled: true,
   torchFlickerEnabled: true, presenceDisabled: false, stopwatchVisible: true,
   stairsDownVisible: false, npcsVisible: false,
+  npcTypewriterEnabled: true, npcTypewriterSpeed: "normal",
   actionActive: { random: false, autoReturn: false, torchFull: false, stopwatchReset: false },
   generateRandomDungeon: () => {}, startAutoReturn: () => {}, refillTorch: () => {},
   setScreenShakeEnabled: () => {}, setTorchFlickerEnabled: () => {}, setPresenceDisabled: () => {},
   setMinimapRevealOptions: () => {},
+  setNpcTypewriterOptions: () => {},
   setStopwatchVisible: () => {}, resetStopwatch: () => {},
   onReturnToDungeon: () => {}
 };
@@ -89,8 +91,17 @@ function executeOption(key) {
   if (key === "language" || key === "bgmVolume" || key === "seVolume") return;
   if (key === "screenShake") { menu.screenShakeEnabled = !menu.screenShakeEnabled; applyRenderOptions(); updateOptionStates(); persistSettings(); }
   if (key === "torchFlicker") { menu.torchFlickerEnabled = !menu.torchFlickerEnabled; applyRenderOptions(); updateOptionStates(); persistSettings(); }
+  if (key === "npcTypewriterEnabled") { menu.npcTypewriterEnabled = !menu.npcTypewriterEnabled; applyNpcTypewriterOptions(); updateOptionStates(); persistSettings(); }
+  if (key === "npcTypewriterSpeed" && menu.npcTypewriterEnabled) { cycleNpcTypewriterSpeed(1); }
 }
-function adjustSelectedOption(amount) { if (menu.optionCursor >= menu.optionItems.length) return; const key = menu.optionItems[menu.optionCursor].dataset.option; if (key === "bgmVolume" || key === "seVolume") { const slider = menu.root.querySelector(`#${key}`); slider.value = String(Math.max(0, Math.min(100, Number(slider.value) + amount * 10))); slider.dispatchEvent(new Event("input", { bubbles: true })); } else if (key === "screenShake" || key === "torchFlicker") executeOption(key); }
+function adjustSelectedOption(amount) { if (menu.optionCursor >= menu.optionItems.length) return; const key = menu.optionItems[menu.optionCursor].dataset.option; if (key === "bgmVolume" || key === "seVolume") { const slider = menu.root.querySelector(`#${key}`); slider.value = String(Math.max(0, Math.min(100, Number(slider.value) + amount * 10))); slider.dispatchEvent(new Event("input", { bubbles: true })); } else if (key === "npcTypewriterSpeed" && menu.npcTypewriterEnabled) cycleNpcTypewriterSpeed(amount); else if (key === "screenShake" || key === "torchFlicker" || key === "npcTypewriterEnabled") executeOption(key); }
+
+function cycleNpcTypewriterSpeed(amount) {
+  const speeds = ["slow", "normal", "fast"];
+  const index = speeds.indexOf(menu.npcTypewriterSpeed);
+  menu.npcTypewriterSpeed = speeds[(index + amount + speeds.length) % speeds.length];
+  applyNpcTypewriterOptions(); updateOptionStates(); persistSettings();
+}
 
 function handleDebug(action) {
   if (action === "cancel") { closeCampMenu("back"); return; }
@@ -129,7 +140,18 @@ function updateView() {
 function updateStatus() { menu.statusPanel.querySelectorAll("[data-status-page]").forEach((page, index) => { page.hidden = index !== menu.statusPage; }); menu.statusPanel.querySelector("[data-status-indicator]").textContent = `${menu.statusPage + 1}/2`; const next = menu.statusPanel.querySelector('[data-status-nav="next"]'); next.textContent = menu.statusPage === 0 ? "NEXT" : "MAIN"; menu.statusPanel.querySelector('[data-status-nav="back"]').classList.toggle("is-selected", menu.statusPage === 0); next.classList.toggle("is-selected", menu.statusPage === 1); }
 function updatePager() { menu.optionsPanel.querySelector("[data-page-indicator]").textContent = `${menu.optionPage + 1}/2`; menu.optionNavButtons.find(button => button.dataset.optionNav === "next").textContent = menu.optionPage === 0 ? "NEXT" : "MAIN"; }
 function updateSelection() { menu.commands.forEach(button => button.classList.toggle("is-selected", menu.view === "commands" && button === menu.enabledCommands[menu.commandIndex])); menu.optionItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "options" && index === menu.optionCursor)); menu.optionNavButtons.forEach((button, index) => button.classList.toggle("is-selected", menu.view === "options" && menu.optionCursor === menu.optionItems.length + index)); menu.debugItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "debug" && index === menu.debugCursor)); menu.debugPanel.querySelector("[data-debug-back]").classList.toggle("is-selected", menu.view === "debug" && menu.debugCursor === menu.debugItems.length); updateOptionStates(); updateDebugStates(); }
-function updateOptionStates() { const shake = menu.root.querySelector('[data-option-state="screenShake"]'); const torch = menu.root.querySelector('[data-option-state="torchFlicker"]'); if (shake) shake.textContent = toggleText(menu.screenShakeEnabled); if (torch) torch.textContent = toggleText(menu.torchFlickerEnabled); }
+function updateOptionStates() {
+  const shake = menu.root.querySelector('[data-option-state="screenShake"]');
+  const torch = menu.root.querySelector('[data-option-state="torchFlicker"]');
+  const typewriter = menu.root.querySelector('[data-option-state="npcTypewriterEnabled"]');
+  const speed = menu.root.querySelector('[data-option-state="npcTypewriterSpeed"]');
+  const speedButton = menu.root.querySelector('[data-option="npcTypewriterSpeed"]');
+  if (shake) shake.textContent = toggleText(menu.screenShakeEnabled);
+  if (torch) torch.textContent = toggleText(menu.torchFlickerEnabled);
+  if (typewriter) typewriter.textContent = toggleText(menu.npcTypewriterEnabled);
+  if (speed) speed.textContent = ["slow", "normal", "fast"].map(value => `${value.toUpperCase()} ${menu.npcTypewriterSpeed === value ? ON_MARK : OFF_MARK}`).join("　");
+  if (speedButton) speedButton.disabled = !menu.npcTypewriterEnabled;
+}
 function updateDebugStates() {
   const values = { compass: menu.compassVisible, readout: menu.readoutVisible, presenceDisabled: menu.presenceDisabled, stairsDownVisible: menu.stairsDownVisible, npcsVisible: menu.npcsVisible };
   Object.entries(values).forEach(([key, enabled]) => {
@@ -151,11 +173,13 @@ function toggleText(enabled) { return enabled ? `ON ${ON_MARK}　OFF ${OFF_MARK}
 function applyDisplayOptions() { document.body.classList.toggle("hide-compass", !menu.compassVisible); document.body.classList.toggle("show-readout", menu.readoutVisible); }
 function applyRenderOptions() { menu.setScreenShakeEnabled(menu.screenShakeEnabled); menu.setTorchFlickerEnabled(menu.torchFlickerEnabled); }
 function applyMinimapRevealOptions() { menu.setMinimapRevealOptions({ stairsDown: menu.stairsDownVisible, npcs: menu.npcsVisible }); }
+function applyNpcTypewriterOptions() { menu.setNpcTypewriterOptions({ enabled: menu.npcTypewriterEnabled, speed: menu.npcTypewriterSpeed }); }
 
 function applyAllSettings() {
   applyDisplayOptions();
   applyRenderOptions();
   applyMinimapRevealOptions();
+  applyNpcTypewriterOptions();
   menu.setPresenceDisabled(menu.presenceDisabled);
   menu.setStopwatchVisible(menu.stopwatchVisible);
   ["bgmVolume", "seVolume"].forEach(id => {
@@ -168,8 +192,9 @@ function restoreSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
     if (!saved || typeof saved !== "object") return;
-    const booleanKeys = ["compassVisible", "readoutVisible", "screenShakeEnabled", "torchFlickerEnabled", "presenceDisabled", "stopwatchVisible", "stairsDownVisible", "npcsVisible"];
+    const booleanKeys = ["compassVisible", "readoutVisible", "screenShakeEnabled", "torchFlickerEnabled", "presenceDisabled", "stopwatchVisible", "stairsDownVisible", "npcsVisible", "npcTypewriterEnabled"];
     booleanKeys.forEach(key => { if (typeof saved[key] === "boolean") menu[key] = saved[key]; });
+    if (["slow", "normal", "fast"].includes(saved.npcTypewriterSpeed)) menu.npcTypewriterSpeed = saved.npcTypewriterSpeed;
     ["bgmVolume", "seVolume"].forEach(id => {
       const slider = menu.root.querySelector(`#${id}`);
       const value = Number(saved[id]);
@@ -191,6 +216,8 @@ function persistSettings() {
       stopwatchVisible: menu.stopwatchVisible,
       stairsDownVisible: menu.stairsDownVisible,
       npcsVisible: menu.npcsVisible,
+      npcTypewriterEnabled: menu.npcTypewriterEnabled,
+      npcTypewriterSpeed: menu.npcTypewriterSpeed,
       bgmVolume: Number(menu.root.querySelector("#bgmVolume")?.value || 0),
       seVolume: Number(menu.root.querySelector("#seVolume")?.value || 0)
     };
