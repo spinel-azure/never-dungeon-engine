@@ -9,10 +9,11 @@ const menu = {
   optionPages: [], optionItems: [], optionNavButtons: [], optionCursor: 0, optionPage: 0,
   debugItems: [], debugCursor: 0, recentConfirms: [], debugArmed: false, view: "dungeon",
   compassVisible: true, readoutVisible: false, screenShakeEnabled: true,
-  torchFlickerEnabled: true, presenceDisabled: false,
-  actionActive: { random: false, autoReturn: false, torchFull: false },
+  torchFlickerEnabled: true, presenceDisabled: false, stopwatchVisible: true,
+  actionActive: { random: false, autoReturn: false, torchFull: false, stopwatchReset: false },
   generateRandomDungeon: () => {}, startAutoReturn: () => {}, refillTorch: () => {},
   setScreenShakeEnabled: () => {}, setTorchFlickerEnabled: () => {}, setPresenceDisabled: () => {},
+  setStopwatchVisible: () => {}, resetStopwatch: () => {},
   onReturnToDungeon: () => {}
 };
 
@@ -97,10 +98,13 @@ function executeDebug(key) {
   if (key === "compass") { menu.compassVisible = !menu.compassVisible; applyDisplayOptions(); updateDebugStates(); return; }
   if (key === "readout") { menu.readoutVisible = !menu.readoutVisible; applyDisplayOptions(); updateDebugStates(); return; }
   if (key === "presenceDisabled") { menu.presenceDisabled = !menu.presenceDisabled; menu.setPresenceDisabled(menu.presenceDisabled); updateDebugStates(); return; }
+  if (key === "stopwatchOn") { menu.stopwatchVisible = true; menu.setStopwatchVisible(true); updateDebugStates(); return; }
+  if (key === "stopwatchOff") { menu.stopwatchVisible = false; menu.setStopwatchVisible(false); updateDebugStates(); return; }
+  if (key === "stopwatchReset") { triggerAction("stopwatchReset", () => { menu.resetStopwatch(); updateDebugStates(); }); return; }
   const actions = { random: menu.generateRandomDungeon, autoReturn: menu.startAutoReturn, torchFull: menu.refillTorch };
   if (actions[key]) triggerAction(key, () => { closeCampMenu(); actions[key](); });
 }
-function triggerAction(key, action) { menu.actionActive[key] = true; updateDebugStates(); setTimeout(() => { menu.actionActive[key] = false; updateDebugStates(); action(); }, ACTION_FEEDBACK_MS); }
+function triggerAction(key, action) { menu.actionActive[key] = true; updateDebugStates(); setTimeout(() => { menu.actionActive[key] = false; action(); updateDebugStates(); }, ACTION_FEEDBACK_MS); }
 
 function bindCommands() { menu.commands.forEach(button => button.addEventListener("click", () => { if (button.disabled) return; menu.commandIndex = menu.enabledCommands.indexOf(button); updateSelection(); openCommand(button.dataset.command); })); }
 function bindStatus() { menu.statusPanel.querySelectorAll("[data-status-nav]").forEach(button => button.addEventListener("click", () => statusNavigate(button.dataset.statusNav))); }
@@ -120,7 +124,23 @@ function updateStatus() { menu.statusPanel.querySelectorAll("[data-status-page]"
 function updatePager() { menu.optionsPanel.querySelector("[data-page-indicator]").textContent = `${menu.optionPage + 1}/2`; menu.optionNavButtons.find(button => button.dataset.optionNav === "next").textContent = menu.optionPage === 0 ? "NEXT" : "MAIN"; }
 function updateSelection() { menu.commands.forEach(button => button.classList.toggle("is-selected", menu.view === "commands" && button === menu.enabledCommands[menu.commandIndex])); menu.optionItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "options" && index === menu.optionCursor)); menu.optionNavButtons.forEach((button, index) => button.classList.toggle("is-selected", menu.view === "options" && menu.optionCursor === menu.optionItems.length + index)); menu.debugItems.forEach((item, index) => item.classList.toggle("is-selected", menu.view === "debug" && index === menu.debugCursor)); menu.debugPanel.querySelector("[data-debug-back]").classList.toggle("is-selected", menu.view === "debug" && menu.debugCursor === menu.debugItems.length); updateOptionStates(); updateDebugStates(); }
 function updateOptionStates() { const shake = menu.root.querySelector('[data-option-state="screenShake"]'); const torch = menu.root.querySelector('[data-option-state="torchFlicker"]'); if (shake) shake.textContent = toggleText(menu.screenShakeEnabled); if (torch) torch.textContent = toggleText(menu.torchFlickerEnabled); }
-function updateDebugStates() { const values = { compass: menu.compassVisible, readout: menu.readoutVisible, presenceDisabled: menu.presenceDisabled }; Object.entries(values).forEach(([key, enabled]) => { const state = menu.root.querySelector(`[data-debug-state="${key}"]`); if (state) state.textContent = toggleText(enabled); }); Object.keys(menu.actionActive).forEach(key => { const state = menu.root.querySelector(`[data-debug-action="${key}"]`); if (state) state.textContent = `ON ${menu.actionActive[key] ? ON_MARK : OFF_MARK}`; }); }
+function updateDebugStates() {
+  const values = { compass: menu.compassVisible, readout: menu.readoutVisible, presenceDisabled: menu.presenceDisabled };
+  Object.entries(values).forEach(([key, enabled]) => {
+    const state = menu.root.querySelector(`[data-debug-state="${key}"]`);
+    if (state) state.textContent = toggleText(enabled);
+  });
+  Object.keys(menu.actionActive).forEach(key => {
+    const state = menu.root.querySelector(`[data-debug-action="${key}"]`);
+    if (state) state.textContent = `ON ${menu.actionActive[key] ? ON_MARK : OFF_MARK}`;
+  });
+  const stopwatchOn = menu.root.querySelector('[data-stopwatch-state="on"]');
+  const stopwatchOff = menu.root.querySelector('[data-stopwatch-state="off"]');
+  const stopwatchReset = menu.root.querySelector('[data-stopwatch-state="reset"]');
+  if (stopwatchOn) stopwatchOn.textContent = menu.stopwatchVisible ? ON_MARK : OFF_MARK;
+  if (stopwatchOff) stopwatchOff.textContent = menu.stopwatchVisible ? OFF_MARK : ON_MARK;
+  if (stopwatchReset) stopwatchReset.textContent = menu.actionActive.stopwatchReset ? ON_MARK : OFF_MARK;
+}
 function toggleText(enabled) { return enabled ? `ON ${ON_MARK}　OFF ${OFF_MARK}` : `ON ${OFF_MARK}　OFF ${ON_MARK}`; }
 function applyDisplayOptions() { document.body.classList.toggle("hide-compass", !menu.compassVisible); document.body.classList.toggle("show-readout", menu.readoutVisible); }
 function applyRenderOptions() { menu.setScreenShakeEnabled(menu.screenShakeEnabled); menu.setTorchFlickerEnabled(menu.torchFlickerEnabled); }

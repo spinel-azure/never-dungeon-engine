@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>3DダンジョンRPG プロトタイプ</title>
   <link rel="stylesheet" href="css/style.css?v=20260720-1">
-  <link rel="stylesheet" href="css/game-menu.css?v=20260721-4">
+  <link rel="stylesheet" href="css/game-menu.css?v=20260721-5">
 </head>
 <body>
 <main class="shell">
@@ -62,7 +62,7 @@
           <div class="nde-equipment">
             <span>RIGHT ARM</span><strong>----</strong><span>LEFT ARM</span><strong>----</strong><span>HEAD</span><strong>----</strong><span>BODY</span><strong>----</strong><span>FOOT</span><strong>----</strong><span>ACCESSORY</span><strong>----</strong>
           </div>
-          <h2 class="nde-experience-title">EXPERIENCE</h2><div class="nde-experience">------- / ------- NEXT LEVEL</div>
+          <h2 class="nde-experience-title">＊ EXPERIENCE ＊</h2><div class="nde-experience">------- / ------- NEXT LEVEL</div>
           <div class="nde-condition"><span>CONDITION</span><strong>----</strong></div>
         </article>
         <article class="nde-status-page" data-status-page="1" hidden>
@@ -75,7 +75,7 @@
       </div>
 
       <div class="menu-panel menu-panel-options" data-menu-view="options" hidden>
-        <h1 class="menu-title">◆オプション◆</h1>
+        <h1 class="menu-title">＊ OPTION ＊</h1>
         <div class="option-page" data-option-page="0">
           <button type="button" class="option-item option-language" data-option="language"><span>・言語選択/LANGUAGE（未実装）</span><span>日本語/JAPANESE 🔘　英語/ENGLISH ⚫</span></button>
           <div class="option-section"><div class="option-label">・BGM（未実装）</div><div class="toggle-row is-muted"><span>ON ⚫</span><span>OFF ⚫</span></div><label class="volume-row option-control" data-option="bgmVolume">Volume <input id="bgmVolume" type="range" min="0" max="100" value="0"> <span>0%</span></label></div>
@@ -97,12 +97,13 @@
           <button type="button" class="option-item" data-debug="autoReturn">・オート帰還 <span data-debug-action="autoReturn">ON ⚫</span></button>
           <button type="button" class="option-item" data-debug="torchFull">・たいまつゲージ満タン <span data-debug-action="torchFull">ON ⚫</span></button>
           <button type="button" class="option-item" data-debug="presenceDisabled">・気配ゲージ無効 <span data-debug-state="presenceDisabled">ON ⚫　OFF 🔘</span></button>
+          <div class="debug-stopwatch-row"><span>・ストップウォッチ</span><span class="debug-stopwatch-actions"><button type="button" data-debug="stopwatchOn">ON <i data-stopwatch-state="on">🔘</i></button><button type="button" data-debug="stopwatchOff">OFF <i data-stopwatch-state="off">⚫</i></button><button type="button" data-debug="stopwatchReset">RESET <i data-stopwatch-state="reset">⚫</i></button></span></div>
         </div>
         <button type="button" class="menu-footer debug-back" data-debug-back>BACK</button>
       </div>
     </section>
   </section>
 </main>
-  <script type="module" src="js/main.js?v=20260721-1"></script>
+  <script type="module" src="js/main.js?v=20260721-2"></script>
 </body>
 </html>

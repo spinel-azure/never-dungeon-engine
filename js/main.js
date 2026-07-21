@@ -190,6 +190,15 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
     return [hours, minutes, seconds].map(value => String(value).padStart(2, "0")).join(":");
   }
 
+  function setStopwatchVisible(visible) {
+    stopwatchEl.hidden = !visible;
+  }
+
+  function resetStopwatch() {
+    runStartedAt = performance.now();
+    updateHud();
+  }
+
   configureInput({
     forwardBtn,
     backBtn,
@@ -216,6 +225,8 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
     setScreenShakeEnabled,
     setTorchFlickerEnabled,
     setPresenceDisabled,
+    setStopwatchVisible,
+    resetStopwatch,
     onReturnToDungeon: resumeDismissedStairsPrompt
   });
   configureVirtualStick({
