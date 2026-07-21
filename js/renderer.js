@@ -32,8 +32,15 @@ const renderer = {
   characterImages: new Map(),
   treasureImages: new Map(),
   screenShakeEnabled: true,
-  torchFlickerEnabled: true
+  torchFlickerEnabled: true,
+  mistEnabled: true,
+  mistLayers: null
 };
+
+const MIST_COLOR = { r: 66, g: 77, b: 75 };
+const DISTANCE_MIST_START = 2.2;
+const DISTANCE_MIST_END = 9;
+const DISTANCE_MIST_MAX_ALPHA = .8;
 
 export function setScreenShakeEnabled(enabled) {
   renderer.screenShakeEnabled = Boolean(enabled);
@@ -45,10 +52,15 @@ export function setTorchFlickerEnabled(enabled) {
   if (!renderer.torchFlickerEnabled && renderer.state) renderer.state.torch = 0;
 }
 
+export function setMistEnabled(enabled) {
+  renderer.mistEnabled = Boolean(enabled);
+}
+
 export function configureRenderer(options) {
   Object.assign(renderer, options);
   renderer.W = renderer.canvas.width;
   renderer.H = renderer.canvas.height;
+  renderer.mistLayers = makeMistLayers(renderer.ctx, renderer.W, renderer.H);
   if (renderer.eventOverlayCanvas) {
     renderer.eventOverlayCanvas.width = renderer.W;
     renderer.eventOverlayCanvas.height = renderer.H;
@@ -89,7 +101,7 @@ export function drawScene(now) {
   drawCellEvents("floor");
   drawBoundaryWalls();
   drawCellEvents("sprite");
-  drawMist();
+  drawMist(now);
   renderer.drawMinimap(ctx, {
     ...renderer.getMinimapOptions(),
     roundRect
@@ -322,20 +334,81 @@ export function drawBoundaryWalls() {
       ctx.fillStyle = "rgba(0,0,0,.24)";
       ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
     }
+    const distanceMistAlpha = getDistanceMistAlpha(hit.dist);
+    if (distanceMistAlpha > 0) {
+      ctx.fillStyle = `rgba(${MIST_COLOR.r},${MIST_COLOR.g},${MIST_COLOR.b},${distanceMistAlpha})`;
+      ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+    }
   }
 }
 
-export function drawMist() {
-  const { ctx, W, H } = renderer;
-  const glow = ctx.createRadialGradient(W / 2, H * .52, 20, W / 2, H * .52, W * .58);
-  glow.addColorStop(0, "rgba(231,172,88,.11)");
-  glow.addColorStop(.45, "rgba(0,0,0,0)");
-  glow.addColorStop(1, "rgba(0,0,0,.72)");
-  ctx.fillStyle = glow;
+export function drawMist(now = 0) {
+  if (!renderer.mistEnabled) return;
+  const { ctx, W, H, mistLayers } = renderer;
+  if (!mistLayers) return;
+
+  ctx.fillStyle = mistLayers.vignette;
   ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = "rgba(3,4,4,.20)";
+  ctx.fillStyle = "rgba(49,59,57,.075)";
   ctx.fillRect(0, 0, W, H);
+
+  const driftX = Math.sin(now * .00011) * W * .025;
+  const driftY = Math.sin(now * .000073 + 1.4) * H * .008;
+  ctx.save();
+  ctx.globalAlpha = .34;
+  ctx.drawImage(mistLayers.lowMist, -W * .1 + driftX, H * .47 + driftY);
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalCompositeOperation = "screen";
+  ctx.fillStyle = mistLayers.torchBloom;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+function getDistanceMistAlpha(distance) {
+  if (!renderer.mistEnabled) return 0;
+  const progress = Math.max(0, Math.min(1, (distance - DISTANCE_MIST_START) / (DISTANCE_MIST_END - DISTANCE_MIST_START)));
+  const smooth = progress * progress * (3 - 2 * progress);
+  return smooth * DISTANCE_MIST_MAX_ALPHA;
+}
+
+function makeMistLayers(ctx, W, H) {
+  const vignette = ctx.createRadialGradient(W / 2, H * .5, W * .08, W / 2, H * .5, W * .62);
+  vignette.addColorStop(0, "rgba(33,43,41,.02)");
+  vignette.addColorStop(.42, "rgba(20,27,26,.08)");
+  vignette.addColorStop(.75, "rgba(4,7,7,.38)");
+  vignette.addColorStop(1, "rgba(0,0,0,.76)");
+
+  const torchBloom = ctx.createRadialGradient(W / 2, H * .53, 8, W / 2, H * .53, W * .34);
+  torchBloom.addColorStop(0, "rgba(193,164,111,.095)");
+  torchBloom.addColorStop(.34, "rgba(126,126,99,.052)");
+  torchBloom.addColorStop(1, "rgba(0,0,0,0)");
+
+  const lowMist = document.createElement("canvas");
+  lowMist.width = Math.ceil(W * 1.2);
+  lowMist.height = Math.ceil(H * .4);
+  const lowCtx = lowMist.getContext("2d");
+  const vertical = lowCtx.createLinearGradient(0, 0, 0, lowMist.height);
+  vertical.addColorStop(0, "rgba(69,82,79,0)");
+  vertical.addColorStop(.28, "rgba(69,82,79,.1)");
+  vertical.addColorStop(.62, "rgba(62,75,72,.2)");
+  vertical.addColorStop(1, "rgba(26,34,32,0)");
+  lowCtx.fillStyle = vertical;
+  lowCtx.fillRect(0, 0, lowMist.width, lowMist.height);
+
+  lowCtx.save();
+  lowCtx.scale(1, .32);
+  const haze = lowCtx.createRadialGradient(lowMist.width * .48, lowMist.height * 1.55, 10, lowMist.width * .48, lowMist.height * 1.55, lowMist.width * .6);
+  haze.addColorStop(0, "rgba(93,108,104,.2)");
+  haze.addColorStop(.56, "rgba(70,84,80,.1)");
+  haze.addColorStop(1, "rgba(0,0,0,0)");
+  lowCtx.fillStyle = haze;
+  lowCtx.fillRect(0, 0, lowMist.width, lowMist.height * 3.2);
+  lowCtx.restore();
+
+  return { vignette, torchBloom, lowMist };
 }
 
 export function drawCellEvents(layer = "all") {
@@ -457,7 +530,8 @@ function projectWorldPoint(worldX, worldY) {
   const floorY = Math.max(H * .5, Math.min(H * .94, H / 2 + projectedWallH / 2));
   const ceilingY = Math.min(H * .5, Math.max(H * .06, H / 2 - projectedWallH / 2));
   const size = Math.max(14, Math.min(104, (H * .32) / Math.max(.8, forward)));
-  const alpha = Math.max(.52, Math.min(1, 1 - forward / (MAX_DIST * 1.45)));
+  const baseAlpha = Math.max(.52, Math.min(1, 1 - forward / (MAX_DIST * 1.45)));
+  const alpha = baseAlpha * (1 - getDistanceMistAlpha(forward) * .68);
   return { x, y: floorY, floorY, ceilingY, size, alpha, forward };
 }
 
