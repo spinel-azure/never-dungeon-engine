@@ -24,7 +24,7 @@ const audio = {
   volume: .1,
   sources: new Map(),
   voices: new Map(),
-  nextVoice: new Map()
+  pendingVoices: new WeakSet()
 };
 
 const VOICE_COUNTS = { step: 1, cursorMove: 2 };
@@ -42,7 +42,6 @@ export function configureAudio() {
       return voice;
     });
     audio.voices.set(key, voices);
-    audio.nextVoice.set(key, 0);
   });
 }
 
@@ -61,14 +60,20 @@ export function playSe(key) {
     console.warn(`Unknown SE key: ${key}`);
     return Promise.resolve(false);
   }
-  let voiceIndex = voices.findIndex(voice => voice.paused || voice.ended);
-  if (voiceIndex < 0) voiceIndex = audio.nextVoice.get(key) || 0;
-  const sound = voices[voiceIndex];
-  audio.nextVoice.set(key, (voiceIndex + 1) % voices.length);
-  sound.pause();
+  const sound = voices.find(voice => !audio.pendingVoices.has(voice) && (voice.paused || voice.ended));
+  if (!sound) return Promise.resolve(false);
   try { sound.currentTime = 0; } catch (_error) {}
   sound.volume = audio.volume;
-  return sound.play().then(() => true).catch(() => false);
+  audio.pendingVoices.add(sound);
+  const playback = sound.play();
+  if (!playback?.then) {
+    audio.pendingVoices.delete(sound);
+    return Promise.resolve(true);
+  }
+  return playback
+    .then(() => true)
+    .catch(() => false)
+    .finally(() => audio.pendingVoices.delete(sound));
 }
 
 export async function playSeSequence(key, count = 1) {
