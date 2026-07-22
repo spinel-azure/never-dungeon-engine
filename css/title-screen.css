@@ -51,6 +51,15 @@ body.title-active .shell{visibility:hidden}
   font:400 clamp(11px,2.1vw,26px)/1 "PixelFont",monospace;
   white-space:nowrap;
 }
+.title-version{
+  position:absolute;
+  left:max(14px,env(safe-area-inset-left));
+  bottom:max(10px,env(safe-area-inset-bottom));
+  margin:0;
+  color:#dce9e9;
+  font:400 clamp(11px,2.1vw,26px)/1 "PixelFont",monospace;
+  white-space:nowrap;
+}
 @keyframes titleGlow{
   0%,100%{text-shadow:0 0 4px #dfffff,0 0 10px #69e9ff,0 0 20px rgba(37,184,255,.58)}
   50%{text-shadow:0 0 7px #fff,0 0 18px #8df6ff,0 0 36px rgba(37,184,255,.92),0 0 54px rgba(60,132,255,.4)}
