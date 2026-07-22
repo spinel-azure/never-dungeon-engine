@@ -38,7 +38,7 @@ import { drawMinimap, getMinimapBounds, setMinimapRevealOptions } from "./minima
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
 import { configureCompass, drawCompass } from "./compass.js";
-import { configureMenu, handleMenuInput } from "./menu.js?v=20260722-5";
+import { configureMenu, handleMenuInput } from "./menu.js?v=20260722-6";
 import {
   configureAutoReturn,
   startAutoReturn,
@@ -76,7 +76,6 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
 
   const posEl = document.getElementById("pos");
   const depthEl = document.getElementById("depth");
-  const brandEl = document.querySelector(".brand");
   const msgEl = document.getElementById("message");
   const torchMeterEl = document.getElementById("torchMeter");
   const presenceMeterEl = document.getElementById("presenceMeter");
@@ -175,7 +174,6 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
   function updateHud() {
     posEl.textContent = `X:${state.gridX} Y:${state.gridY}`;
     depthEl.textContent = `B${currentDepth}F`;
-    brandEl.textContent = `RANDOM MAZE TEST B${currentDepth}F`;
     stopwatchEl.textContent = formatElapsedTime(performance.now() - runStartedAt);
     drawCompass();
     torchMeterEl.style.width = `${state.torchFuel}%`;

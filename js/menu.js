@@ -207,6 +207,8 @@ function updateDebugStates() {
   menu.root.querySelectorAll('[data-mist-color]').forEach(button => { const selected = button.dataset.mistColor === menu.mistColor; button.classList.toggle("is-active", selected); button.querySelector("i").textContent = selected ? ON_MARK : OFF_MARK; });
   if (mistIntensitySlider) mistIntensitySlider.value = String(Math.round(menu.mistIntensity * 100));
   if (mistDistanceSlider) mistDistanceSlider.value = String(menu.mistDistance);
+  if (mistIntensitySlider) mistIntensitySlider.classList.toggle("is-default", menu.mistIntensity === 1);
+  if (mistDistanceSlider) mistDistanceSlider.classList.toggle("is-default", menu.mistDistance === 9);
   menu.debugPanel.querySelectorAll('.debug-slider-row').forEach(item => { item.classList.toggle("is-disabled", !menu.mistEnabled); item.querySelector("input").disabled = !menu.mistEnabled; });
   const mistColorItem = menu.debugPanel.querySelector('[data-debug="mistColor"]');
   if (mistColorItem) { mistColorItem.classList.toggle("is-disabled", !menu.mistEnabled); mistColorItem.querySelectorAll("button").forEach(button => { button.disabled = !menu.mistEnabled; }); }
