@@ -22,26 +22,14 @@ export const SE = Object.freeze({
 const audio = {
   enabled: true,
   volume: .1,
-  sources: new Map(),
-  voices: new Map(),
-  pendingVoices: new WeakSet()
+  urls: new Map(),
+  sounds: new Map(),
+  pendingSounds: new Set()
 };
-
-const VOICE_COUNTS = { step: 1, cursorMove: 2 };
-const DEFAULT_VOICE_COUNT = 3;
 
 export function configureAudio() {
   Object.entries(SE).forEach(([key, file]) => {
-    const source = new Audio(`se/${file}`);
-    source.preload = "auto";
-    audio.sources.set(key, source);
-    const count = VOICE_COUNTS[key] || DEFAULT_VOICE_COUNT;
-    const voices = Array.from({ length: count }, () => {
-      const voice = source.cloneNode(true);
-      voice.preload = "auto";
-      return voice;
-    });
-    audio.voices.set(key, voices);
+    audio.urls.set(key, `se/${file}`);
   });
 }
 
@@ -49,31 +37,36 @@ export function setSeOptions({ enabled, volume } = {}) {
   if (typeof enabled === "boolean") audio.enabled = enabled;
   if (Number.isFinite(volume)) audio.volume = Math.max(0, Math.min(1, volume));
   if (!audio.enabled || audio.volume <= 0) {
-    audio.voices.forEach(voices => voices.forEach(voice => voice.pause()));
+    audio.sounds.forEach(sound => sound.pause());
   }
 }
 
 export function playSe(key) {
   if (!audio.enabled || audio.volume <= 0) return Promise.resolve(false);
-  const voices = audio.voices.get(key);
-  if (!voices?.length) {
+  const url = audio.urls.get(key);
+  if (!url) {
     console.warn(`Unknown SE key: ${key}`);
     return Promise.resolve(false);
   }
-  const sound = voices.find(voice => !audio.pendingVoices.has(voice) && (voice.paused || voice.ended));
-  if (!sound) return Promise.resolve(false);
+  let sound = audio.sounds.get(key);
+  if (!sound) {
+    sound = new Audio(url);
+    sound.preload = "metadata";
+    audio.sounds.set(key, sound);
+  }
+  if (audio.pendingSounds.has(key) || (!sound.paused && !sound.ended)) return Promise.resolve(false);
   try { sound.currentTime = 0; } catch (_error) {}
   sound.volume = audio.volume;
-  audio.pendingVoices.add(sound);
+  audio.pendingSounds.add(key);
   const playback = sound.play();
   if (!playback?.then) {
-    audio.pendingVoices.delete(sound);
+    audio.pendingSounds.delete(key);
     return Promise.resolve(true);
   }
   return playback
     .then(() => true)
     .catch(() => false)
-    .finally(() => audio.pendingVoices.delete(sound));
+    .finally(() => audio.pendingSounds.delete(key));
 }
 
 export async function playSeSequence(key, count = 1) {
@@ -86,9 +79,10 @@ export async function playSeSequence(key, count = 1) {
 }
 
 function playSeToEnd(key) {
-  const source = audio.sources.get(key);
-  if (!source) return Promise.resolve(false);
-  const sound = source.cloneNode(true);
+  const url = audio.urls.get(key);
+  if (!url) return Promise.resolve(false);
+  const sound = new Audio(url);
+  sound.preload = "metadata";
   sound.volume = audio.volume;
   return new Promise(resolve => {
     let settled = false;
