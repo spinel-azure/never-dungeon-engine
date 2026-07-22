@@ -47,7 +47,7 @@ import {
   updateAutoReturnButton
 } from "./autoReturn.js";
 import { configureEvents, messageFor, say } from "./events.js";
-import { configureDevice } from "./device.js";
+import { configureDevice } from "./device.js?v=20260722-1";
 import {
   configurePresence,
   getPresence,
