@@ -37,7 +37,8 @@ const renderer = {
   mistIntensity: 1,
   mistDistance: 9,
   mistColor: "green",
-  mistLayers: null
+  mistLayers: null,
+  minimapStaticFrames: []
 };
 
 const MIST_PALETTES = {
@@ -76,6 +77,7 @@ export function configureRenderer(options) {
   renderer.W = renderer.canvas.width;
   renderer.H = renderer.canvas.height;
   renderer.mistLayers = makeMistLayers(renderer.ctx, renderer.W, renderer.H);
+  renderer.minimapStaticFrames = makeMinimapStaticFrames(renderer.getMinimapBounds(renderer.W));
   if (renderer.eventOverlayCanvas) {
     renderer.eventOverlayCanvas.width = renderer.W;
     renderer.eventOverlayCanvas.height = renderer.H;
@@ -118,11 +120,16 @@ export function drawScene(now) {
   drawCellEvents("sprite");
   drawMist(now);
   drawDarkness();
-  renderer.drawMinimap(ctx, {
-    ...renderer.getMinimapOptions(),
-    roundRect
-  });
-  if (renderer.minimapOverlayVisible) drawMinimapOverlay();
+  if (state.torchFuel <= 0) {
+    renderer.minimapOverlayVisible = false;
+    drawMinimapStatic(now);
+  } else {
+    renderer.drawMinimap(ctx, {
+      ...renderer.getMinimapOptions(),
+      roundRect
+    });
+    if (renderer.minimapOverlayVisible) drawMinimapOverlay();
+  }
   if (state.overlayEvent?.type === "floorLap") drawFloorLapMessage();
   else if (state.overlayEvent?.type === "randomEncounter") drawEncounterMessage();
   ctx.restore();
@@ -146,6 +153,10 @@ function handleCanvasTouchEnd(e) {
 
 function handleCanvasActivation(clientX, clientY) {
   const { canvas, W, H, state } = renderer;
+  if (state.torchFuel <= 0) {
+    renderer.minimapOverlayVisible = false;
+    return;
+  }
 
   const rect = canvas.getBoundingClientRect();
   const x = ((clientX - rect.left) / rect.width) * W;
@@ -162,6 +173,44 @@ function handleCanvasActivation(clientX, clientY) {
   ) {
     renderer.minimapOverlayVisible = true;
   }
+}
+
+function drawMinimapStatic(now) {
+  const { ctx, minimapStaticFrames } = renderer;
+  if (!minimapStaticFrames.length) return;
+  const frame = minimapStaticFrames[Math.floor(now / 90) % minimapStaticFrames.length];
+  ctx.drawImage(frame.canvas, frame.x, frame.y);
+}
+
+function makeMinimapStaticFrames(bounds) {
+  const width = Math.max(1, Math.ceil(bounds.w));
+  const height = Math.max(1, Math.ceil(bounds.h));
+  return Array.from({ length: 4 }, (_, frameIndex) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    const image = ctx.createImageData(width, height);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const index = (y * width + x) * 4;
+        const grain = Math.floor(Math.random() * 105) + 38;
+        const scanline = y % 3 === frameIndex % 3 ? .62 : 1;
+        const value = Math.floor(grain * scanline);
+        image.data[index] = value;
+        image.data[index + 1] = value;
+        image.data[index + 2] = Math.min(255, value + 5);
+        image.data[index + 3] = 255;
+      }
+    }
+    ctx.putImageData(image, 0, 0);
+    ctx.strokeStyle = "rgba(184,167,127,.72)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, width - 2, height - 2);
+    ctx.fillStyle = "rgba(0,0,0,.18)";
+    for (let y = frameIndex; y < height; y += 4) ctx.fillRect(0, y, width, 1);
+    return { canvas, x: bounds.x, y: bounds.y };
+  });
 }
 
 function drawMinimapOverlay() {
