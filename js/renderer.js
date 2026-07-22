@@ -29,6 +29,7 @@ const renderer = {
   lastCanvasTouchAt: 0,
   wallTexture: null,
   wallColor: "default",
+  floorColor: "default",
   doorTextures: null,
   characterImages: new Map(),
   treasureImages: new Map(),
@@ -55,6 +56,14 @@ const WALL_PALETTES = {
   white: { base: "#aaa79e", rows: ["#c3c0b5", "#918f88"], mortar: "rgba(55,54,51,.52)", speckle: "rgba(255,255,240,.2)" },
   black: { base: "#28282b", rows: ["#35343a", "#1d1d20"], mortar: "rgba(0,0,0,.82)", speckle: "rgba(151,136,165,.12)" }
 };
+const FLOOR_PALETTES = {
+  default: { near: "#0c0a08", mid: "#292316", far: "#413419", grid: "rgba(236,195,116,.07)" },
+  red: { near: "#130807", mid: "#3b1711", far: "#682417", grid: "rgba(255,145,91,.1)" },
+  blue: { near: "#071015", mid: "#143448", far: "#24617b", grid: "rgba(174,228,255,.13)" },
+  green: { near: "#081109", mid: "#18341b", far: "#315b2d", grid: "rgba(174,226,137,.1)" },
+  purple: { near: "#110713", mid: "#35143c", far: "#5d2369", grid: "rgba(226,143,244,.12)" },
+  white: { near: "#252729", mid: "#767a7c", far: "#c7c9c5", grid: "rgba(255,255,255,.18)" }
+};
 const DISTANCE_MIST_BASE_ALPHA = .8;
 
 export function setScreenShakeEnabled(enabled) {
@@ -76,6 +85,10 @@ export function setWallColor(color) {
   if (renderer.wallColor === color && renderer.wallTexture) return;
   renderer.wallColor = color;
   renderer.wallTexture = makeWallTexture(color);
+}
+
+export function setFloorColor(color) {
+  renderer.floorColor = FLOOR_PALETTES[color] ? color : "default";
 }
 
 export function setMistOptions({ enabled, intensity, distance, color } = {}) {
@@ -335,15 +348,16 @@ export function drawCeiling() {
 
 export function drawFloor() {
   const { ctx, W, H } = renderer;
+  const palette = FLOOR_PALETTES[renderer.floorColor] || FLOOR_PALETTES.default;
   const horizon = H / 2;
   const floorGrad = ctx.createLinearGradient(0, horizon, 0, H);
-  floorGrad.addColorStop(0, "#0c0a08");
-  floorGrad.addColorStop(0.42, "#292316");
-  floorGrad.addColorStop(1, "#413419");
+  floorGrad.addColorStop(0, palette.near);
+  floorGrad.addColorStop(0.42, palette.mid);
+  floorGrad.addColorStop(1, palette.far);
   ctx.fillStyle = floorGrad;
   ctx.fillRect(0, horizon, W, H / 2);
 
-  ctx.strokeStyle = "rgba(236,195,116,.07)";
+  ctx.strokeStyle = palette.grid;
   ctx.lineWidth = 1;
   for (let y = horizon + 18; y < H; y += 18) {
     const spread = (y - horizon) / (H - horizon);

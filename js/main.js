@@ -33,12 +33,12 @@ import {
   startFloorLapNotice,
   setNpcTypewriterOptions
 } from "./player.js?v=20260722-1";
-import { configureRenderer, startRenderLoop, setScreenShakeEnabled, setTorchFlickerEnabled, setMistOptions, setWallColor } from "./renderer.js?v=20260722-7";
+import { configureRenderer, startRenderLoop, setScreenShakeEnabled, setTorchFlickerEnabled, setMistOptions, setWallColor, setFloorColor } from "./renderer.js?v=20260722-8";
 import { drawMinimap, getMinimapBounds, setMinimapRevealOptions } from "./minimap.js?v=20260722-1";
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
 import { configureCompass, drawCompass } from "./compass.js";
-import { configureMenu, handleMenuInput } from "./menu.js?v=20260722-8";
+import { configureMenu, handleMenuInput } from "./menu.js?v=20260722-9";
 import {
   configureAutoReturn,
   startAutoReturn,
@@ -228,6 +228,7 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
     setTorchFlickerEnabled,
     setMistOptions,
     setWallColor,
+    setFloorColor,
     setPresenceDisabled,
     setMinimapRevealOptions,
     setNpcTypewriterOptions,

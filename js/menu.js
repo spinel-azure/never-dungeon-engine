@@ -14,11 +14,12 @@ const menu = {
   stairsDownVisible: false, npcsVisible: false, treasuresVisible: false,
   mistEnabled: true, mistIntensity: 1, mistDistance: 9, mistColor: "green",
   wallColor: "default",
+  floorColor: "default",
   npcTypewriterEnabled: true, npcTypewriterSpeed: "normal",
   actionActive: { random: false, autoReturn: false, torchFull: false, stopwatchReset: false },
   generateRandomDungeon: () => {}, startAutoReturn: () => {}, refillTorch: () => {},
   setScreenShakeEnabled: () => {}, setTorchFlickerEnabled: () => {}, setTorchFuelDisabled: () => {}, setPresenceDisabled: () => {},
-  setMistOptions: () => {}, setWallColor: () => {},
+  setMistOptions: () => {}, setWallColor: () => {}, setFloorColor: () => {},
   setMinimapRevealOptions: () => {},
   setNpcTypewriterOptions: () => {},
   setStopwatchVisible: () => {}, resetStopwatch: () => {},
@@ -132,6 +133,7 @@ function executeDebug(key, amount = 1) {
   if (key === "mistIntensity" && menu.mistEnabled) { menu.mistIntensity = Math.max(.25, Math.min(2, menu.mistIntensity + amount * .25)); applyMistOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "mistDistance" && menu.mistEnabled) { menu.mistDistance = Math.max(3, Math.min(9, menu.mistDistance + amount)); applyMistOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "wallColor") { const colors = ["default", "red", "blue", "green", "white", "black"]; const index = colors.indexOf(menu.wallColor); menu.wallColor = colors[(Math.max(0, index) + amount + colors.length) % colors.length]; applyWallColor(); updateDebugStates(); persistSettings(); return; }
+  if (key === "floorColor") { const colors = ["default", "red", "blue", "green", "purple", "white"]; const index = colors.indexOf(menu.floorColor); menu.floorColor = colors[(Math.max(0, index) + amount + colors.length) % colors.length]; applyFloorColor(); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchOn") { menu.stopwatchVisible = true; menu.setStopwatchVisible(true); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchOff") { menu.stopwatchVisible = false; menu.setStopwatchVisible(false); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchReset") { triggerAction("stopwatchReset", () => { menu.resetStopwatch(); updateDebugStates(); }); return; }
@@ -151,6 +153,8 @@ function bindDebug() {
     if (colorButton && menu.mistEnabled) { menu.mistColor = colorButton.dataset.mistColor; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
     const wallColorButton = event.target.closest("[data-wall-color]");
     if (wallColorButton) { menu.wallColor = wallColorButton.dataset.wallColor; applyWallColor(); updateDebugStates(); persistSettings(); return; }
+    const floorColorButton = event.target.closest("[data-floor-color]");
+    if (floorColorButton) { menu.floorColor = floorColorButton.dataset.floorColor; applyFloorColor(); updateDebugStates(); persistSettings(); return; }
     if (event.target.matches('input[type="range"]')) return;
     executeDebug(item.dataset.debug, 1);
   })));
@@ -210,6 +214,7 @@ function updateDebugStates() {
   if (mistIntensity) mistIntensity.textContent = `${Math.round(menu.mistIntensity * 100)}%`;
   if (mistDistance) mistDistance.textContent = `${menu.mistDistance}マス`;
   menu.root.querySelectorAll('[data-wall-color]').forEach(button => { const selected = button.dataset.wallColor === menu.wallColor; button.classList.toggle("is-active", selected); button.querySelector("i").textContent = selected ? ON_MARK : OFF_MARK; });
+  menu.root.querySelectorAll('[data-floor-color]').forEach(button => { const selected = button.dataset.floorColor === menu.floorColor; button.classList.toggle("is-active", selected); button.querySelector("i").textContent = selected ? ON_MARK : OFF_MARK; });
   menu.root.querySelectorAll('[data-mist-color]').forEach(button => { const selected = button.dataset.mistColor === menu.mistColor; button.classList.toggle("is-active", selected); button.querySelector("i").textContent = selected ? ON_MARK : OFF_MARK; });
   if (mistIntensitySlider) mistIntensitySlider.value = String(Math.round(menu.mistIntensity * 100));
   if (mistDistanceSlider) mistDistanceSlider.value = String(menu.mistDistance);
@@ -228,6 +233,7 @@ function applyMinimapRevealOptions() { menu.setMinimapRevealOptions({ stairsDown
 function applyNpcTypewriterOptions() { menu.setNpcTypewriterOptions({ enabled: menu.npcTypewriterEnabled, speed: menu.npcTypewriterSpeed }); }
 function applyMistOptions() { menu.setMistOptions({ enabled: menu.mistEnabled, intensity: menu.mistIntensity, distance: menu.mistDistance, color: menu.mistColor }); }
 function applyWallColor() { menu.setWallColor(menu.wallColor); }
+function applyFloorColor() { menu.setFloorColor(menu.floorColor); }
 
 function applyAllSettings() {
   applyDisplayOptions();
@@ -236,6 +242,7 @@ function applyAllSettings() {
   applyNpcTypewriterOptions();
   applyMistOptions();
   applyWallColor();
+  applyFloorColor();
   menu.setTorchFuelDisabled(menu.torchFuelDisabled);
   menu.setPresenceDisabled(menu.presenceDisabled);
   menu.setStopwatchVisible(menu.stopwatchVisible);
@@ -259,6 +266,7 @@ function restoreSettings() {
     if (["green", "frost", "poison"].includes(saved.mistColor)) menu.mistColor = saved.mistColor;
     else if (saved.mistColor === "dark") menu.mistColor = "green";
     if (["default", "red", "blue", "green", "white", "black"].includes(saved.wallColor)) menu.wallColor = saved.wallColor;
+    if (["default", "red", "blue", "green", "purple", "white"].includes(saved.floorColor)) menu.floorColor = saved.floorColor;
     ["bgmVolume", "seVolume"].forEach(id => {
       const slider = menu.root.querySelector(`#${id}`);
       const value = Number(saved[id]);
@@ -289,6 +297,7 @@ function persistSettings() {
       mistDistance: menu.mistDistance,
       mistColor: menu.mistColor,
       wallColor: menu.wallColor,
+      floorColor: menu.floorColor,
       bgmVolume: Number(menu.root.querySelector("#bgmVolume")?.value || 0),
       seVolume: Number(menu.root.querySelector("#seVolume")?.value || 0)
     };
