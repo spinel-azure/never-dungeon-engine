@@ -46,6 +46,15 @@ export function configureMenu(options) {
 }
 
 export function isMenuOpen() { return menu.view !== "dungeon"; }
+export function getDungeonColors() { return { wall: menu.wallColor, floor: menu.floorColor }; }
+export function setDungeonColors({ wall, floor } = {}, { save = false } = {}) {
+  if (["default", "red", "blue", "green", "white", "black"].includes(wall)) menu.wallColor = wall;
+  if (["default", "red", "blue", "green", "purple", "white"].includes(floor)) menu.floorColor = floor;
+  applyWallColor();
+  applyFloorColor();
+  updateDebugStates();
+  if (save) persistSettings();
+}
 export function openCampMenu() { menu.view = "commands"; menu.commandIndex = 0; updateView(); }
 export function closeCampMenu(reason = "back") { menu.view = "dungeon"; updateView(); if (reason === "back" || reason === "main") menu.onReturnToDungeon(reason); }
 

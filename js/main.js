@@ -39,7 +39,8 @@ import { drawMinimap, getMinimapBounds, setMinimapRevealOptions } from "./minima
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
 import { configureCompass, drawCompass } from "./compass.js";
-import { configureMenu, handleMenuInput } from "./menu.js?v=20260722-11";
+import { configureMenu, handleMenuInput, getDungeonColors, setDungeonColors } from "./menu.js?v=20260722-12";
+import { resolveFloorTheme } from "./floorTheme.js?v=20260722-1";
 import {
   configureAutoReturn,
   startAutoReturn,
@@ -171,6 +172,7 @@ import { configureAudio, setSeOptions, playSe, playSeSequence } from "./audio.js
     const lapTime = formatElapsedTime(descendedAt - floorStartedAt);
     const nextStart = { x: state.gridX, y: state.gridY };
     currentDepth += 1;
+    setDungeonColors(resolveFloorTheme(currentDepth, getDungeonColors()));
     floorStartedAt = descendedAt;
     resetDungeon("", nextStart);
     startFloorLapNotice(currentDepth, lapTime);
