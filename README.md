@@ -11,8 +11,8 @@ Never Dungeon Engine（NDE）は、ブラウザ上で動作するクラシック
 ## スクリーンショット
 
 <p align="center">
-  <img src="images/screenshots/nde_ss_01.avif" width="260" alt="スマートフォン表示">
-  <img src="images/screenshots/nde_ss_02.avif" width="520" alt="PC表示">
+  <img src="images/screenshots/nde_ss_01.avif" width="1383" alt="スマートフォン表示">
+  <img src="images/screenshots/nde_ss_02.avif" width="1383" alt="PC表示">
 </p>
 
 <p align="center">
