@@ -43,8 +43,7 @@ const renderer = {
 const MIST_PALETTES = {
   green: { main: [66, 77, 75], veil: [63, 75, 72], haze: [93, 108, 104], bloom: [193, 164, 111] },
   frost: { main: [112, 145, 164], veil: [92, 126, 145], haze: [151, 187, 205], bloom: [150, 203, 229] },
-  poison: { main: [93, 62, 111], veil: [82, 48, 101], haze: [139, 91, 160], bloom: [174, 112, 199] },
-  dark: { main: [7, 9, 14], veil: [0, 0, 0], haze: [23, 26, 36], bloom: [48, 55, 74] }
+  poison: { main: [93, 62, 111], veil: [82, 48, 101], haze: [139, 91, 160], bloom: [174, 112, 199] }
 };
 const DISTANCE_MIST_BASE_ALPHA = .8;
 
@@ -118,6 +117,7 @@ export function drawScene(now) {
   drawBoundaryWalls();
   drawCellEvents("sprite");
   drawMist(now);
+  drawDarkness();
   renderer.drawMinimap(ctx, {
     ...renderer.getMinimapOptions(),
     roundRect
@@ -341,6 +341,11 @@ export function drawBoundaryWalls() {
       ctx.fillStyle = rgba(MIST_PALETTES[renderer.mistColor].main, distanceMistAlpha);
       ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
     }
+    const darknessAlpha = getDistanceDarknessAlpha(hit.dist);
+    if (darknessAlpha > 0) {
+      ctx.fillStyle = `rgba(0,0,0,${darknessAlpha})`;
+      ctx.fillRect(x, y1, Math.ceil(colW) + 1, wallH);
+    }
   }
 }
 
@@ -348,7 +353,7 @@ export function drawMist(now = 0) {
   if (!renderer.mistEnabled) return;
   const { ctx, W, H, mistLayers } = renderer;
   if (!mistLayers) return;
-  const strength = getEffectiveMistIntensity();
+  const strength = renderer.mistIntensity;
   const palette = MIST_PALETTES[renderer.mistColor];
 
   ctx.save();
@@ -382,24 +387,51 @@ export function drawMist(now = 0) {
 
 function getDistanceMistAlpha(distance) {
   if (!renderer.mistEnabled) return 0;
-  const mistDistance = getEffectiveMistDistance();
+  const mistDistance = renderer.mistDistance;
   const mistStart = mistDistance * .25;
   const progress = Math.max(0, Math.min(1, (distance - mistStart) / (mistDistance - mistStart)));
   const smooth = progress * progress * (3 - 2 * progress);
-  return Math.min(.98, smooth * DISTANCE_MIST_BASE_ALPHA * getEffectiveMistIntensity());
+  return Math.min(.98, smooth * DISTANCE_MIST_BASE_ALPHA * renderer.mistIntensity);
 }
 
-function getTorchDarkness() {
+function getDarknessSettings() {
   const fuel = Number.isFinite(renderer.state?.torchFuel) ? renderer.state.torchFuel : 100;
-  return 1 - Math.max(0, Math.min(100, fuel)) / 100;
+  const remaining = Math.max(0, Math.min(100, fuel));
+  if (remaining >= 50) return { strength: 0, intensity: .25, distance: 9 };
+  let intensity;
+  let distance;
+  if (remaining >= 10) {
+    const progress = (50 - remaining) / 40;
+    intensity = .25 + (2 - .25) * progress;
+    distance = 9 + (3 - 9) * progress;
+  } else {
+    const progress = (10 - remaining) / 10;
+    intensity = 2 + .5 * progress;
+    distance = 3 + (2 - 3) * progress;
+  }
+  return { strength: Math.max(0, Math.min(1, (intensity - .25) / 2.25)), intensity, distance };
 }
 
-function getEffectiveMistIntensity() {
-  return renderer.mistIntensity * (.25 + getTorchDarkness() * 1.75);
+function getDistanceDarknessAlpha(distance) {
+  const darkness = getDarknessSettings();
+  if (darkness.strength <= 0) return 0;
+  const darknessStart = darkness.distance * .25;
+  const progress = Math.max(0, Math.min(1, (distance - darknessStart) / (darkness.distance - darknessStart)));
+  const smooth = progress * progress * (3 - 2 * progress);
+  return Math.min(.98, smooth * darkness.strength);
 }
 
-function getEffectiveMistDistance() {
-  return renderer.mistDistance + (3 - renderer.mistDistance) * getTorchDarkness();
+function drawDarkness() {
+  const { ctx, W, H, mistLayers } = renderer;
+  const darkness = getDarknessSettings();
+  if (darkness.strength <= 0 || !mistLayers) return;
+  ctx.save();
+  ctx.globalAlpha = darkness.strength;
+  ctx.fillStyle = mistLayers.darknessVignette;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = `rgba(0,0,0,${darkness.strength * .12})`;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
 }
 
 function makeMistLayers(ctx, W, H) {
@@ -414,6 +446,12 @@ function makeMistLayers(ctx, W, H) {
   torchBloom.addColorStop(0, rgba(palette.bloom, .095));
   torchBloom.addColorStop(.34, rgba(palette.bloom, .052));
   torchBloom.addColorStop(1, "rgba(0,0,0,0)");
+
+  const darknessVignette = ctx.createRadialGradient(W / 2, H * .53, W * .08, W / 2, H * .53, W * .68);
+  darknessVignette.addColorStop(0, "rgba(0,0,0,0)");
+  darknessVignette.addColorStop(.42, "rgba(0,0,0,.06)");
+  darknessVignette.addColorStop(.76, "rgba(0,0,0,.42)");
+  darknessVignette.addColorStop(1, "rgba(0,0,0,.82)");
 
   const lowMist = document.createElement("canvas");
   lowMist.width = Math.ceil(W * 1.2);
@@ -437,7 +475,7 @@ function makeMistLayers(ctx, W, H) {
   lowCtx.fillRect(0, 0, lowMist.width, lowMist.height * 3.2);
   lowCtx.restore();
 
-  return { vignette, torchBloom, lowMist };
+  return { vignette, torchBloom, darknessVignette, lowMist };
 }
 
 function rgba([r, g, b], alpha) {
@@ -564,7 +602,9 @@ function projectWorldPoint(worldX, worldY) {
   const ceilingY = Math.min(H * .5, Math.max(H * .06, H / 2 - projectedWallH / 2));
   const size = Math.max(14, Math.min(104, (H * .32) / Math.max(.8, forward)));
   const baseAlpha = Math.max(.52, Math.min(1, 1 - forward / (MAX_DIST * 1.45)));
-  const alpha = baseAlpha * (1 - getDistanceMistAlpha(forward) * .68);
+  const mistVisibility = 1 - getDistanceMistAlpha(forward) * .68;
+  const darknessVisibility = 1 - getDistanceDarknessAlpha(forward) * .9;
+  const alpha = baseAlpha * mistVisibility * darknessVisibility;
   return { x, y: floorY, floorY, ceilingY, size, alpha, forward };
 }
 

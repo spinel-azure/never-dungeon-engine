@@ -125,7 +125,7 @@ function executeDebug(key, amount = 1) {
   if (key === "stairsDownVisible") { menu.stairsDownVisible = !menu.stairsDownVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "npcsVisible") { menu.npcsVisible = !menu.npcsVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "mistEnabled") { menu.mistEnabled = !menu.mistEnabled; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
-  if (key === "mistColor" && menu.mistEnabled) { const colors = ["green", "frost", "poison", "dark"]; const index = colors.indexOf(menu.mistColor); menu.mistColor = colors[(index + amount + colors.length) % colors.length]; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "mistColor" && menu.mistEnabled) { const colors = ["green", "frost", "poison"]; const index = colors.indexOf(menu.mistColor); menu.mistColor = colors[(Math.max(0, index) + amount + colors.length) % colors.length]; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "mistIntensity" && menu.mistEnabled) { menu.mistIntensity = Math.max(.25, Math.min(2, menu.mistIntensity + amount * .25)); applyMistOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "mistDistance" && menu.mistEnabled) { menu.mistDistance = Math.max(3, Math.min(9, menu.mistDistance + amount)); applyMistOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchOn") { menu.stopwatchVisible = true; menu.setStopwatchVisible(true); updateDebugStates(); persistSettings(); return; }
@@ -201,7 +201,7 @@ function updateDebugStates() {
   const mistDistanceSlider = menu.root.querySelector('#mistDistance');
   if (mistIntensity) mistIntensity.textContent = `${Math.round(menu.mistIntensity * 100)}%`;
   if (mistDistance) mistDistance.textContent = `${menu.mistDistance}マス`;
-  if (mistColor) mistColor.textContent = ({ green: "緑", frost: "青白", poison: "紫", dark: "黒" })[menu.mistColor];
+  if (mistColor) mistColor.textContent = ({ green: "緑", frost: "青白", poison: "紫" })[menu.mistColor];
   if (mistIntensitySlider) mistIntensitySlider.value = String(Math.round(menu.mistIntensity * 100));
   if (mistDistanceSlider) mistDistanceSlider.value = String(menu.mistDistance);
   menu.debugPanel.querySelectorAll('.debug-slider-row').forEach(item => { item.classList.toggle("is-disabled", !menu.mistEnabled); item.querySelector("input").disabled = !menu.mistEnabled; });
@@ -240,7 +240,8 @@ function restoreSettings() {
     else if (Number.isFinite(saved.mistIntensity)) menu.mistIntensity = 1;
     if (Number.isFinite(saved.mistDistance) && saved.mistDistance >= 3 && saved.mistDistance <= 9) menu.mistDistance = saved.mistDistance;
     else if (Number.isFinite(saved.mistDistance)) menu.mistDistance = 9;
-    if (["green", "frost", "poison", "dark"].includes(saved.mistColor)) menu.mistColor = saved.mistColor;
+    if (["green", "frost", "poison"].includes(saved.mistColor)) menu.mistColor = saved.mistColor;
+    else if (saved.mistColor === "dark") menu.mistColor = "green";
     ["bgmVolume", "seVolume"].forEach(id => {
       const slider = menu.root.querySelector(`#${id}`);
       const value = Number(saved[id]);
