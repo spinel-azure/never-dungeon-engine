@@ -11,7 +11,7 @@ const menu = {
   debugPages: [], debugItems: [], debugNavButtons: [], debugCursor: 0, debugPage: 0, recentConfirms: [], debugArmed: false, view: "dungeon",
   compassVisible: true, readoutVisible: false, screenShakeEnabled: true,
   torchFlickerEnabled: true, torchFuelDisabled: false, presenceDisabled: false, stopwatchVisible: true,
-  stairsDownVisible: false, npcsVisible: false,
+  stairsDownVisible: false, npcsVisible: false, treasuresVisible: false,
   mistEnabled: true, mistIntensity: 1, mistDistance: 9, mistColor: "green",
   wallColor: "default",
   npcTypewriterEnabled: true, npcTypewriterSpeed: "normal",
@@ -125,6 +125,7 @@ function executeDebug(key, amount = 1) {
   if (key === "presenceDisabled") { menu.presenceDisabled = !menu.presenceDisabled; menu.setPresenceDisabled(menu.presenceDisabled); updateDebugStates(); persistSettings(); return; }
   if (key === "stairsDownVisible") { menu.stairsDownVisible = !menu.stairsDownVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "npcsVisible") { menu.npcsVisible = !menu.npcsVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "treasuresVisible") { menu.treasuresVisible = !menu.treasuresVisible; applyMinimapRevealOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "torchFuelDisabled") { menu.torchFuelDisabled = !menu.torchFuelDisabled; menu.setTorchFuelDisabled(menu.torchFuelDisabled); updateDebugStates(); persistSettings(); return; }
   if (key === "mistEnabled") { menu.mistEnabled = !menu.mistEnabled; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "mistColor" && menu.mistEnabled) { const colors = ["green", "frost", "poison"]; const index = colors.indexOf(menu.mistColor); menu.mistColor = colors[(Math.max(0, index) + amount + colors.length) % colors.length]; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
@@ -148,6 +149,8 @@ function bindDebug() {
     menu.debugCursor = menu.debugItems.indexOf(item); updateSelection();
     const colorButton = event.target.closest("[data-mist-color]");
     if (colorButton && menu.mistEnabled) { menu.mistColor = colorButton.dataset.mistColor; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
+    const wallColorButton = event.target.closest("[data-wall-color]");
+    if (wallColorButton) { menu.wallColor = wallColorButton.dataset.wallColor; applyWallColor(); updateDebugStates(); persistSettings(); return; }
     if (event.target.matches('input[type="range"]')) return;
     executeDebug(item.dataset.debug, 1);
   })));
@@ -185,7 +188,7 @@ function updateOptionStates() {
   if (speedButton) speedButton.disabled = !menu.npcTypewriterEnabled;
 }
 function updateDebugStates() {
-  const values = { compass: menu.compassVisible, readout: menu.readoutVisible, torchFuelDisabled: menu.torchFuelDisabled, presenceDisabled: menu.presenceDisabled, stairsDownVisible: menu.stairsDownVisible, npcsVisible: menu.npcsVisible, mistEnabled: menu.mistEnabled };
+  const values = { compass: menu.compassVisible, readout: menu.readoutVisible, torchFuelDisabled: menu.torchFuelDisabled, presenceDisabled: menu.presenceDisabled, stairsDownVisible: menu.stairsDownVisible, npcsVisible: menu.npcsVisible, treasuresVisible: menu.treasuresVisible, mistEnabled: menu.mistEnabled };
   Object.entries(values).forEach(([key, enabled]) => {
     const state = menu.root.querySelector(`[data-debug-state="${key}"]`);
     if (state) state.textContent = toggleText(enabled);
@@ -206,8 +209,7 @@ function updateDebugStates() {
   const mistDistanceSlider = menu.root.querySelector('#mistDistance');
   if (mistIntensity) mistIntensity.textContent = `${Math.round(menu.mistIntensity * 100)}%`;
   if (mistDistance) mistDistance.textContent = `${menu.mistDistance}マス`;
-  const wallColor = menu.root.querySelector('[data-debug-state="wallColor"]');
-  if (wallColor) wallColor.textContent = ({ default: "デフォルト", red: "赤", blue: "青", green: "緑", white: "白", black: "黒" })[menu.wallColor] || "デフォルト";
+  menu.root.querySelectorAll('[data-wall-color]').forEach(button => { const selected = button.dataset.wallColor === menu.wallColor; button.classList.toggle("is-active", selected); button.querySelector("i").textContent = selected ? ON_MARK : OFF_MARK; });
   menu.root.querySelectorAll('[data-mist-color]').forEach(button => { const selected = button.dataset.mistColor === menu.mistColor; button.classList.toggle("is-active", selected); button.querySelector("i").textContent = selected ? ON_MARK : OFF_MARK; });
   if (mistIntensitySlider) mistIntensitySlider.value = String(Math.round(menu.mistIntensity * 100));
   if (mistDistanceSlider) mistDistanceSlider.value = String(menu.mistDistance);
@@ -222,7 +224,7 @@ function updateDebugStates() {
 function toggleText(enabled) { return enabled ? `ON ${ON_MARK}　OFF ${OFF_MARK}` : `ON ${OFF_MARK}　OFF ${ON_MARK}`; }
 function applyDisplayOptions() { document.body.classList.toggle("hide-compass", !menu.compassVisible); document.body.classList.toggle("show-readout", menu.readoutVisible); }
 function applyRenderOptions() { menu.setScreenShakeEnabled(menu.screenShakeEnabled); menu.setTorchFlickerEnabled(menu.torchFlickerEnabled); }
-function applyMinimapRevealOptions() { menu.setMinimapRevealOptions({ stairsDown: menu.stairsDownVisible, npcs: menu.npcsVisible }); }
+function applyMinimapRevealOptions() { menu.setMinimapRevealOptions({ stairsDown: menu.stairsDownVisible, npcs: menu.npcsVisible, treasures: menu.treasuresVisible }); }
 function applyNpcTypewriterOptions() { menu.setNpcTypewriterOptions({ enabled: menu.npcTypewriterEnabled, speed: menu.npcTypewriterSpeed }); }
 function applyMistOptions() { menu.setMistOptions({ enabled: menu.mistEnabled, intensity: menu.mistIntensity, distance: menu.mistDistance, color: menu.mistColor }); }
 function applyWallColor() { menu.setWallColor(menu.wallColor); }
@@ -247,7 +249,7 @@ function restoreSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
     if (!saved || typeof saved !== "object") return;
-    const booleanKeys = ["compassVisible", "readoutVisible", "screenShakeEnabled", "torchFlickerEnabled", "torchFuelDisabled", "presenceDisabled", "stopwatchVisible", "stairsDownVisible", "npcsVisible", "npcTypewriterEnabled", "mistEnabled"];
+    const booleanKeys = ["compassVisible", "readoutVisible", "screenShakeEnabled", "torchFlickerEnabled", "torchFuelDisabled", "presenceDisabled", "stopwatchVisible", "stairsDownVisible", "npcsVisible", "treasuresVisible", "npcTypewriterEnabled", "mistEnabled"];
     booleanKeys.forEach(key => { if (typeof saved[key] === "boolean") menu[key] = saved[key]; });
     if (["slow", "normal", "fast"].includes(saved.npcTypewriterSpeed)) menu.npcTypewriterSpeed = saved.npcTypewriterSpeed;
     if (Number.isFinite(saved.mistIntensity) && saved.mistIntensity >= .25 && saved.mistIntensity <= 2) menu.mistIntensity = saved.mistIntensity;
@@ -279,6 +281,7 @@ function persistSettings() {
       stopwatchVisible: menu.stopwatchVisible,
       stairsDownVisible: menu.stairsDownVisible,
       npcsVisible: menu.npcsVisible,
+      treasuresVisible: menu.treasuresVisible,
       npcTypewriterEnabled: menu.npcTypewriterEnabled,
       npcTypewriterSpeed: menu.npcTypewriterSpeed,
       mistEnabled: menu.mistEnabled,

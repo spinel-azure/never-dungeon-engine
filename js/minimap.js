@@ -58,7 +58,7 @@
         drawStairsMark(ctx, x1, y1, cell, c.type);
       }
       if (c.npc && (isExplored || revealOptions.npcs)) drawNpcMark(ctx, x1, y1, cell);
-      if (isExplored && c.treasure && c.treasureDiscovered) drawTreasureMark(ctx, x1, y1, cell, c.treasure);
+      if (c.treasure && ((isExplored && c.treasureDiscovered) || revealOptions.treasures)) drawTreasureMark(ctx, x1, y1, cell, c.treasure);
     }
   }
 
@@ -97,11 +97,12 @@
   ctx.restore();
 }
 
-const revealOptions = { stairsDown: false, npcs: false };
+const revealOptions = { stairsDown: false, npcs: false, treasures: false };
 
 export function setMinimapRevealOptions(options = {}) {
   if ("stairsDown" in options) revealOptions.stairsDown = Boolean(options.stairsDown);
   if ("npcs" in options) revealOptions.npcs = Boolean(options.npcs);
+  if ("treasures" in options) revealOptions.treasures = Boolean(options.treasures);
 }
 
 export function getMinimapRevealOptions() {

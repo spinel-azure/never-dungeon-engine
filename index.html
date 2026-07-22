@@ -114,10 +114,11 @@
           <button type="button" class="option-item" data-debug="presenceDisabled">・気配ゲージ無効 <span data-debug-state="presenceDisabled">ON ⚫　OFF 🔘</span></button>
           <button type="button" class="option-item" data-debug="stairsDownVisible">・下り階段表示 <span data-debug-state="stairsDownVisible">ON ⚫　OFF 🔘</span></button>
           <button type="button" class="option-item" data-debug="npcsVisible">・NPC表示 <span data-debug-state="npcsVisible">ON ⚫　OFF 🔘</span></button>
-          <div class="debug-stopwatch-row"><span>・プレイ時間</span><span class="debug-stopwatch-actions"><button type="button" data-debug="stopwatchOn">ON <i data-stopwatch-state="on">🔘</i></button><button type="button" data-debug="stopwatchOff">OFF <i data-stopwatch-state="off">⚫</i></button><button type="button" data-debug="stopwatchReset">RESET <i data-stopwatch-state="reset">⚫</i></button></span></div>
+          <button type="button" class="option-item" data-debug="treasuresVisible">・宝箱表示 <span data-debug-state="treasuresVisible">ON ⚫　OFF 🔘</span></button>
         </div>
         <div class="debug-list debug-mist-list" data-debug-page="1" hidden>
-          <button type="button" class="option-item" data-debug="wallColor">・壁の色 <span data-debug-state="wallColor">デフォルト</span></button>
+          <div class="debug-stopwatch-row"><span>・経過時間</span><span class="debug-stopwatch-actions"><button type="button" data-debug="stopwatchOn">ON <i data-stopwatch-state="on">🔘</i></button><button type="button" data-debug="stopwatchOff">OFF <i data-stopwatch-state="off">⚫</i></button><button type="button" data-debug="stopwatchReset">RESET <i data-stopwatch-state="reset">⚫</i></button></span></div>
+          <div class="option-item wall-color-row" data-debug="wallColor"><span>・壁の色</span><span class="wall-color-buttons"><span><button type="button" data-wall-color="default">デフォルト <i>🔘</i></button><button type="button" data-wall-color="red">赤 <i>⚫</i></button><button type="button" data-wall-color="blue">青 <i>⚫</i></button></span><span><button type="button" data-wall-color="green">緑 <i>⚫</i></button><button type="button" data-wall-color="white">白 <i>⚫</i></button><button type="button" data-wall-color="black">黒 <i>⚫</i></button></span></span></div>
           <button type="button" class="option-item" data-debug="mistEnabled">・霧 <span data-debug-state="mistEnabled">ON 🔘　OFF ⚫</span></button>
           <div class="option-item mist-color-row" data-debug="mistColor"><span>・霧の色</span><span class="mist-color-buttons"><button type="button" data-mist-color="green">緑 <i>🔘</i></button><button type="button" data-mist-color="frost">青白 <i>⚫</i></button><button type="button" data-mist-color="poison">紫 <i>⚫</i></button></span></div>
           <label class="option-item debug-slider-row" data-debug="mistIntensity"><span>・霧の濃さ</span><input id="mistIntensity" type="range" min="25" max="200" step="25" value="100"><output data-debug-value="mistIntensity">100%</output></label>
@@ -130,6 +131,6 @@
   </section>
 </main>
   <script type="module" src="js/title-screen.js?v=20260721-1"></script>
-  <script type="module" src="js/main.js?v=20260722-11"></script>
+  <script type="module" src="js/main.js?v=20260722-12"></script>
 </body>
 </html>
