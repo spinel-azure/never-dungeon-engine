@@ -42,6 +42,7 @@ const TORCH_FUEL_STEP = 1;
 const DOOR_OPEN_MS = 520;
 const NPC_TYPEWRITER_DELAYS = { slow: 75, normal: 42, fast: 20 };
 const npcTypewriter = { enabled: true, speed: "normal", timer: 0 };
+let torchFuelDisabled = false;
 
 export const state = createPlayerState(2);
 
@@ -101,6 +102,11 @@ export function refillTorch() {
   state.torchFuel = TORCH_FUEL_MAX;
 }
 
+export function setTorchFuelDisabled(disabled) {
+  torchFuelDisabled = Boolean(disabled);
+  if (torchFuelDisabled) refillTorch();
+}
+
 export function updateAnimation(now) {
   if (!state.anim) return;
   const a = state.anim;
@@ -124,7 +130,7 @@ export function updateAnimation(now) {
       } else {
         markExplored(state.gridX, state.gridY);
         const movedInDarkness = state.torchFuel <= 0;
-        state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
+        if (!torchFuelDisabled) state.torchFuel = Math.max(0, state.torchFuel - TORCH_FUEL_STEP);
         const npc = getNpcAt(state.gridX, state.gridY);
         const treasure = getTreasureAt(state.gridX, state.gridY);
         const isStairs = a.cellType === "stairsUp" || a.cellType === "stairsDown";

@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
   <link rel="stylesheet" href="css/style.css?v=20260722-2">
-  <link rel="stylesheet" href="css/game-menu.css?v=20260722-2">
+  <link rel="stylesheet" href="css/game-menu.css?v=20260722-3">
   <link rel="stylesheet" href="css/title-screen.css?v=20260721-1">
 </head>
 <body class="title-active">
@@ -111,6 +111,7 @@
           <button type="button" class="option-item" data-debug="readout">・座標/階層表示 <span data-debug-state="readout">ON ⚫　OFF 🔘</span></button>
           <button type="button" class="option-item" data-debug="autoReturn">・オート帰還 <span data-debug-action="autoReturn">ON ⚫</span></button>
           <button type="button" class="option-item" data-debug="torchFull">・たいまつゲージ満タン <span data-debug-action="torchFull">ON ⚫</span></button>
+          <button type="button" class="option-item" data-debug="torchFuelDisabled">・たいまつゲージ無効 <span data-debug-state="torchFuelDisabled">ON ⚫　OFF 🔘</span></button>
           <button type="button" class="option-item" data-debug="presenceDisabled">・気配ゲージ無効 <span data-debug-state="presenceDisabled">ON ⚫　OFF 🔘</span></button>
           <button type="button" class="option-item" data-debug="stairsDownVisible">・下り階段表示 <span data-debug-state="stairsDownVisible">ON ⚫　OFF 🔘</span></button>
           <button type="button" class="option-item" data-debug="npcsVisible">・NPC表示 <span data-debug-state="npcsVisible">ON ⚫　OFF 🔘</span></button>
@@ -118,7 +119,7 @@
         </div>
         <div class="debug-list debug-mist-list" data-debug-page="1" hidden>
           <button type="button" class="option-item" data-debug="mistEnabled">・霧 <span data-debug-state="mistEnabled">ON 🔘　OFF ⚫</span></button>
-          <button type="button" class="option-item" data-debug="mistColor">・霧の色 <span data-debug-value="mistColor">緑</span></button>
+          <div class="option-item mist-color-row" data-debug="mistColor"><span>・霧の色</span><span class="mist-color-buttons"><button type="button" data-mist-color="green">緑 <i>🔘</i></button><button type="button" data-mist-color="frost">青白 <i>⚫</i></button><button type="button" data-mist-color="poison">紫 <i>⚫</i></button></span></div>
           <label class="option-item debug-slider-row" data-debug="mistIntensity"><span>・霧の濃さ</span><input id="mistIntensity" type="range" min="25" max="200" step="25" value="100"><output data-debug-value="mistIntensity">100%</output></label>
           <label class="option-item debug-slider-row" data-debug="mistDistance"><span>・霧の距離</span><input id="mistDistance" type="range" min="3" max="9" step="1" value="9"><output data-debug-value="mistDistance">9マス</output></label>
           <p class="debug-mist-note">霧は環境演出として独立しています。黒い暗闇はたいまつ50%未満から強まり、霧より優先して表示されます。</p>
@@ -129,6 +130,6 @@
   </section>
 </main>
   <script type="module" src="js/title-screen.js?v=20260721-1"></script>
-  <script type="module" src="js/main.js?v=20260722-8"></script>
+  <script type="module" src="js/main.js?v=20260722-9"></script>
 </body>
 </html>

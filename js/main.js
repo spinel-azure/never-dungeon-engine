@@ -22,6 +22,7 @@ import {
   configurePlayer,
   resetPlayer,
   refillTorch,
+  setTorchFuelDisabled,
   updateAnimation,
   manualMove,
   manualTurn,
@@ -31,13 +32,13 @@ import {
   startRandomEncounterNotice,
   startFloorLapNotice,
   setNpcTypewriterOptions
-} from "./player.js";
+} from "./player.js?v=20260722-1";
 import { configureRenderer, startRenderLoop, setScreenShakeEnabled, setTorchFlickerEnabled, setMistOptions } from "./renderer.js?v=20260722-6";
 import { drawMinimap, getMinimapBounds, setMinimapRevealOptions } from "./minimap.js";
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
 import { configureCompass, drawCompass } from "./compass.js";
-import { configureMenu, handleMenuInput } from "./menu.js?v=20260722-4";
+import { configureMenu, handleMenuInput } from "./menu.js?v=20260722-5";
 import {
   configureAutoReturn,
   startAutoReturn,
@@ -224,6 +225,7 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
     generateRandomDungeon,
     startAutoReturn,
     refillTorch,
+    setTorchFuelDisabled,
     setScreenShakeEnabled,
     setTorchFlickerEnabled,
     setMistOptions,
