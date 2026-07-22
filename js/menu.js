@@ -1,5 +1,6 @@
 const ACTION_FEEDBACK_MS = 260;
 const DEBUG_SEQUENCE_MS = 1000;
+const DEBUG_CANCEL_WINDOW_MS = 2000;
 const SETTINGS_KEY = "nde-settings-v1";
 const ON_MARK = "🔘";
 const OFF_MARK = "⚫";
@@ -56,9 +57,11 @@ export function handleMenuInput(action) {
       return false;
     }
     if (action === "cancel") {
+      const lastConfirmAt = menu.recentConfirms.at(-1);
+      const debugCommandValid = menu.debugArmed && Number.isFinite(lastConfirmAt) && now - lastConfirmAt <= DEBUG_CANCEL_WINDOW_MS;
       menu.recentConfirms = [];
-      if (menu.debugArmed) {
-        menu.debugArmed = false;
+      menu.debugArmed = false;
+      if (debugCommandValid) {
         setDebugPage(0); return true;
       }
       openCampMenu(); return true;

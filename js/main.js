@@ -38,7 +38,7 @@ import { drawMinimap, getMinimapBounds, setMinimapRevealOptions } from "./minima
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
 import { configureCompass, drawCompass } from "./compass.js";
-import { configureMenu, handleMenuInput } from "./menu.js?v=20260722-9";
+import { configureMenu, handleMenuInput } from "./menu.js?v=20260722-10";
 import {
   configureAutoReturn,
   startAutoReturn,
