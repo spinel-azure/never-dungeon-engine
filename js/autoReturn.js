@@ -16,7 +16,8 @@ import {
 
 const options = {
   autoReturnBtn: null,
-  say: () => {}
+  say: () => {},
+  playArrivalSe: () => {}
 };
 
 export function configureAutoReturn(config) {
@@ -73,7 +74,10 @@ export function cancelAutoReturn(arrived) {
   state.autoReturning = false;
   state.autoPath = [];
   updateAutoReturnButton();
-  if (arrived) options.say("スタート地点へ戻った。");
+  if (arrived) {
+    options.say("スタート地点へ戻った。");
+    options.playArrivalSe();
+  }
 }
 
 export function updateAutoReturnButton() {

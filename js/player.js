@@ -30,6 +30,8 @@ const hooks = {
   continueAutoReturn: () => {},
   messageFor: () => "",
   descendFloor: () => {},
+  playSe: () => {},
+  playStairsSequence: () => Promise.resolve(),
   showTreasure: () => {},
   playTreasureOpening: (_type, onComplete) => onComplete(),
   hideTreasure: () => {}
@@ -172,6 +174,7 @@ export function tryMove(amount, automated = false) {
   if (!automated) hooks.cancelAutoReturn(false);
   const currentDir = amount > 0 ? DIRS[state.dir] : DIRS[(state.dir + 2) % 4];
   if (closedDoorOnCell(state.gridX, state.gridY, currentDir.key)) {
+    hooks.playSe("blocked");
     state.shake = amount > 0 ? -12 : 9;
     const doorKind = getDoorKind(state.gridX, state.gridY, currentDir.key);
     if (doorKind === "boss") {
@@ -184,6 +187,7 @@ export function tryMove(amount, automated = false) {
     return;
   }
   if (wallOnCell(state.gridX, state.gridY, currentDir.key)) {
+    hooks.playSe("blocked");
     state.shake = amount > 0 ? -12 : 9;
     hooks.say("そちらには進めない。");
     return;
@@ -191,11 +195,13 @@ export function tryMove(amount, automated = false) {
   const nx = state.gridX + currentDir.dx;
   const ny = state.gridY + currentDir.dy;
   if (!inBounds(nx, ny)) {
+    hooks.playSe("blocked");
     state.shake = amount > 0 ? -7 : 5;
     hooks.say("外周の向こうは闇に閉ざされている。");
     return;
   }
   state.stairsPromptDismissed = false;
+  hooks.playSe("step");
   const crossedDoor = openDoorOnCell(state.gridX, state.gridY, currentDir.key)
     ? { x: state.gridX, y: state.gridY, dirKey: currentDir.key }
     : null;
@@ -262,12 +268,14 @@ export function openDoorAhead() {
     y: state.gridY,
     dirKey: dir.key
   };
+  hooks.playSe("door");
   hooks.say("ギィ……");
   return true;
 }
 
 export function handleOverlayEventInput(action) {
   if (!state.overlayEvent) return false;
+  if (state.overlayEvent.type === "stairsTransition") return true;
   if (state.overlayEvent.type === "floorLap") {
     state.overlayEvent = null;
     hooks.say("");
@@ -325,11 +333,18 @@ function startStairsPrompt(cellType) {
 function confirmStairsPrompt() {
   const cellType = state.overlayEvent?.cellType;
   state.stairsPromptDismissed = false;
-  state.overlayEvent = null;
   if (cellType === "stairsDown") {
-    hooks.descendFloor();
+    const transition = { type: "stairsTransition", canCancel: false };
+    state.overlayEvent = transition;
+    hooks.say("");
+    hooks.playStairsSequence().finally(() => {
+      if (state.overlayEvent !== transition) return;
+      state.overlayEvent = null;
+      hooks.descendFloor();
+    });
     return;
   }
+  state.overlayEvent = null;
   hooks.say("地上への帰還はまだ実装されていません。");
 }
 
@@ -342,6 +357,15 @@ export function resumeDismissedStairsPrompt() {
   }
   startStairsPrompt(cellType);
   return true;
+}
+
+export function playArrivalSequence() {
+  if (state.overlayEvent || state.anim) return Promise.resolve(false);
+  const transition = { type: "stairsTransition", canCancel: false };
+  state.overlayEvent = transition;
+  return hooks.playStairsSequence().finally(() => {
+    if (state.overlayEvent === transition) state.overlayEvent = null;
+  });
 }
 
 function startNpcTalkEvent(npc, fromGX, fromGY) {
@@ -386,6 +410,7 @@ function confirmTreasureEvent() {
   const event = state.overlayEvent;
   if (!event || event.phase !== "prompt") return;
   event.phase = "opening";
+  hooks.playSe("door");
   event.canCancel = false;
   hooks.say("");
   hooks.playTreasureOpening(event.treasureType, () => {

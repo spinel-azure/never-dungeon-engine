@@ -29,23 +29,24 @@ import {
   openDoorAhead,
   handleOverlayEventInput,
   resumeDismissedStairsPrompt,
+  playArrivalSequence,
   startRandomEncounterNotice,
   startFloorLapNotice,
   setNpcTypewriterOptions
-} from "./player.js?v=20260722-1";
+} from "./player.js?v=20260722-2";
 import { configureRenderer, startRenderLoop, setScreenShakeEnabled, setTorchFlickerEnabled, setMistOptions, setWallColor, setFloorColor } from "./renderer.js?v=20260722-8";
 import { drawMinimap, getMinimapBounds, setMinimapRevealOptions } from "./minimap.js?v=20260722-1";
 import { configureInput } from "./input.js";
 import { configureVirtualStick } from "./virtualStick.js";
 import { configureCompass, drawCompass } from "./compass.js";
-import { configureMenu, handleMenuInput } from "./menu.js?v=20260722-10";
+import { configureMenu, handleMenuInput } from "./menu.js?v=20260722-11";
 import {
   configureAutoReturn,
   startAutoReturn,
   continueAutoReturn,
   cancelAutoReturn,
   updateAutoReturnButton
-} from "./autoReturn.js";
+} from "./autoReturn.js?v=20260722-1";
 import { configureEvents, messageFor, say } from "./events.js";
 import { configureDevice } from "./device.js?v=20260722-1";
 import {
@@ -55,6 +56,7 @@ import {
   setPresenceDisabled
 } from "./presence.js";
 import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } from "./treasure.js";
+import { configureAudio, setSeOptions, playSe, playSeSequence } from "./audio.js?v=20260722-1";
 
 (() => {
   const canvas = document.getElementById("screen");
@@ -99,6 +101,7 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
     onEncounter: startRandomEncounterNotice
   });
   configureTreasure({ canvas: treasureCanvas });
+  configureAudio();
   configureCompass({ canvas: compassCanvas, state });
   configureRenderer({
     canvas,
@@ -127,13 +130,15 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
     }),
     getMinimapBounds
   });
-  configureAutoReturn({ autoReturnBtn, say });
+  configureAutoReturn({ autoReturnBtn, say, playArrivalSe: playArrivalSequence });
   configurePlayer({
     say,
     cancelAutoReturn,
     continueAutoReturn,
     messageFor,
     descendFloor,
+    playSe,
+    playStairsSequence: () => playSeSequence("stairs", 3),
     showTreasure,
     playTreasureOpening,
     hideTreasure
@@ -229,6 +234,8 @@ import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } fr
     setMistOptions,
     setWallColor,
     setFloorColor,
+    setSeOptions,
+    playSe,
     setPresenceDisabled,
     setMinimapRevealOptions,
     setNpcTypewriterOptions,

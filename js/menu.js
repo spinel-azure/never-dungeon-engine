@@ -16,11 +16,13 @@ const menu = {
   mistEnabled: true, mistIntensity: 1, mistDistance: 9, mistColor: "green",
   wallColor: "default",
   floorColor: "default",
+  seEnabled: true,
   npcTypewriterEnabled: true, npcTypewriterSpeed: "normal",
   actionActive: { random: false, autoReturn: false, torchFull: false, stopwatchReset: false },
   generateRandomDungeon: () => {}, startAutoReturn: () => {}, refillTorch: () => {},
   setScreenShakeEnabled: () => {}, setTorchFlickerEnabled: () => {}, setTorchFuelDisabled: () => {}, setPresenceDisabled: () => {},
   setMistOptions: () => {}, setWallColor: () => {}, setFloorColor: () => {},
+  setSeOptions: () => {}, playSe: () => {},
   setMinimapRevealOptions: () => {},
   setNpcTypewriterOptions: () => {},
   setStopwatchVisible: () => {}, resetStopwatch: () => {},
@@ -62,13 +64,18 @@ export function handleMenuInput(action) {
       menu.recentConfirms = [];
       menu.debugArmed = false;
       if (debugCommandValid) {
+        menu.playSe("confirm");
         setDebugPage(0); return true;
       }
+      menu.playSe("cancel");
       openCampMenu(); return true;
     }
     menu.recentConfirms = []; menu.debugArmed = false;
     return false;
   }
+  if (action === "up" || action === "down" || action === "left" || action === "right") menu.playSe("cursorMove");
+  else if (action === "confirm") menu.playSe("confirm");
+  else if (action === "cancel") menu.playSe("cancel");
   if (menu.view === "commands") handleCommands(action);
   else if (menu.view === "status") handleStatus(action);
   else if (menu.view === "options") handleOptions(action);
@@ -97,12 +104,13 @@ function updateOptionItems() { menu.optionPages.forEach((page, index) => { page.
 function executeOptionNav(key) { if (key === "back") { if (menu.optionPage === 0) { menu.view = "commands"; updateView(); } else setOptionPage(0); } else if (menu.optionPage === 0) setOptionPage(1); else { menu.view = "commands"; updateView(); } }
 function executeOption(key) {
   if (key === "language" || key === "bgmVolume" || key === "seVolume") return;
+  if (key === "seEnabled") { menu.seEnabled = !menu.seEnabled; applySeOptions(); updateOptionStates(); persistSettings(); }
   if (key === "screenShake") { menu.screenShakeEnabled = !menu.screenShakeEnabled; applyRenderOptions(); updateOptionStates(); persistSettings(); }
   if (key === "torchFlicker") { menu.torchFlickerEnabled = !menu.torchFlickerEnabled; applyRenderOptions(); updateOptionStates(); persistSettings(); }
   if (key === "npcTypewriterEnabled") { menu.npcTypewriterEnabled = !menu.npcTypewriterEnabled; applyNpcTypewriterOptions(); updateOptionStates(); persistSettings(); }
   if (key === "npcTypewriterSpeed" && menu.npcTypewriterEnabled) { cycleNpcTypewriterSpeed(1); }
 }
-function adjustSelectedOption(amount) { if (menu.optionCursor >= menu.optionItems.length) return; const key = menu.optionItems[menu.optionCursor].dataset.option; if (key === "bgmVolume" || key === "seVolume") { const slider = menu.root.querySelector(`#${key}`); slider.value = String(Math.max(0, Math.min(100, Number(slider.value) + amount * 10))); slider.dispatchEvent(new Event("input", { bubbles: true })); } else if (key === "npcTypewriterSpeed" && menu.npcTypewriterEnabled) cycleNpcTypewriterSpeed(amount); else if (key === "screenShake" || key === "torchFlicker" || key === "npcTypewriterEnabled") executeOption(key); }
+function adjustSelectedOption(amount) { if (menu.optionCursor >= menu.optionItems.length) return; const key = menu.optionItems[menu.optionCursor].dataset.option; if (key === "bgmVolume" || key === "seVolume") { const slider = menu.root.querySelector(`#${key}`); slider.value = String(Math.max(0, Math.min(100, Number(slider.value) + amount * 10))); slider.dispatchEvent(new Event("input", { bubbles: true })); } else if (key === "npcTypewriterSpeed" && menu.npcTypewriterEnabled) cycleNpcTypewriterSpeed(amount); else if (key === "screenShake" || key === "torchFlicker" || key === "npcTypewriterEnabled" || key === "seEnabled") executeOption(key); }
 
 function cycleNpcTypewriterSpeed(amount) {
   const speeds = ["slow", "normal", "fast"];
@@ -146,11 +154,12 @@ function executeDebug(key, amount = 1) {
 }
 function triggerAction(key, action) { menu.actionActive[key] = true; updateDebugStates(); setTimeout(() => { menu.actionActive[key] = false; action(); updateDebugStates(); }, ACTION_FEEDBACK_MS); }
 
-function bindCommands() { menu.commands.forEach(button => button.addEventListener("click", () => { if (button.disabled) return; menu.commandIndex = menu.enabledCommands.indexOf(button); updateSelection(); openCommand(button.dataset.command); })); }
-function bindStatus() { menu.statusPanel.querySelectorAll("[data-status-nav]").forEach(button => button.addEventListener("click", () => statusNavigate(button.dataset.statusNav))); }
-function bindOptions() { menu.optionPages.forEach(page => page.querySelectorAll("[data-option]").forEach(item => item.addEventListener("click", event => { if (item.matches(".volume-row") && event.target.matches("input")) return; menu.optionCursor = menu.optionItems.indexOf(item); updateSelection(); executeOption(item.dataset.option); }))); menu.optionNavButtons.forEach(button => button.addEventListener("click", () => executeOptionNav(button.dataset.optionNav))); menu.root.querySelectorAll(".volume-row input").forEach(slider => slider.addEventListener("input", () => { slider.parentElement.querySelector("span").textContent = `${slider.value}%`; persistSettings(); })); }
+function bindCommands() { menu.commands.forEach(button => button.addEventListener("click", () => { if (button.disabled) return; menu.playSe("confirm"); menu.commandIndex = menu.enabledCommands.indexOf(button); updateSelection(); openCommand(button.dataset.command); })); }
+function bindStatus() { menu.statusPanel.querySelectorAll("[data-status-nav]").forEach(button => button.addEventListener("click", () => { menu.playSe(button.dataset.statusNav === "back" ? "cancel" : "confirm"); statusNavigate(button.dataset.statusNav); })); }
+function bindOptions() { menu.optionPages.forEach(page => page.querySelectorAll("[data-option]").forEach(item => item.addEventListener("click", event => { if (item.matches(".volume-row") && event.target.matches("input")) return; menu.playSe("confirm"); menu.optionCursor = menu.optionItems.indexOf(item); updateSelection(); executeOption(item.dataset.option); }))); menu.optionNavButtons.forEach(button => button.addEventListener("click", () => { menu.playSe(button.dataset.optionNav === "back" ? "cancel" : "confirm"); executeOptionNav(button.dataset.optionNav); })); menu.root.querySelectorAll(".volume-row input").forEach(slider => slider.addEventListener("input", () => { slider.parentElement.querySelector("span").textContent = `${slider.value}%`; if (slider.id === "seVolume") applySeOptions(); persistSettings(); })); }
 function bindDebug() {
   menu.debugPages.forEach(page => page.querySelectorAll("[data-debug]").forEach(item => item.addEventListener("click", event => {
+    menu.playSe("confirm");
     menu.debugCursor = menu.debugItems.indexOf(item); updateSelection();
     const colorButton = event.target.closest("[data-mist-color]");
     if (colorButton && menu.mistEnabled) { menu.mistColor = colorButton.dataset.mistColor; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
@@ -166,7 +175,7 @@ function bindDebug() {
     if (slider.id === "mistDistance") menu.mistDistance = Number(slider.value);
     applyMistOptions(); updateDebugStates(); persistSettings();
   }));
-  menu.debugNavButtons.forEach(button => button.addEventListener("click", () => executeDebugNav(button.dataset.debugNav)));
+  menu.debugNavButtons.forEach(button => button.addEventListener("click", () => { menu.playSe(button.dataset.debugNav === "back" ? "cancel" : "confirm"); executeDebugNav(button.dataset.debugNav); }));
 }
 function renderEmptyStats() { const rows = ["STR", "INT", "AGI", "DEX", "LUC", "DEF"].map(label => { const row = document.createElement("div"); row.className = "nde-stat-row"; const name = document.createElement("strong"); name.textContent = label; const gauge = document.createElement("span"); gauge.className = "nde-empty-gauge"; for (let index = 0; index < 30; index += 1) gauge.append(document.createElement("i")); const value = document.createElement("output"); value.textContent = "--"; row.append(name, gauge, value); return row; }); menu.root.querySelector("#ndeStatRows").replaceChildren(...rows); }
 
@@ -188,11 +197,15 @@ function updateOptionStates() {
   const typewriter = menu.root.querySelector('[data-option-state="npcTypewriterEnabled"]');
   const speed = menu.root.querySelector('[data-option-state="npcTypewriterSpeed"]');
   const speedButton = menu.root.querySelector('[data-option="npcTypewriterSpeed"]');
+  const se = menu.root.querySelector('[data-option-state="seEnabled"]');
+  const seSlider = menu.root.querySelector('#seVolume');
   if (shake) shake.textContent = toggleText(menu.screenShakeEnabled);
   if (torch) torch.textContent = toggleText(menu.torchFlickerEnabled);
   if (typewriter) typewriter.textContent = toggleText(menu.npcTypewriterEnabled);
   if (speed) speed.textContent = ["slow", "normal", "fast"].map(value => `${value.toUpperCase()} ${menu.npcTypewriterSpeed === value ? ON_MARK : OFF_MARK}`).join("　");
   if (speedButton) speedButton.disabled = !menu.npcTypewriterEnabled;
+  if (se) se.textContent = toggleText(menu.seEnabled);
+  if (seSlider) { seSlider.disabled = !menu.seEnabled; seSlider.parentElement.classList.toggle("is-muted", !menu.seEnabled); }
 }
 function updateDebugStates() {
   const values = { compass: menu.compassVisible, readout: menu.readoutVisible, torchFuelDisabled: menu.torchFuelDisabled, presenceDisabled: menu.presenceDisabled, stairsDownVisible: menu.stairsDownVisible, npcsVisible: menu.npcsVisible, treasuresVisible: menu.treasuresVisible, mistEnabled: menu.mistEnabled };
@@ -237,6 +250,7 @@ function applyNpcTypewriterOptions() { menu.setNpcTypewriterOptions({ enabled: m
 function applyMistOptions() { menu.setMistOptions({ enabled: menu.mistEnabled, intensity: menu.mistIntensity, distance: menu.mistDistance, color: menu.mistColor }); }
 function applyWallColor() { menu.setWallColor(menu.wallColor); }
 function applyFloorColor() { menu.setFloorColor(menu.floorColor); }
+function applySeOptions() { menu.setSeOptions({ enabled: menu.seEnabled, volume: Number(menu.root.querySelector('#seVolume')?.value || 0) / 100 }); }
 
 function applyAllSettings() {
   applyDisplayOptions();
@@ -246,6 +260,7 @@ function applyAllSettings() {
   applyMistOptions();
   applyWallColor();
   applyFloorColor();
+  applySeOptions();
   menu.setTorchFuelDisabled(menu.torchFuelDisabled);
   menu.setPresenceDisabled(menu.presenceDisabled);
   menu.setStopwatchVisible(menu.stopwatchVisible);
@@ -259,7 +274,7 @@ function restoreSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null");
     if (!saved || typeof saved !== "object") return;
-    const booleanKeys = ["compassVisible", "readoutVisible", "screenShakeEnabled", "torchFlickerEnabled", "torchFuelDisabled", "presenceDisabled", "stopwatchVisible", "stairsDownVisible", "npcsVisible", "treasuresVisible", "npcTypewriterEnabled", "mistEnabled"];
+    const booleanKeys = ["compassVisible", "readoutVisible", "screenShakeEnabled", "torchFlickerEnabled", "torchFuelDisabled", "presenceDisabled", "stopwatchVisible", "stairsDownVisible", "npcsVisible", "treasuresVisible", "npcTypewriterEnabled", "mistEnabled", "seEnabled"];
     booleanKeys.forEach(key => { if (typeof saved[key] === "boolean") menu[key] = saved[key]; });
     if (["slow", "normal", "fast"].includes(saved.npcTypewriterSpeed)) menu.npcTypewriterSpeed = saved.npcTypewriterSpeed;
     if (Number.isFinite(saved.mistIntensity) && saved.mistIntensity >= .25 && saved.mistIntensity <= 2) menu.mistIntensity = saved.mistIntensity;
@@ -270,11 +285,12 @@ function restoreSettings() {
     else if (saved.mistColor === "dark") menu.mistColor = "green";
     if (["default", "red", "blue", "green", "white", "black"].includes(saved.wallColor)) menu.wallColor = saved.wallColor;
     if (["default", "red", "blue", "green", "purple", "white"].includes(saved.floorColor)) menu.floorColor = saved.floorColor;
-    ["bgmVolume", "seVolume"].forEach(id => {
-      const slider = menu.root.querySelector(`#${id}`);
-      const value = Number(saved[id]);
-      if (slider && Number.isFinite(value)) slider.value = String(Math.max(0, Math.min(100, value)));
-    });
+    const bgmSlider = menu.root.querySelector('#bgmVolume');
+    const bgmValue = Number(saved.bgmVolume);
+    if (bgmSlider && Number.isFinite(bgmValue)) bgmSlider.value = String(Math.max(0, Math.min(100, bgmValue)));
+    const seSlider = menu.root.querySelector('#seVolume');
+    const seValue = Number(saved.seVolume);
+    if (seSlider && typeof saved.seEnabled === "boolean" && Number.isFinite(seValue)) seSlider.value = String(Math.max(0, Math.min(100, seValue)));
   } catch (error) {
     console.warn("NDE settings could not be restored.", error);
   }
@@ -301,6 +317,7 @@ function persistSettings() {
       mistColor: menu.mistColor,
       wallColor: menu.wallColor,
       floorColor: menu.floorColor,
+      seEnabled: menu.seEnabled,
       bgmVolume: Number(menu.root.querySelector("#bgmVolume")?.value || 0),
       seVolume: Number(menu.root.querySelector("#seVolume")?.value || 0)
     };
