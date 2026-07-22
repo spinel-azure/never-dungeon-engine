@@ -35,13 +35,13 @@ const audio = {
 
 const MAX_CONCURRENT_SE = 3;
 const PLAYBACK_POLICIES = {
-  step: { mode: "restart", priority: 1, mobileCooldown: 120, desktopCooldown: 70 },
+  step: { mode: "restart", priority: 1, disabledOnTouch: true, desktopCooldown: 70 },
   cursorMove: { mode: "restart", priority: 1, mobileCooldown: 80, desktopCooldown: 45 },
   confirm: { mode: "drop", priority: 2 },
   cancel: { mode: "drop", priority: 2 },
   item: { mode: "drop", priority: 2 },
   heal: { mode: "drop", priority: 2 },
-  blocked: { mode: "drop", priority: 3 },
+  blocked: { mode: "drop", priority: 3, disabledOnTouch: true },
   door: { mode: "drop", priority: 3 },
   battleStart: { mode: "complete", priority: 3 },
   battleVictory: { mode: "complete", priority: 3 },
@@ -79,6 +79,7 @@ export function playSe(key) {
     audio.sounds.set(key, sound);
   }
   const policy = PLAYBACK_POLICIES[key] || DEFAULT_POLICY;
+  if (policy.disabledOnTouch && isTouchLayout()) return Promise.resolve(false);
   const now = performance.now();
   const cooldown = isTouchLayout() ? policy.mobileCooldown || 0 : policy.desktopCooldown || 0;
   if (cooldown && now - (audio.lastStartedAt.get(key) || -Infinity) < cooldown) return Promise.resolve(false);

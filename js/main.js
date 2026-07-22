@@ -56,7 +56,7 @@ import {
   setPresenceDisabled
 } from "./presence.js";
 import { configureTreasure, showTreasure, playTreasureOpening, hideTreasure } from "./treasure.js";
-import { configureAudio, setSeOptions, playSe, playSeSequence } from "./audio.js?v=20260722-5";
+import { configureAudio, setSeOptions, playSe, playSeSequence } from "./audio.js?v=20260722-6";
 
 (() => {
   const canvas = document.getElementById("screen");
