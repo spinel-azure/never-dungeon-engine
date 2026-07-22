@@ -28,6 +28,7 @@ const renderer = {
   minimapOverlayVisible: false,
   lastCanvasTouchAt: 0,
   wallTexture: null,
+  wallColor: "default",
   doorTextures: null,
   characterImages: new Map(),
   treasureImages: new Map(),
@@ -46,6 +47,14 @@ const MIST_PALETTES = {
   frost: { main: [112, 145, 164], veil: [92, 126, 145], haze: [151, 187, 205], bloom: [150, 203, 229] },
   poison: { main: [93, 62, 111], veil: [82, 48, 101], haze: [139, 91, 160], bloom: [174, 112, 199] }
 };
+const WALL_PALETTES = {
+  default: { base: "#817667", rows: ["#8b806f", "#716756"], mortar: "rgba(28,26,23,.62)", speckle: "rgba(236,220,181,.12)" },
+  red: { base: "#76504a", rows: ["#8c5a50", "#65413d"], mortar: "rgba(35,18,16,.68)", speckle: "rgba(255,190,146,.14)" },
+  blue: { base: "#536b78", rows: ["#607f90", "#465d6a"], mortar: "rgba(16,27,35,.68)", speckle: "rgba(202,238,255,.16)" },
+  green: { base: "#526b55", rows: ["#607c61", "#435a47"], mortar: "rgba(18,31,20,.68)", speckle: "rgba(203,236,184,.14)" },
+  white: { base: "#aaa79e", rows: ["#c3c0b5", "#918f88"], mortar: "rgba(55,54,51,.52)", speckle: "rgba(255,255,240,.2)" },
+  black: { base: "#28282b", rows: ["#35343a", "#1d1d20"], mortar: "rgba(0,0,0,.82)", speckle: "rgba(151,136,165,.12)" }
+};
 const DISTANCE_MIST_BASE_ALPHA = .8;
 
 export function setScreenShakeEnabled(enabled) {
@@ -60,6 +69,13 @@ export function setTorchFlickerEnabled(enabled) {
 
 export function setMistEnabled(enabled) {
   renderer.mistEnabled = Boolean(enabled);
+}
+
+export function setWallColor(color) {
+  if (!WALL_PALETTES[color]) color = "default";
+  if (renderer.wallColor === color && renderer.wallTexture) return;
+  renderer.wallColor = color;
+  renderer.wallTexture = makeWallTexture(color);
 }
 
 export function setMistOptions({ enabled, intensity, distance, color } = {}) {
@@ -927,18 +943,19 @@ export function makeHit(dist, u, dirKey, side, angle, type = "wall", doorState =
   };
 }
 
-export function makeWallTexture() {
+export function makeWallTexture(color = renderer.wallColor) {
+  const palette = WALL_PALETTES[color] || WALL_PALETTES.default;
   const tex = document.createElement("canvas");
   tex.width = 96;
   tex.height = 160;
   const c = tex.getContext("2d");
-  c.fillStyle = "#817667";
+  c.fillStyle = palette.base;
   c.fillRect(0, 0, tex.width, tex.height);
   for (let y = 0; y < tex.height; y += 20) {
     const offset = (y / 20) % 2 ? 20 : 0;
-    c.fillStyle = y % 40 ? "#716756" : "#8b806f";
+    c.fillStyle = y % 40 ? palette.rows[1] : palette.rows[0];
     c.fillRect(0, y, tex.width, 20);
-    c.strokeStyle = "rgba(28,26,23,.62)";
+    c.strokeStyle = palette.mortar;
     c.lineWidth = 2;
     c.beginPath();
     c.moveTo(0, y);
@@ -951,7 +968,7 @@ export function makeWallTexture() {
       c.stroke();
     }
   }
-  c.fillStyle = "rgba(236,220,181,.12)";
+  c.fillStyle = palette.speckle;
   for (let i = 0; i < 230; i++) {
     const x = Math.random() * tex.width;
     const y = Math.random() * tex.height;

@@ -13,11 +13,12 @@ const menu = {
   torchFlickerEnabled: true, torchFuelDisabled: false, presenceDisabled: false, stopwatchVisible: true,
   stairsDownVisible: false, npcsVisible: false,
   mistEnabled: true, mistIntensity: 1, mistDistance: 9, mistColor: "green",
+  wallColor: "default",
   npcTypewriterEnabled: true, npcTypewriterSpeed: "normal",
   actionActive: { random: false, autoReturn: false, torchFull: false, stopwatchReset: false },
   generateRandomDungeon: () => {}, startAutoReturn: () => {}, refillTorch: () => {},
   setScreenShakeEnabled: () => {}, setTorchFlickerEnabled: () => {}, setTorchFuelDisabled: () => {}, setPresenceDisabled: () => {},
-  setMistOptions: () => {},
+  setMistOptions: () => {}, setWallColor: () => {},
   setMinimapRevealOptions: () => {},
   setNpcTypewriterOptions: () => {},
   setStopwatchVisible: () => {}, resetStopwatch: () => {},
@@ -129,6 +130,7 @@ function executeDebug(key, amount = 1) {
   if (key === "mistColor" && menu.mistEnabled) { const colors = ["green", "frost", "poison"]; const index = colors.indexOf(menu.mistColor); menu.mistColor = colors[(Math.max(0, index) + amount + colors.length) % colors.length]; applyMistOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "mistIntensity" && menu.mistEnabled) { menu.mistIntensity = Math.max(.25, Math.min(2, menu.mistIntensity + amount * .25)); applyMistOptions(); updateDebugStates(); persistSettings(); return; }
   if (key === "mistDistance" && menu.mistEnabled) { menu.mistDistance = Math.max(3, Math.min(9, menu.mistDistance + amount)); applyMistOptions(); updateDebugStates(); persistSettings(); return; }
+  if (key === "wallColor") { const colors = ["default", "red", "blue", "green", "white", "black"]; const index = colors.indexOf(menu.wallColor); menu.wallColor = colors[(Math.max(0, index) + amount + colors.length) % colors.length]; applyWallColor(); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchOn") { menu.stopwatchVisible = true; menu.setStopwatchVisible(true); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchOff") { menu.stopwatchVisible = false; menu.setStopwatchVisible(false); updateDebugStates(); persistSettings(); return; }
   if (key === "stopwatchReset") { triggerAction("stopwatchReset", () => { menu.resetStopwatch(); updateDebugStates(); }); return; }
@@ -204,6 +206,8 @@ function updateDebugStates() {
   const mistDistanceSlider = menu.root.querySelector('#mistDistance');
   if (mistIntensity) mistIntensity.textContent = `${Math.round(menu.mistIntensity * 100)}%`;
   if (mistDistance) mistDistance.textContent = `${menu.mistDistance}マス`;
+  const wallColor = menu.root.querySelector('[data-debug-state="wallColor"]');
+  if (wallColor) wallColor.textContent = ({ default: "デフォルト", red: "赤", blue: "青", green: "緑", white: "白", black: "黒" })[menu.wallColor] || "デフォルト";
   menu.root.querySelectorAll('[data-mist-color]').forEach(button => { const selected = button.dataset.mistColor === menu.mistColor; button.classList.toggle("is-active", selected); button.querySelector("i").textContent = selected ? ON_MARK : OFF_MARK; });
   if (mistIntensitySlider) mistIntensitySlider.value = String(Math.round(menu.mistIntensity * 100));
   if (mistDistanceSlider) mistDistanceSlider.value = String(menu.mistDistance);
@@ -221,6 +225,7 @@ function applyRenderOptions() { menu.setScreenShakeEnabled(menu.screenShakeEnabl
 function applyMinimapRevealOptions() { menu.setMinimapRevealOptions({ stairsDown: menu.stairsDownVisible, npcs: menu.npcsVisible }); }
 function applyNpcTypewriterOptions() { menu.setNpcTypewriterOptions({ enabled: menu.npcTypewriterEnabled, speed: menu.npcTypewriterSpeed }); }
 function applyMistOptions() { menu.setMistOptions({ enabled: menu.mistEnabled, intensity: menu.mistIntensity, distance: menu.mistDistance, color: menu.mistColor }); }
+function applyWallColor() { menu.setWallColor(menu.wallColor); }
 
 function applyAllSettings() {
   applyDisplayOptions();
@@ -228,6 +233,7 @@ function applyAllSettings() {
   applyMinimapRevealOptions();
   applyNpcTypewriterOptions();
   applyMistOptions();
+  applyWallColor();
   menu.setTorchFuelDisabled(menu.torchFuelDisabled);
   menu.setPresenceDisabled(menu.presenceDisabled);
   menu.setStopwatchVisible(menu.stopwatchVisible);
@@ -250,6 +256,7 @@ function restoreSettings() {
     else if (Number.isFinite(saved.mistDistance)) menu.mistDistance = 9;
     if (["green", "frost", "poison"].includes(saved.mistColor)) menu.mistColor = saved.mistColor;
     else if (saved.mistColor === "dark") menu.mistColor = "green";
+    if (["default", "red", "blue", "green", "white", "black"].includes(saved.wallColor)) menu.wallColor = saved.wallColor;
     ["bgmVolume", "seVolume"].forEach(id => {
       const slider = menu.root.querySelector(`#${id}`);
       const value = Number(saved[id]);
@@ -278,6 +285,7 @@ function persistSettings() {
       mistIntensity: menu.mistIntensity,
       mistDistance: menu.mistDistance,
       mistColor: menu.mistColor,
+      wallColor: menu.wallColor,
       bgmVolume: Number(menu.root.querySelector("#bgmVolume")?.value || 0),
       seVolume: Number(menu.root.querySelector("#seVolume")?.value || 0)
     };
